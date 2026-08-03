@@ -4,6 +4,44 @@ RecruitOS is a multi-tenant operational SaaS platform built for recruitment agen
 
 ---
 
+## 📁 Directory Structure
+
+Our project cleanly separates the Next.js routing layer from the frontend UI and backend business logic:
+
+```text
+recruitos/
+├── src/
+│   ├── app/                      # Routing Layer (App Router pages & API routes)
+│   │   ├── (auth)/login/         
+│   │   │   └── page.tsx          # Login page route (delegates to frontend/views)
+│   │   ├── cockpit/              
+│   │   │   └── page.tsx          # Dashboard page route (delegates to frontend/views)
+│   │   └── api/v1/               # API Entry points (delegates to backend/controllers)
+│   │       ├── auth/login/route.ts
+│   │       ├── parser/route.ts
+│   │       └── communications/send/route.ts
+│   │
+│   ├── frontend/                 # Frontend Layer (Pure Client-side logic)
+│   │   ├── components/           # Reusable UI elements (Modals, Forms, Dropzone)
+│   │   │   ├── parser-modal.tsx  # Split-screen CV review modal
+│   │   │   └── dropzone.tsx      # File Drag & Drop component
+│   │   ├── views/                # Full page layouts (LoginView, DashboardView)
+│   │   └── styles/               # CSS files and Design tokens (Colors, Typography)
+│   │
+│   ├── backend/                  # Backend Layer (Pure Server-side logic)
+│   │   ├── controllers/          # API Handlers logic
+│   │   ├── services/             # Core services (Gemini parser engine, email service)
+│   │   ├── validation/           # Zod validation schemas
+│   │   └── middleware/           # Auth and Session verification logic
+│   │
+│   ├── db/                       # Database Layer (Drizzle configuration and client)
+│   │   ├── index.ts              # Pool configuration & transaction wrapper
+│   │   ├── schema.ts             # Drizzle models mapping
+│   │   └── schema.sql            # Raw DB policies & RLS setup
+```
+
+---
+
 ## 🚀 Tech Stack
 
 - **Framework**: Next.js (App Router, Type-safe Route Handlers)
