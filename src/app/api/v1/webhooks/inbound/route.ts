@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { db, withTenantTx } from '@/lib/db';
-import { agencyChannels, candidateRecords, communicationLog } from '@/lib/db/schema';
+import { db, withTenantTx } from '@/db';
+import { agencyChannels, candidateRecords, communicationLog } from '@/db/schema';
 import { and, eq } from 'drizzle-orm';
 
 // Zod validation for inbound webhooks (payload sent by providers like WABA or SMTP mailer)
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     const { agencyId } = channelMapping;
 
     // 3. Process database check and insertion under the RLS context for the identified agency
-    const matchResult = await withTenantTx(agencyId, async (tx) => {
+    const matchResult = await withTenantTx(agencyId, async (tx: any) => {
       // Find candidate matching the sender address (phone for WhatsApp, email for Email)
       const matchField = channel === 'whatsapp' ? candidateRecords.phone : candidateRecords.email;
       

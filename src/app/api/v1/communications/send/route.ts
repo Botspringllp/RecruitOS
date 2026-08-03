@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getTenantContext } from '@/lib/auth/tenantContext';
-import { withTenantTx } from '@/lib/db';
-import { candidateRecords, communicationLog } from '@/lib/db/schema';
+import { getTenantContext } from '@/backend/auth/tenant-context';
+import { withTenantTx } from '@/db';
+import { candidateRecords, communicationLog } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import { whatsappProvider, emailProvider } from '@/lib/messaging/provider';
+import { whatsappProvider, emailProvider } from '@/backend/services/messaging/provider';
 
 // Zod schema for validating the outbound message payload
 const sendPayloadSchema = z.object({
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     const { candidateId, channel, body } = result.data;
 
     // 3. Retrieve candidate record under Postgres RLS context
-    const dbResult = await withTenantTx(agencyId, async (tx) => {
+    const dbResult = await withTenantTx(agencyId, async (tx: any) => {
       // Find candidate
       const candidate = await tx.query.candidateRecords.findFirst({
         where: eq(candidateRecords.candidateId, candidateId),

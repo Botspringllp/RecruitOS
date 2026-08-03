@@ -6,12 +6,16 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:seed": "tsx --env-file=.env.local src/db/seed.ts"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@tailwindcss/postcss": "^4.3.3",
     "drizzle-orm": "^0.45.2",
     "jsonwebtoken": "^9.0.3",
     "next": "16.2.12",
+    "pdf-parse": "^2.4.5",
     "pg": "^8.22.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
@@ -20,12 +24,16 @@
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20",
+    "@types/pdf-parse": "^1.1.5",
     "@types/pg": "^8.20.3",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "autoprefixer": "^10.5.4",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.2.12",
+    "postcss": "^8.5.25",
+    "tailwindcss": "^4.3.3",
     "typescript": "^5"
   }
 }

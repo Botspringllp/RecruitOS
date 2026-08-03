@@ -54,7 +54,7 @@ export class StubEmailProvider implements MessagingProvider {
   }
 }
 
-// Swap these instances with real ones (e.g. TwilioWhatsAppProvider / SendGridEmailProvider)
+// Swap these instances with real ones (e.g. MetaWhatsAppProvider / PostmarkEmailProvider)
 // once credentials/tokens are provided by the client.
 export const whatsappProvider: MessagingProvider = new StubWhatsAppProvider();
 export const emailProvider: MessagingProvider = new StubEmailProvider();

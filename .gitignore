@@ -42,5 +42,7 @@ next-env.d.ts
 
 # local design assets and documentation (sensitive files)
 /PRD.pdf
+/PRD.txt
 /*.zip
+/stitch_unified_candidate_messaging_hub.zip
 /stitch-design/
