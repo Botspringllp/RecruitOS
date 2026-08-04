@@ -1,13 +1,21 @@
 import { db } from "./index";
 import { agencies, users, agencyChannels } from "./schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 async function seed() {
   console.log("Starting database seed...");
 
+  // Truncate tables to allow clean re-seeding
+  try {
+    await db.execute(sql`TRUNCATE TABLE users, agencies, agency_channels CASCADE`);
+    console.log("Cleaned existing table data.");
+  } catch (cleanErr) {
+    console.warn("Could not truncate tables (may not exist yet):", cleanErr);
+  }
+
   const demoAgencies = [
-    { agencyId: "11111111-1111-1111-1111-111111111111", agencyName: "Apex Recruitment Partners" },
-    { agencyId: "22222222-2222-2222-2222-222222222222", agencyName: "TechCorp Sourcing" },
+    { agencyId: "11111111-1111-4111-8111-111111111111", agencyName: "Apex Recruitment Partners" },
+    { agencyId: "22222222-2222-4222-8222-222222222222", agencyName: "TechCorp Sourcing" },
   ];
 
   for (const agency of demoAgencies) {
@@ -40,13 +48,13 @@ async function seed() {
           channelId: crypto.randomUUID(),
           agencyId: agency.agencyId,
           channel: "whatsapp",
-          address: agency.agencyId === "11111111-1111-1111-1111-111111111111" ? "+919876543210" : "+918888888888",
+          address: agency.agencyId === "11111111-1111-4111-8111-111111111111" ? "+919876543210" : "+918888888888",
         },
         {
           channelId: crypto.randomUUID(),
           agencyId: agency.agencyId,
           channel: "email",
-          address: agency.agencyId === "11111111-1111-1111-1111-111111111111" ? "inbox@apex.recruitos.com" : "inbox@techcorp.recruitos.com",
+          address: agency.agencyId === "11111111-1111-4111-8111-111111111111" ? "inbox@apex.recruitos.com" : "inbox@techcorp.recruitos.com",
         },
       ]);
       console.log(`Seeded messaging channels for ${agency.agencyName}`);

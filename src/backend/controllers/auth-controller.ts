@@ -6,7 +6,7 @@ import jwt from "jsonwebtoken";
 import { z } from "zod";
 
 const loginSchema = z.object({
-  agencyId: z.string().uuid("Invalid Agency ID format. Must be a valid UUID."),
+  agencyId: z.string().trim().uuid("Invalid Agency ID format. Must be a valid UUID."),
 });
 
 export async function login(req: NextRequest) {

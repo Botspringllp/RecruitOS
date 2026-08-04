@@ -11,12 +11,11 @@ export default function LoginView() {
 
   // Seed agency IDs for testing ease in dev
   const demoAgencies = [
-    { name: "Apex Recruitment Partners", id: "11111111-1111-1111-1111-111111111111" },
-    { name: "TechCorp Sourcing", id: "22222222-2222-2222-2222-222222222222" },
+    { name: "Apex Recruitment Partners", id: "11111111-1111-4111-8111-111111111111" },
+    { name: "TechCorp Sourcing", id: "22222222-2222-4222-8222-222222222222" },
   ];
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const performLogin = async (targetId: string) => {
     setLoading(true);
     setError("");
 
@@ -24,7 +23,7 @@ export default function LoginView() {
       const response = await fetch("/api/v1/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ agencyId }),
+        body: JSON.stringify({ agencyId: targetId.trim() }),
       });
 
       const data = await response.json();
@@ -42,9 +41,14 @@ export default function LoginView() {
     }
   };
 
-  const useDemoAgency = (id: string) => {
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await performLogin(agencyId);
+  };
+
+  const useDemoAgency = async (id: string) => {
     setAgencyId(id);
-    setError("");
+    await performLogin(id);
   };
 
   return (
