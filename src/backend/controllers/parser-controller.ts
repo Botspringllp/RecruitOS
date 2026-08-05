@@ -45,9 +45,11 @@ export async function parseResume(req: NextRequest) {
     if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
       try {
         // @ts-ignore
-        const parseFunc = pdfParse.default || pdfParse;
-        const parsedPdf = await parseFunc(buffer);
+        const PDFParseClass = pdfParse.PDFParse || pdfParse.default?.PDFParse || pdfParse;
+        const parserInstance = new PDFParseClass({ data: buffer });
+        const parsedPdf = await parserInstance.getText();
         rawText = parsedPdf.text || "";
+        await parserInstance.destroy();
       } catch (pdfErr) {
         console.error("Error reading PDF stream:", pdfErr);
         return NextResponse.json({ error: "Failed to read PDF file content" }, { status: 422 });
