@@ -2,6 +2,10 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { sql } from 'drizzle-orm';
 import * as schema from './schema';
+import dns from 'dns';
+
+// Force Node.js to use operating system's DNS lookup order (verbatim) to correctly resolve IPv6-only Supabase hosts.
+dns.setDefaultResultOrder('verbatim');
 
 if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL environment variable is missing.');

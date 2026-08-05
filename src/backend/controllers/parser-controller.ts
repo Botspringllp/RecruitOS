@@ -4,7 +4,8 @@ import { parseResumeText } from "@/backend/services/gemini-parser";
 import { db, withTenantTx } from "@/db";
 import { candidateRecords } from "@/db/schema";
 import { eq, or } from "drizzle-orm";
-// @ts-ignore
+import path from "path";
+import { pathToFileURL } from "url";
 import * as pdfParse from "pdf-parse";
 
 // Strict file limits for security
@@ -46,6 +47,11 @@ export async function parseResume(req: NextRequest) {
       try {
         // @ts-ignore
         const PDFParseClass = pdfParse.PDFParse || pdfParse.default?.PDFParse || pdfParse;
+        
+        // Resolve worker path to a file:// URL to bypass Next.js Windows ESM bundling issues
+        const workerPath = pathToFileURL(path.resolve(process.cwd(), "node_modules/pdfjs-dist/build/pdf.worker.mjs")).href;
+        PDFParseClass.setWorker(workerPath);
+
         const parserInstance = new PDFParseClass({ data: buffer });
         const parsedPdf = await parserInstance.getText();
         rawText = parsedPdf.text || "";

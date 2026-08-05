@@ -1,0 +1,5 @@
+Setting up fake worker failed: "Only URLs with a scheme in: file, data, and node are supported by the default ESM loader. On Windows, absolute paths must be valid file:// URLs. Received protocol 'c:'".
+Error: Setting up fake worker failed: "Only URLs with a scheme in: file, data, and node are supported by the default ESM loader. On Windows, absolute paths must be valid file:// URLs. Received protocol 'c:'".
+    at C:\Users\divya\Desktop\RecruitOS\.next\dev\server\chunks\node_modules_pdfjs-dist_legacy_build_pdf_mjs_1wr0y6b._.js:20320:37
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+{}
