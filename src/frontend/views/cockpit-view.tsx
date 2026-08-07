@@ -1068,6 +1068,110 @@ export default function CockpitView() {
               </div>
             </div>
 
+            {/* WORKFLOW 7: FINANCIAL SETTLEMENTS & PROBATION TRACKER DASHBOARD (RC-06, HC-04, PO-04) */}
+            <div className="bg-[#0B132B] border border-purple-500/40 rounded-xl p-5 space-y-4 shadow-xl text-white">
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 pb-2 border-b border-slate-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="bg-purple-600/30 text-purple-300 p-2 rounded-lg border border-purple-500/40">
+                    <span className="material-symbols-outlined text-[20px]">account_balance_wallet</span>
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-sm text-white uppercase tracking-wide">
+                      Financial Settlements, Probation & Partner Ledgers (RC-06, HC-04, PO-04)
+                    </h3>
+                    <p className="text-xs text-slate-400">Placement billing, 90-day replacement clocks, and split-commission ledgers</p>
+                  </div>
+                </div>
+
+                {/* Restricted Owner Actions Banner */}
+                <div className="bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[10px] font-black px-3 py-1.5 rounded-lg flex items-center gap-1.5 self-start sm:self-auto">
+                  <span className="material-symbols-outlined text-[14px]">lock</span>
+                  Restricted Owner Actions Banner: Financial Alterations & Credit Notes (Owner/TL Only)
+                </div>
+              </div>
+
+              {/* Summary Cards Top Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="bg-slate-900/90 border border-slate-700/80 rounded-xl p-3.5 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">Unbilled Placements</span>
+                    <span className="text-xl font-black text-amber-400">2 Pending Invoice ($30,000)</span>
+                  </div>
+                  <div className="bg-amber-500/20 text-amber-400 p-2 rounded-lg">
+                    <span className="material-symbols-outlined text-[20px]">receipt_long</span>
+                  </div>
+                </div>
+
+                <div className="bg-slate-900/90 border border-slate-700/80 rounded-xl p-3.5 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">Active 90-Day Guarantees</span>
+                    <span className="text-xl font-black text-emerald-400">5 Active Clocks</span>
+                  </div>
+                  <div className="bg-emerald-500/20 text-emerald-400 p-2 rounded-lg">
+                    <span className="material-symbols-outlined text-[20px]">verified</span>
+                  </div>
+                </div>
+
+                <div className="bg-slate-900/90 border border-purple-500/50 rounded-xl p-3.5 flex items-center justify-between bg-purple-950/20">
+                  <div>
+                    <span className="text-[10px] font-extrabold text-purple-300 uppercase tracking-wider block">Frozen Split Payouts</span>
+                    <span className="text-xl font-black text-purple-400">1 Partner Payout FROZEN</span>
+                  </div>
+                  <div className="bg-purple-500/20 text-purple-300 p-2 rounded-lg">
+                    <span className="material-symbols-outlined text-[20px]">lock_reset</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Operational Ledger & Probation Tracker Table Row */}
+              <div className="bg-slate-900/90 border border-slate-800 rounded-xl overflow-hidden">
+                <div className="p-3 bg-slate-800/80 border-b border-slate-700 text-xs font-black uppercase text-slate-300 flex justify-between items-center">
+                  <span>Client & Placement Ledger</span>
+                  <span>Guarantee Status & Operational Action</span>
+                </div>
+
+                <div className="p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800/80 hover:bg-slate-800/30 transition-all">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-black text-white text-sm">Apex Corp</span>
+                      <span className="text-slate-400 text-xs">— Candidate:</span>
+                      <span className="font-extrabold text-amber-300 text-sm">Ankit Sharma</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-slate-400">
+                      <span>Mandate: Senior Backend Lead</span>
+                      <span>•</span>
+                      <span>Joined: 42 Days Ago</span>
+                      <span>•</span>
+                      <span>Placement Fee: $15,000</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                    {/* Status Badge */}
+                    <div className="bg-red-950/80 border border-red-500/60 text-red-300 font-extrabold text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 animate-pulse">
+                      <span className="material-symbols-outlined text-[16px] text-red-400">warning</span>
+                      PROBATION BREACH (Quitted Day 42)
+                    </div>
+
+                    {/* Purple Badge */}
+                    <div className="bg-purple-900/60 border border-purple-500/60 text-purple-200 font-black text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[16px] text-purple-400">pause_circle</span>
+                      Partner Payout FROZEN
+                    </div>
+
+                    {/* Prominent Yellow CTA Button */}
+                    <button
+                      onClick={() => alert("Opening $0 Free Replacement Mandate with past Silver Medalist candidates shortlisted!")}
+                      className="bg-[#FFD400] text-[#0F172A] hover:brightness-110 font-black text-xs px-4 py-2 rounded-lg flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">group_add</span>
+                      View Suggested Silver Medalists for $0 Replacement Mandate (#FFD400)
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Prioritized Task List Bar */}
             {dailyTasks.length > 0 && (
               <div className="space-y-2 pt-2 border-t border-slate-800">

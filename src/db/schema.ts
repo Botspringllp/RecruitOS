@@ -402,6 +402,62 @@ export const complianceDocuments = pgTable('compliance_documents', {
   idxComplianceDocSub: index('idx_compliance_doc_sub').on(t.submissionId),
 }));
 
+// 21. Invoice Records (Workflow 7: Day-1 Placement Invoice Dispatch & Financial Auditing)
+export const invoiceRecords = pgTable('invoice_records', {
+  invoiceId: uuid('invoice_id').defaultRandom().primaryKey(),
+  agencyId: uuid('agency_id')
+    .notNull()
+    .references(() => agencies.agencyId, { onDelete: 'cascade' }),
+  clientId: uuid('client_id')
+    .notNull()
+    .references(() => clientRecords.clientId),
+  submissionId: uuid('submission_id')
+    .notNull()
+    .references(() => candidateSubmissions.submissionId),
+  invoiceNumber: varchar('invoice_number', { length: 100 }).unique().notNull(),
+  amount: numeric('amount', { precision: 12, scale: 2 }).notNull(),
+  status: varchar('status', { length: 50 }).default('Draft').notNull(), // 'Draft', 'Sent', 'Paid', 'Credit_Note_Issued', 'Cancelled'
+  issuedAt: timestamp('issued_at', { withTimezone: true }),
+  paidAt: timestamp('paid_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => ({
+  idxInvoiceAgency: index('idx_invoice_agency').on(t.agencyId),
+  idxInvoiceSub: index('idx_invoice_sub').on(t.submissionId),
+}));
+
+// 22. Probation Guarantee Trackers (Workflow 7: 90-Day Probation Guarantee Clock & Milestone Tracker)
+export const probationGuaranteeTrackers = pgTable('probation_guarantee_trackers', {
+  guaranteeId: uuid('guarantee_id').defaultRandom().primaryKey(),
+  submissionId: uuid('submission_id')
+    .notNull()
+    .references(() => candidateSubmissions.submissionId, { onDelete: 'cascade' }),
+  joiningDate: timestamp('joining_date', { withTimezone: true }).notNull(),
+  expiryDate: timestamp('expiry_date', { withTimezone: true }).notNull(),
+  status: varchar('status', { length: 50 }).default('Active_Probation').notNull(), // 'Active_Probation', 'Completed', 'Breached_Quitted'
+  replacementMandateId: uuid('replacement_mandate_id').references(() => jobMandates.jobId),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => ({
+  idxProbationSub: index('idx_probation_sub').on(t.submissionId),
+}));
+
+// 23. Partner Split Ledgers (Workflow 7: Split-Fee Ledger & Auto-Settlement Interlink)
+export const partnerSplitLedgers = pgTable('partner_split_ledgers', {
+  ledgerId: uuid('ledger_id').defaultRandom().primaryKey(),
+  submissionId: uuid('submission_id')
+    .notNull()
+    .references(() => candidateSubmissions.submissionId, { onDelete: 'cascade' }),
+  shareId: uuid('share_id')
+    .notNull()
+    .references(() => partnerMandateShares.shareId),
+  partnerShareAmount: numeric('partner_share_amount', { precision: 12, scale: 2 }).notNull(),
+  payoutStatus: varchar('payout_status', { length: 50 }).default('Pending_Client_Payment').notNull(), // 'Pending_Client_Payment', 'Frozen_Probation_Breach', 'Ready_For_Payout', 'Paid'
+  updatedByUserId: uuid('updated_by_user_id').references(() => users.userId),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => ({
+  idxPartnerLedgerSub: index('idx_partner_ledger_sub').on(t.submissionId),
+}));
+
+
 
 
 
