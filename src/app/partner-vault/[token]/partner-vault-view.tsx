@@ -57,10 +57,25 @@ export default function PartnerVaultView({ token }: PartnerVaultViewProps) {
     setSubmitSuccess(false);
 
     try {
-      // Simulate/Trigger submission integration (PO-02 groundwork)
-      // We will parse name, email, phone, and files.
-      // For now, we mock success state with details.
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const payload = {
+        fullName,
+        email,
+        phone,
+      };
+
+      const res = await fetch(`/api/v1/public/partner/${token}/submit`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to submit candidate.");
+      }
+
       setSubmitSuccess(true);
       setFullName("");
       setEmail("");

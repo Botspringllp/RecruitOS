@@ -55,6 +55,8 @@ export const candidateRecords = pgTable('candidate_records', {
   currentCtc: numeric('current_ctc', { precision: 12, scale: 2 }),
   expectedCtc: numeric('expected_ctc', { precision: 12, scale: 2 }),
   resumeUrl: text('resume_url'),
+  sourceType: varchar('source_type', { length: 50 }).default('Direct_Upload'), // 'Direct_Upload', 'Partner_Vault', 'Job_Board'
+  sourcePartnerEmail: varchar('source_partner_email', { length: 255 }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 }, (t) => ({
@@ -180,6 +182,7 @@ export const candidateSubmissions = pgTable('candidate_submissions', {
   candidateId: uuid('candidate_id')
     .notNull()
     .references(() => candidateRecords.candidateId, { onDelete: 'cascade' }),
+  sourceShareId: uuid('source_share_id').references(() => partnerMandateShares.shareId, { onDelete: 'set null' }),
   stage: varchar('stage', { length: 50 }).default('Screened').notNull(), // 'Screened' | 'Submitted' | 'Interviewing' | 'Offered' | 'Joined' | 'Rejected'
   stageUpdatedAt: timestamp('stage_updated_at', { withTimezone: true }).defaultNow(),
   lastCommunicationAt: timestamp('last_communication_at', { withTimezone: true }).defaultNow(),
