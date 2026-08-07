@@ -73,6 +73,7 @@ export default function CockpitView() {
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [chasingId, setChasingId] = useState<string | null>(null);
+  const [generatingClientToken, setGeneratingClientToken] = useState(false);
 
   // Job Board Broadcasting states
   const [postings, setPostings] = useState<any[]>([]);
@@ -391,6 +392,27 @@ export default function CockpitView() {
       setBroadcastMessage(err.message || "An unexpected error occurred.");
     } finally {
       setBroadcasting(false);
+    }
+  };
+
+  const handleGenerateClientPortalLink = async () => {
+    if (!selectedJobId) return;
+    try {
+      setGeneratingClientToken(true);
+      const res = await fetch(`/api/v1/jobs/${selectedJobId}/client-portal-token`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (res.ok && data.reviewUrl) {
+        await navigator.clipboard.writeText(data.reviewUrl);
+        alert(`✔ Zero-Login Client Portal Magic Link Generated & Copied to Clipboard!\n\nLink: ${data.reviewUrl}\nExpires: 14 Days Policy`);
+      } else {
+        alert(`Error: ${data.error || "Failed to generate link"}`);
+      }
+    } catch (err: any) {
+      alert(`Error: ${err.message}`);
+    } finally {
+      setGeneratingClientToken(false);
     }
   };
 
@@ -736,6 +758,15 @@ export default function CockpitView() {
                 >
                   <span className="material-symbols-outlined text-[16px]">gavel</span>
                   Owner Conversion
+                </button>
+
+                <button
+                  onClick={handleGenerateClientPortalLink}
+                  disabled={generatingClientToken || !selectedJobId}
+                  className="bg-emerald-600 text-white text-xs font-black px-3 py-2 rounded-lg flex items-center gap-1.5 hover:bg-emerald-700 active:scale-95 transition-all cursor-pointer border border-emerald-700 shadow-sm ml-2 disabled:opacity-50"
+                >
+                  <span className="material-symbols-outlined text-[16px]">link</span>
+                  {generatingClientToken ? "Generating Link..." : "Client Portal Link"}
                 </button>
 
                 {postings.filter(p => p.jobId === selectedJobId).length > 0 && (

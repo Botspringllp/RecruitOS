@@ -212,6 +212,7 @@ export const candidateSubmissions = pgTable('candidate_submissions', {
   stage: varchar('stage', { length: 50 }).default('Screened').notNull(), // 'Screened' | 'Submitted' | 'Interviewing' | 'Offered' | 'Joined' | 'Rejected'
   riskStatus: varchar('risk_status', { length: 50 }).default('NORMAL').notNull(), // 'NORMAL' | 'HIGH_RISK'
   riskReason: text('risk_reason'),
+  rejectionReason: text('rejection_reason'),
   stageUpdatedAt: timestamp('stage_updated_at', { withTimezone: true }).defaultNow(),
   lastCommunicationAt: timestamp('last_communication_at', { withTimezone: true }).defaultNow(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
@@ -289,6 +290,39 @@ export const storefrontCandidateApplications = pgTable('storefront_candidate_app
 }, (t) => ({
   idxStorefrontCandAgency: index('idx_storefront_cand_agency').on(t.agencyId),
 }));
+
+// 14. Client Portal Access Tokens (Zero-Login Shortlist Review)
+export const clientPortalTokens = pgTable('client_portal_tokens', {
+  tokenId: uuid('token_id').defaultRandom().primaryKey(),
+  agencyId: uuid('agency_id')
+    .notNull()
+    .references(() => agencies.agencyId, { onDelete: 'cascade' }),
+  jobId: uuid('job_id')
+    .notNull()
+    .references(() => jobMandates.jobId, { onDelete: 'cascade' }),
+  tokenHash: varchar('token_hash', { length: 64 }).unique().notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => ({
+  idxClientPortalTokenHash: index('idx_client_portal_token_hash').on(t.tokenHash),
+  idxClientPortalTokenJob: index('idx_client_portal_token_job').on(t.jobId),
+}));
+
+// 15. Proposed Interview Slots (Client Drop 3 Slots & Candidate Selection)
+export const proposedInterviewSlots = pgTable('proposed_interview_slots', {
+  slotId: uuid('slot_id').defaultRandom().primaryKey(),
+  submissionId: uuid('submission_id')
+    .notNull()
+    .references(() => candidateSubmissions.submissionId, { onDelete: 'cascade' }),
+  interviewerEmail: varchar('interviewer_email', { length: 255 }).notNull(),
+  startTime: timestamp('start_time', { withTimezone: true }).notNull(),
+  endTime: timestamp('end_time', { withTimezone: true }).notNull(),
+  status: varchar('status', { length: 30 }).default('Proposed').notNull(), // 'Proposed', 'Accepted', 'RejectedByCandidate'
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => ({
+  idxProposedSlotsSub: index('idx_proposed_slots_sub').on(t.submissionId),
+}));
+
 
 
 
