@@ -71,6 +71,44 @@ export default function CockpitView() {
   const [shareSuccessMessage, setShareSuccessMessage] = useState("");
   const [generatedMagicLink, setGeneratedMagicLink] = useState("");
 
+  // Mandate Conversion (AS-02 Owner Verification) States
+  const [convertModalOpen, setConvertModalOpen] = useState(false);
+  const [converting, setConverting] = useState(false);
+  const [convertSuccessMsg, setConvertSuccessMsg] = useState("");
+  const [agreedFee, setAgreedFee] = useState("8.33");
+
+  const handleConvertInboundMandate = async () => {
+    if (!selectedJobId) return;
+    setConverting(true);
+    setConvertSuccessMsg("");
+    try {
+      const response = await fetch(`/api/v1/mandates/${selectedJobId}/convert`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-role": "owner" // Owner Verification locked rule
+        },
+        body: JSON.stringify({
+          agreedFeePercentage: agreedFee,
+        }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setConvertSuccessMsg("Mandate approved! Client record created & onboarding emails/WhatsApp dispatched.");
+        setTimeout(() => {
+          loadCockpitData();
+          setConvertModalOpen(false);
+        }, 1800);
+      } else {
+        throw new Error(data.error || "Failed to convert mandate");
+      }
+    } catch (err: any) {
+      setConvertSuccessMsg(`Error: ${err.message}`);
+    } finally {
+      setConverting(false);
+    }
+  };
+
   const openPartnerShareModal = () => {
     const selectedJob = jobs.find(j => j.jobId === selectedJobId);
     if (selectedJob) {
@@ -489,6 +527,14 @@ export default function CockpitView() {
                 >
                   <span className="material-symbols-outlined text-[16px]">share</span>
                   Share Mandate
+                </button>
+
+                <button
+                  onClick={() => setConvertModalOpen(true)}
+                  className="bg-amber-400 text-[#0F172A] text-xs font-black px-3 py-2 rounded-lg flex items-center gap-1.5 hover:brightness-95 active:scale-95 transition-all cursor-pointer border border-amber-500 shadow-sm ml-2"
+                >
+                  <span className="material-symbols-outlined text-[16px]">gavel</span>
+                  Owner Conversion
                 </button>
 
                 {postings.filter(p => p.jobId === selectedJobId).length > 0 && (
@@ -1378,6 +1424,114 @@ export default function CockpitView() {
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL OVERLAY: Convert Inbound Hiring Mandate (AS-02 Locked Rule) */}
+      {convertModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-8 modal-overlay">
+          <div className="bg-white w-full max-w-lg rounded-xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in duration-300">
+            {/* Header */}
+            <div className="bg-[#0F172A] px-6 py-4 flex justify-between items-center text-white">
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-[#FFD400]">gavel</span>
+                <div>
+                  <h2 className="font-headline-md text-[16px] font-bold text-[#FFD400]">Convert Inbound Hiring Mandate</h2>
+                  <p className="text-[10px] text-slate-400">AS-02 Locked Owner Verification & Intake Approval</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="bg-amber-400/20 text-amber-300 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider border border-amber-400/30">
+                  Owner Restricted
+                </span>
+                <button 
+                  onClick={() => setConvertModalOpen(false)}
+                  className="p-1 hover:bg-white/10 rounded transition-colors text-white cursor-pointer"
+                >
+                  <span className="material-symbols-outlined">close</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-5 overflow-y-auto max-h-[80vh] custom-scrollbar">
+              <p className="text-xs text-on-surface-variant leading-relaxed">
+                Review and approve inbound client intake requirements. Upon owner acceptance, the system automatically creates the client account record and dispatches onboarding packages via Email & WhatsApp.
+              </p>
+
+              {convertSuccessMsg && (
+                <div className={`p-3 rounded text-xs font-semibold flex items-center gap-2 ${
+                  convertSuccessMsg.startsWith("Error") ? "bg-red-50 text-red-800 border border-red-100" : "bg-emerald-50 text-emerald-800 border border-emerald-100"
+                }`}>
+                  <span className="material-symbols-outlined text-[16px]">
+                    {convertSuccessMsg.startsWith("Error") ? "error" : "check_circle"}
+                  </span>
+                  {convertSuccessMsg}
+                </div>
+              )}
+
+              {/* Submission Summary Card */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Inbound Client</span>
+                    <h3 className="text-base font-extrabold text-slate-900">
+                      {jobs.find(j => j.jobId === selectedJobId)?.clientName || "Apex Cloud Labs"}
+                    </h3>
+                  </div>
+                  <span className="bg-slate-200 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded">
+                    Status: {jobs.find(j => j.jobId === selectedJobId)?.status || "Unreviewed Inbound"}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 text-xs pt-1 border-t border-slate-200/60">
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-semibold block">Role Requirement</span>
+                    <span className="font-bold text-slate-800">
+                      {jobs.find(j => j.jobId === selectedJobId)?.title || "Sr Backend Lead"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-semibold block">Selected Term</span>
+                    <span className="font-bold text-amber-700">
+                      {jobs.find(j => j.jobId === selectedJobId)?.selectedTerms || "Priority Retainer (5% Upfront)"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="text-xs pt-1 border-t border-slate-200/60 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-slate-400 text-[16px]">contacts</span>
+                  <span className="text-slate-600">
+                    HR Contact: <strong className="text-slate-800">{jobs.find(j => j.jobId === selectedJobId)?.primaryHrName || "Alex"}</strong> ({jobs.find(j => j.jobId === selectedJobId)?.primaryHrEmail || "alex@client.com"})
+                  </span>
+                </div>
+              </div>
+
+              {/* Commercial Fee Setup */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Agreed Commercial Fee Percentage (%)</label>
+                <div className="flex gap-2 items-center">
+                  <input 
+                    type="number" 
+                    step="0.01"
+                    value={agreedFee} 
+                    onChange={(e) => setAgreedFee(e.target.value)} 
+                    className="w-32 px-3.5 py-2.5 bg-white border border-outline-variant rounded-lg text-xs font-bold focus:outline-none focus:ring-2 focus:ring-secondary-container/20 transition-all text-on-surface"
+                  />
+                  <span className="text-xs text-slate-500 font-semibold">% of Annual CTC</span>
+                </div>
+              </div>
+
+              {/* Primary CTA */}
+              <button
+                onClick={handleConvertInboundMandate}
+                disabled={converting}
+                className="w-full bg-[#FFD400] text-primary-container font-extrabold py-3.5 rounded-lg hover:brightness-95 active:scale-95 transition-all shadow-md text-xs tracking-wider uppercase disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {converting ? "Processing Account Onboarding..." : "Approve Mandate & Send Client Onboarding Package"}
+              </button>
             </div>
           </div>
         </div>

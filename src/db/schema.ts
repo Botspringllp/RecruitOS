@@ -20,7 +20,25 @@ export const users = pgTable('users', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
 });
 
-// 3. Candidate Records
+// 3. Client Records
+export const clientRecords = pgTable('client_records', {
+  clientId: uuid('client_id').defaultRandom().primaryKey(),
+  agencyId: uuid('agency_id')
+    .notNull()
+    .references(() => agencies.agencyId, { onDelete: 'cascade' }),
+  companyName: varchar('company_name', { length: 255 }).notNull(),
+  primaryHrName: varchar('primary_hr_name', { length: 255 }).notNull(),
+  primaryHrEmail: varchar('primary_hr_email', { length: 255 }).notNull(),
+  primaryHrPhone: varchar('primary_hr_phone', { length: 50 }).notNull(),
+  agreedFeePercentage: numeric('agreed_fee_percentage', { precision: 5, scale: 2 }).default('8.33'),
+  billingAddress: text('billing_address'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => ({
+  clientCompanyIdx: index('idx_client_company').on(t.agencyId, t.companyName),
+  clientEmailIdx: index('idx_client_email').on(t.agencyId, t.primaryHrEmail),
+}));
+
+// 4. Candidate Records
 export const candidateRecords = pgTable('candidate_records', {
   candidateId: uuid('candidate_id').defaultRandom().primaryKey(),
   agencyId: uuid('agency_id')
@@ -44,15 +62,29 @@ export const candidateRecords = pgTable('candidate_records', {
   agencyEmailIdx: index('idx_candidate_email').on(t.agencyId, t.email),
 }));
 
-// 4. Job Mandates
+// 5. Job Mandates
 export const jobMandates = pgTable('job_mandates', {
   jobId: uuid('job_id').defaultRandom().primaryKey(),
   agencyId: uuid('agency_id')
     .notNull()
     .references(() => agencies.agencyId, { onDelete: 'cascade' }),
+  clientId: uuid('client_id').references(() => clientRecords.clientId, { onDelete: 'cascade' }),
+  assignedRecruiterId: uuid('assigned_recruiter_id').references(() => users.userId),
   title: varchar('title', { length: 255 }).notNull(),
   clientName: varchar('client_name', { length: 255 }),
-  status: varchar('status', { length: 50 }).default('Open'),
+  primaryHrName: varchar('primary_hr_name', { length: 255 }),
+  primaryHrEmail: varchar('primary_hr_email', { length: 255 }),
+  primaryHrPhone: varchar('primary_hr_phone', { length: 50 }),
+  selectedTerms: varchar('selected_terms', { length: 255 }),
+  targetLocation: varchar('target_location', { length: 255 }),
+  minExpYears: integer('min_exp_years').default(0),
+  maxExpYears: integer('max_exp_years'),
+  minFixedCtc: numeric('min_fixed_ctc', { precision: 12, scale: 2 }),
+  maxFixedCtc: numeric('max_fixed_ctc', { precision: 12, scale: 2 }),
+  openPositions: integer('open_positions').default(1),
+  slaDeadline: timestamp('sla_deadline', { withTimezone: true }),
+  status: varchar('status', { length: 50 }).default('Unreviewed Inbound'), // 'Unreviewed Inbound', 'Active', 'On Hold', 'Closed'
+  stageUpdatedAt: timestamp('stage_updated_at', { withTimezone: true }).defaultNow(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
 });
 

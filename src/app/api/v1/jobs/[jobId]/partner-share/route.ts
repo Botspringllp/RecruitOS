@@ -67,6 +67,18 @@ export async function POST(
         throw new Error("Job mandate not found or unauthorized access");
       }
 
+      // PO-01 Role Enforcement: Restricted to Owner, Admin, Team Lead, OR Assigned Recruiter
+      const userRoleHeader = req.headers.get("x-user-role");
+      let userRole = userRoleHeader || "recruiter";
+
+      // PO-01 RULE: Check if standard recruiter is the assigned recruiter
+      const allowedRoles = ["owner", "admin", "team_lead"];
+      if (!allowedRoles.includes(userRole.toLowerCase())) {
+        if (jobList[0].assignedRecruiterId !== tenant.userId) {
+           throw new Error("Forbidden: Restricted to Agency Owners, Team Leads, or the Assigned Recruiter for this mandate (PO-01 Rule).");
+        }
+      }
+
       // Generate cryptographically secure token
       const rawToken = crypto.randomBytes(32).toString("hex");
       const accessTokenHash = hashToken(rawToken);
