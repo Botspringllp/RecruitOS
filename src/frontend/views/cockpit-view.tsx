@@ -75,6 +75,15 @@ export default function CockpitView() {
   const [chasingId, setChasingId] = useState<string | null>(null);
   const [generatingClientToken, setGeneratingClientToken] = useState(false);
 
+  // Workflow 5: Stage-Gate Enforcement & Interview Outcome states
+  const [stageGateModalOpen, setStageGateModalOpen] = useState(false);
+  const [targetSubmissionForGate, setTargetSubmissionForGate] = useState<any>(null);
+  const [targetStageForGate, setTargetStageForGate] = useState("Offered");
+  const [selectedOutcomeStatus, setSelectedOutcomeStatus] = useState("Completed");
+  const [outcomeNotes, setOutcomeNotes] = useState("");
+  const [isOwnerOverrideToggle, setIsOwnerOverrideToggle] = useState(false);
+  const [submittingGateAction, setSubmittingGateAction] = useState(false);
+
   // Job Board Broadcasting states
   const [postings, setPostings] = useState<any[]>([]);
   const [broadcastModalOpen, setBroadcastModalOpen] = useState(false);
@@ -413,6 +422,77 @@ export default function CockpitView() {
       alert(`Error: ${err.message}`);
     } finally {
       setGeneratingClientToken(false);
+    }
+  };
+
+  const handleAttemptStageChange = async (submission: any, targetStage: string) => {
+    try {
+      const res = await fetch(`/api/v1/submissions/${submission.submissionId}/stage`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetStage }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        alert(`✔ Candidate stage updated to '${targetStage}'!`);
+        await loadCockpitData();
+      } else if (res.status === 403 && data.code === "STAGE_GATE_BLOCKED") {
+        // Trigger Stage Gate Enforcement Modal
+        setTargetSubmissionForGate(submission);
+        setTargetStageForGate(targetStage);
+        setStageGateModalOpen(true);
+      } else {
+        alert(`Error: ${data.error || "Failed to update stage"}`);
+      }
+    } catch (err: any) {
+      alert(`Stage transition error: ${err.message}`);
+    }
+  };
+
+  const handleSaveInterviewOutcomeAndAdvance = async () => {
+    if (!targetSubmissionForGate) return;
+    try {
+      setSubmittingGateAction(true);
+
+      if (!isOwnerOverrideToggle) {
+        // Record Explicit Interview Outcome First
+        const outcomeRes = await fetch(`/api/v1/submissions/${targetSubmissionForGate.submissionId}/interview-outcome`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            outcomeStatus: selectedOutcomeStatus,
+            notes: outcomeNotes,
+          }),
+        });
+
+        if (!outcomeRes.ok) {
+          const outcomeData = await outcomeRes.json();
+          throw new Error(outcomeData.error || "Failed to log interview outcome");
+        }
+      }
+
+      // Now Attempt Stage Progression (With Owner Override if selected)
+      const stageRes = await fetch(`/api/v1/submissions/${targetSubmissionForGate.submissionId}/stage`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          targetStage: targetStageForGate,
+          isOwnerOverride: isOwnerOverrideToggle,
+          overrideReason: outcomeNotes || "Owner Discretion Override",
+        }),
+      });
+
+      const stageData = await stageRes.json();
+      if (!stageRes.ok) throw new Error(stageData.error || "Stage update failed");
+
+      alert(`✔ ${stageData.message}`);
+      setStageGateModalOpen(false);
+      await loadCockpitData();
+    } catch (err: any) {
+      alert(`Stage Gate Error: ${err.message}`);
+    } finally {
+      setSubmittingGateAction(false);
     }
   };
 
@@ -2296,6 +2376,114 @@ export default function CockpitView() {
                 ) : (
                   <span className="material-symbols-outlined text-[18px]">send</span>
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* WORKFLOW 5: STAGE-GATE ENFORCEMENT & INTERVIEW OUTCOME MODAL */}
+      {stageGateModalOpen && targetSubmissionForGate && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl animate-in zoom-in-95">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <h3 className="font-extrabold text-sm text-red-600 flex items-center gap-1.5">
+                <span className="material-symbols-outlined">gavel</span>
+                Strict Stage-Gate Enforcement Guard
+              </h3>
+              <button onClick={() => setStageGateModalOpen(false)} className="text-slate-400 font-bold text-xs">
+                ✕
+              </button>
+            </div>
+
+            <div className="bg-red-50 border border-red-200 p-3 rounded-xl text-xs text-red-900 space-y-1">
+              <p className="font-bold">
+                Cannot advance candidate to '{targetStageForGate}'!
+              </p>
+              <p className="text-[11px] text-red-800">
+                An explicit interview outcome (Completed, Rescheduled, or Rejected) MUST be recorded before issuing an offer or stage progression.
+              </p>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="flex justify-between items-center bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                <span className="font-bold text-slate-700">Require Owner / Team Lead Override?</span>
+                <label className="flex items-center gap-2 cursor-pointer font-bold text-amber-700">
+                  <input
+                    type="checkbox"
+                    checked={isOwnerOverrideToggle}
+                    onChange={(e) => setIsOwnerOverrideToggle(e.target.checked)}
+                    className="accent-amber-500 h-4 w-4"
+                  />
+                  Bypass Gate
+                </label>
+              </div>
+
+              {!isOwnerOverrideToggle ? (
+                <div className="space-y-2">
+                  <label className="font-extrabold text-slate-800 uppercase tracking-wider block text-[10px]">
+                    Record Explicit Interview Outcome *
+                  </label>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { status: "Completed", label: "Completed", icon: "check_circle", color: "border-emerald-500 bg-emerald-50 text-emerald-900" },
+                      { status: "Rescheduled", label: "Rescheduled", icon: "event_repeat", color: "border-blue-500 bg-blue-50 text-blue-900" },
+                      { status: "No_Show", label: "Interview No-Show", icon: "person_off", color: "border-red-500 bg-red-50 text-red-900" },
+                      { status: "Rejected_Post_Interview", label: "Rejected Post-Interview", icon: "cancel", color: "border-slate-500 bg-slate-100 text-slate-900" },
+                    ].map((item) => (
+                      <button
+                        key={item.status}
+                        type="button"
+                        onClick={() => setSelectedOutcomeStatus(item.status)}
+                        className={`p-3 rounded-xl border text-left font-bold text-xs flex items-center gap-2 cursor-pointer transition-all ${
+                          selectedOutcomeStatus === item.status ? item.color + " ring-2 ring-slate-900" : "border-slate-200 bg-white text-slate-700"
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-sm">{item.icon}</span>
+                        <span className="truncate">{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-600 block mb-1">Debrief / Interview Notes</label>
+                    <textarea
+                      rows={2}
+                      value={outcomeNotes}
+                      onChange={(e) => setOutcomeNotes(e.target.value)}
+                      placeholder="Enter technical interview feedback..."
+                      className="w-full p-2.5 border border-slate-300 rounded-xl text-xs"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-amber-50 border border-amber-300 p-3 rounded-xl text-xs space-y-2">
+                  <span className="font-bold text-amber-900 block">Owner Override Details</span>
+                  <input
+                    type="text"
+                    value={outcomeNotes}
+                    onChange={(e) => setOutcomeNotes(e.target.value)}
+                    placeholder="Enter audit justification for bypassing stage gate..."
+                    className="w-full p-2.5 border border-amber-300 rounded-xl text-xs bg-white"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="pt-2 flex gap-2">
+              <button
+                onClick={() => setStageGateModalOpen(false)}
+                className="flex-1 py-2.5 border border-slate-300 text-slate-700 text-xs font-bold rounded-xl"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveInterviewOutcomeAndAdvance}
+                disabled={submittingGateAction}
+                className="flex-1 py-2.5 bg-[#0F172A] text-[#FFD400] text-xs font-black rounded-xl hover:brightness-110 transition-all shadow-md"
+              >
+                {submittingGateAction ? "Processing..." : "Save & Advance Stage"}
               </button>
             </div>
           </div>

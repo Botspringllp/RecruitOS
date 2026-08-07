@@ -323,6 +323,39 @@ export const proposedInterviewSlots = pgTable('proposed_interview_slots', {
   idxProposedSlotsSub: index('idx_proposed_slots_sub').on(t.submissionId),
 }));
 
+// 16. Interview Schedules (Workflow 5: Stage-Gate & Prep Tracking)
+export const interviewSchedules = pgTable('interview_schedules', {
+  interviewId: uuid('interview_id').defaultRandom().primaryKey(),
+  submissionId: uuid('submission_id')
+    .notNull()
+    .references(() => candidateSubmissions.submissionId, { onDelete: 'cascade' }),
+  confirmedSlotId: uuid('confirmed_slot_id').references(() => proposedInterviewSlots.slotId, { onDelete: 'set null' }),
+  meetingLink: varchar('meeting_link', { length: 512 }),
+  outcomeStatus: varchar('outcome_status', { length: 50 }).default('Scheduled').notNull(), // 'Scheduled', 'Completed', 'Rescheduled', 'No_Show', 'Rejected_Post_Interview'
+  candidatePrepAcknowledged: boolean('candidate_prep_acknowledged').default(false).notNull(),
+  prepToken: varchar('prep_token', { length: 64 }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+}, (t) => ({
+  idxInterviewScheduleSub: index('idx_interview_schedule_sub').on(t.submissionId),
+}));
+
+// 17. Interview Debriefs (Post-Interview Candidate Survey & Voice Notes)
+export const interviewDebriefs = pgTable('interview_debriefs', {
+  debriefId: uuid('debrief_id').defaultRandom().primaryKey(),
+  interviewId: uuid('interview_id')
+    .notNull()
+    .references(() => interviewSchedules.interviewId, { onDelete: 'cascade' }),
+  rating: integer('rating'), // 1 to 5
+  interestLevel: varchar('interest_level', { length: 50 }).notNull(), // '100% Excited', 'Have Doubts', 'Not Interested'
+  candidateNotes: text('candidate_notes'),
+  voiceNoteUrl: varchar('voice_note_url', { length: 512 }),
+  submittedAt: timestamp('submitted_at', { withTimezone: true }).defaultNow(),
+}, (t) => ({
+  idxDebriefInterview: index('idx_debrief_interview').on(t.interviewId),
+}));
+
+
 
 
 

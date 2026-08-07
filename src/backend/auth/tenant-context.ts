@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 export interface TenantContext {
   agencyId: string;
   userId: string;
+  userRole?: string;
 }
 
 /**
