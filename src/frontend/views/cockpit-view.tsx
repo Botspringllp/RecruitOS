@@ -996,6 +996,78 @@ export default function CockpitView() {
               </div>
             </div>
 
+            {/* WORKFLOW 6: NOTICE PERIOD RISK RADAR (RC-05, CE-04, 2-TIER ESCALATION) */}
+            <div className="bg-[#0B132B] border border-red-500/40 rounded-xl p-4 space-y-3">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-red-400 animate-pulse text-[18px]">radar</span>
+                  <h4 className="font-extrabold text-xs text-white uppercase tracking-wider">
+                    Notice Period Risk Radar (RC-05 & CE-04)
+                  </h4>
+                </div>
+                <span className="bg-red-500/20 text-red-300 text-[10px] font-extrabold px-2.5 py-0.5 rounded border border-red-500/40">
+                  2-Tier Unresponded Escalation Radar
+                </span>
+              </div>
+
+              {/* Horizontal Timeline Bar */}
+              <div className="bg-slate-900/90 border border-slate-700/80 p-4 rounded-xl space-y-3">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-extrabold text-white">Vikram Malhotra — Day 35 of 60</span>
+                  <span className="bg-amber-400/20 text-amber-300 text-[10px] font-black px-2 py-0.5 rounded border border-amber-400/30">
+                    60-Day Notice Period
+                  </span>
+                </div>
+
+                {/* Timeline Milestones */}
+                <div className="relative pt-2 pb-1">
+                  <div className="h-2 bg-slate-800 rounded-full w-full overflow-hidden flex">
+                    <div className="w-[25%] bg-emerald-500"></div>
+                    <div className="w-[33%] bg-red-500 animate-pulse"></div>
+                    <div className="w-[42%] bg-slate-700"></div>
+                  </div>
+
+                  <div className="flex justify-between text-[11px] font-bold mt-2.5">
+                    {/* Day 15 Milestone */}
+                    <div className="flex items-center gap-1 text-emerald-400 bg-emerald-950/60 px-2 py-1 rounded border border-emerald-500/30">
+                      <span className="material-symbols-outlined text-[14px]">check_circle</span>
+                      <span>Day 15: Resignation Confirmed</span>
+                    </div>
+
+                    {/* Day 35 Milestone */}
+                    <div className="flex items-center gap-1 text-red-400 bg-red-950/80 px-2.5 py-1 rounded border border-red-500/60 animate-bounce">
+                      <span className="material-symbols-outlined text-[14px]">error</span>
+                      <span>Day 35: HIGH RISK: Unresponded to 2nd Pulse Check Attempt</span>
+                    </div>
+
+                    {/* Day 60 Milestone */}
+                    <div className="text-slate-400 text-[10px] self-center">
+                      Day 60: Joining Date
+                    </div>
+                  </div>
+                </div>
+
+                {/* Escalation Notice & Action Button */}
+                <div className="bg-red-950/40 border border-red-500/50 p-3 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5 text-red-200 text-xs">
+                    <span className="material-symbols-outlined text-red-400 text-[18px]">campaign</span>
+                    <div>
+                      <span className="font-black text-red-400 uppercase tracking-wider block text-[10px]">Escalation Notice Box</span>
+                      <span className="font-extrabold text-white">Escalated to Team Lead — Revenue Risk $15,000</span>
+                    </div>
+                  </div>
+
+                  <a
+                    href="tel:+15554443333"
+                    className="bg-[#FFD400] text-[#0F172A] hover:brightness-110 font-black px-4 py-2 rounded-lg text-xs flex items-center justify-center gap-1.5 shadow-md transition-all active:scale-95 cursor-pointer text-center"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">call</span>
+                    Call Candidate Immediately (#FFD400)
+                  </a>
+                </div>
+              </div>
+            </div>
+
             {/* Prioritized Task List Bar */}
             {dailyTasks.length > 0 && (
               <div className="space-y-2 pt-2 border-t border-slate-800">

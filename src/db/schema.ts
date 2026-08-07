@@ -355,6 +355,54 @@ export const interviewDebriefs = pgTable('interview_debriefs', {
   idxDebriefInterview: index('idx_debrief_interview').on(t.interviewId),
 }));
 
+// 18. Job Offer Audits (Workflow 6: Offer CTC Audit & Placement Fee Calculation)
+export const jobOfferAudits = pgTable('job_offer_audits', {
+  auditId: uuid('audit_id').defaultRandom().primaryKey(),
+  submissionId: uuid('submission_id')
+    .notNull()
+    .references(() => candidateSubmissions.submissionId, { onDelete: 'cascade' }),
+  offeredFixedCtc: numeric('offered_fixed_ctc', { precision: 12, scale: 2 }).notNull(),
+  offeredVariableCtc: numeric('offered_variable_ctc', { precision: 12, scale: 2 }).default('0.00'),
+  agreedFeePercentage: numeric('agreed_fee_percentage', { precision: 5, scale: 2 }).notNull(),
+  calculatedPlacementFee: numeric('calculated_placement_fee', { precision: 12, scale: 2 }).notNull(),
+  joiningDate: timestamp('joining_date', { withTimezone: true }).notNull(),
+  signedOfferUrl: varchar('signed_offer_url', { length: 512 }).notNull(),
+  approvalStatus: varchar('approval_status', { length: 50 }).default('Approved').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => ({
+  idxOfferAuditSub: index('idx_offer_audit_sub').on(t.submissionId),
+}));
+
+// 19. Notice Period Pulse Logs (Workflow 6: 2-Tier Unresponded Escalation Radar)
+export const noticePeriodPulseLogs = pgTable('notice_period_pulse_logs', {
+  pulseId: uuid('pulse_id').defaultRandom().primaryKey(),
+  submissionId: uuid('submission_id')
+    .notNull()
+    .references(() => candidateSubmissions.submissionId, { onDelete: 'cascade' }),
+  touchpointDay: integer('touchpoint_day').notNull(),
+  responseStatus: varchar('response_status', { length: 50 }).default('Pending').notNull(),
+  unrespondedAttempts: integer('unresponded_attempts').default(0).notNull(),
+  escalatedToRole: varchar('escalated_to_role', { length: 50 }),
+  pulseToken: varchar('pulse_token', { length: 64 }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => ({
+  idxPulseLogSub: index('idx_pulse_log_sub').on(t.submissionId),
+}));
+
+// 20. Compliance Documents (Workflow 6: Pre-Onboarding Vault)
+export const complianceDocuments = pgTable('compliance_documents', {
+  documentId: uuid('document_id').defaultRandom().primaryKey(),
+  submissionId: uuid('submission_id')
+    .notNull()
+    .references(() => candidateSubmissions.submissionId, { onDelete: 'cascade' }),
+  documentType: varchar('document_type', { length: 100 }).notNull(),
+  fileUrl: varchar('file_url', { length: 512 }).notNull(),
+  uploadedAt: timestamp('uploaded_at', { withTimezone: true }).defaultNow(),
+}, (t) => ({
+  idxComplianceDocSub: index('idx_compliance_doc_sub').on(t.submissionId),
+}));
+
+
 
 
 
