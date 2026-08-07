@@ -1,5 +1,5 @@
 import { db } from "./index";
-import { agencies, users, agencyChannels, agencyStorefrontProfiles, jobMandates, candidateRecords, candidateSubmissions, agencyJobBoardCredentials, jobPartnerShares } from "./schema";
+import { agencies, users, agencyChannels, agencyStorefrontProfiles, jobMandates, candidateRecords, candidateSubmissions, agencyJobBoardCredentials, partnerMandateShares } from "./schema";
 import { eq, sql } from "drizzle-orm";
 
 async function seed() {
@@ -8,7 +8,7 @@ async function seed() {
   // Truncate tables to allow clean re-seeding
   try {
     await db.execute(
-      sql`TRUNCATE TABLE users, agencies, agency_channels, agency_storefront_profiles, job_mandates, candidate_records, candidate_submissions, agency_job_board_credentials, job_partner_shares CASCADE`
+      sql`TRUNCATE TABLE users, agencies, agency_channels, agency_storefront_profiles, job_mandates, candidate_records, candidate_submissions, agency_job_board_credentials, partner_mandate_shares CASCADE`
     );
     console.log("Cleaned existing table data.");
   } catch (cleanErr) {

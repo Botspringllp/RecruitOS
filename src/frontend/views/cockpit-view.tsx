@@ -60,53 +60,59 @@ export default function CockpitView() {
   const [broadcastMessage, setBroadcastMessage] = useState("");
   const [broadcastSuccess, setBroadcastSuccess] = useState(false);
 
-  // Partner Sharing & Masking Vault states
+  // Partner Sharing states
   const [partnerShareModalOpen, setPartnerShareModalOpen] = useState(false);
-  const [partnerName, setPartnerName] = useState("");
   const [partnerEmail, setPartnerEmail] = useState("");
-  const [maskedJobTitle, setMaskedJobTitle] = useState("");
-  const [maskedCompanyDescription, setMaskedCompanyDescription] = useState("");
-  const [partnerSplit, setPartnerSplit] = useState("50.00");
-  const [generatingShare, setGeneratingShare] = useState(false);
-  const [shareMessage, setShareMessage] = useState("");
-  const [shareSuccess, setShareSuccess] = useState(false);
+  const [partnerName, setPartnerName] = useState("");
+  const [maskedTitle, setMaskedTitle] = useState("");
+  const [maskedDesc, setMaskedDesc] = useState("");
+  const [partnerSplit, setPartnerSplit] = useState(50);
+  const [sharingJob, setSharingJob] = useState(false);
+  const [shareSuccessMessage, setShareSuccessMessage] = useState("");
   const [generatedMagicLink, setGeneratedMagicLink] = useState("");
 
-  const handleGeneratePartnerShare = async () => {
-    if (!selectedJobId) return;
-    setGeneratingShare(true);
-    setShareMessage("");
-    setShareSuccess(false);
+  const openPartnerShareModal = () => {
+    const selectedJob = jobs.find(j => j.jobId === selectedJobId);
+    if (selectedJob) {
+      setMaskedTitle(`Leading Tier-1 Organization — ${selectedJob.title}`);
+      setMaskedDesc(`A premier enterprise client is looking for a qualified ${selectedJob.title} to join their engineering team. The client is a top-tier industry leader specializing in modern tech stack development.`);
+    }
+    setPartnerEmail("");
+    setPartnerName("");
+    setPartnerSplit(50);
     setGeneratedMagicLink("");
+    setShareSuccessMessage("");
+    setPartnerShareModalOpen(true);
+  };
 
+  const handleCreatePartnerShare = async () => {
+    if (!selectedJobId) return;
+    setSharingJob(true);
+    setShareSuccessMessage("");
     try {
       const response = await fetch(`/api/v1/jobs/${selectedJobId}/partner-share`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          partner_name: partnerName,
           partner_email: partnerEmail,
-          maskedjob_title: maskedJobTitle,
-          masked_company_description: maskedCompanyDescription,
-          partner_split_percentage: parseFloat(partnerSplit) || 50.00,
+          partner_name: partnerName,
+          masked_job_title: maskedTitle,
+          masked_company_description: maskedDesc,
+          partner_split_percentage: partnerSplit,
+          expires_in_days: 30
         }),
       });
       const data = await response.json();
       if (response.ok) {
-        setShareSuccess(true);
-        setShareMessage("Magic partner collaboration link successfully created!");
-        setGeneratedMagicLink(window.location.origin + data.magicLink);
-        // Clear fields
-        setPartnerName("");
-        setPartnerEmail("");
+        setGeneratedMagicLink(data.magicLink);
+        setShareSuccessMessage("Encrypted partner link successfully generated!");
       } else {
-        throw new Error(data.error || "Failed to generate link");
+        throw new Error(data.error || "Failed to create sharing link");
       }
     } catch (err: any) {
-      setShareSuccess(false);
-      setShareMessage(err.message || "Failed to generate link due to an unexpected error.");
+      setShareSuccessMessage(`Error: ${err.message}`);
     } finally {
-      setGeneratingShare(false);
+      setSharingJob(false);
     }
   };
 
@@ -478,16 +484,11 @@ export default function CockpitView() {
                 </button>
 
                 <button
-                  onClick={() => {
-                    const selectedJob = jobs.find(j => j.jobId === selectedJobId);
-                    setMaskedJobTitle(selectedJob ? `Leading Tier-1 Platform — ${selectedJob.title}` : "Leading Tier-1 Platform");
-                    setMaskedCompanyDescription(selectedJob ? `We are hiring a ${selectedJob.title} on behalf of our client. Sanitized requirements below.` : "");
-                    setPartnerShareModalOpen(true);
-                  }}
-                  className="bg-[#0F172A] text-white text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 hover:brightness-95 active:scale-95 transition-all cursor-pointer ml-1.5"
+                  onClick={openPartnerShareModal}
+                  className="bg-[#0F172A] text-[#FFD400] text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 hover:brightness-95 active:scale-95 transition-all cursor-pointer border border-[#FFD400]/30 ml-2"
                 >
                   <span className="material-symbols-outlined text-[16px]">share</span>
-                  Share with Partner
+                  Share Mandate
                 </button>
 
                 {postings.filter(p => p.jobId === selectedJobId).length > 0 && (
@@ -1221,150 +1222,159 @@ export default function CockpitView() {
           </div>
         </div>
       )}
-
-      {/* MODAL OVERLAY: Partner Sharing & Masking Vault Modal */}
+      {/* MODAL OVERLAY: Masking Configuration Drawer/Modal (PO-01) */}
       {partnerShareModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-8 modal-overlay">
-          <div className="bg-white w-full max-w-xl rounded-xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in duration-300">
-            {/* Modal Header */}
+          <div className="bg-white w-full max-w-lg rounded-xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in duration-300">
+            {/* Header */}
             <div className="bg-[#0F172A] px-6 py-4 flex justify-between items-center text-white">
               <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-amber-400">vpn_key</span>
-                <h2 className="font-headline-md text-[18px] font-bold">Anonymized Partner Sharing Drawer</h2>
+                <span className="material-symbols-outlined text-[#FFD400]">share</span>
+                <h2 className="font-headline-md text-[18px] font-bold text-[#FFD400]">Share Mandate with Partner Network</h2>
               </div>
               <button 
-                onClick={() => {
-                  setPartnerShareModalOpen(false);
-                  setShareMessage("");
-                  setGeneratedMagicLink("");
-                }}
+                onClick={() => setPartnerShareModalOpen(false)}
                 className="p-1 hover:bg-white/10 rounded transition-colors text-white cursor-pointer"
               >
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
 
-            {/* Modal Body */}
-            <div className="p-6 space-y-4 overflow-y-auto max-h-[75vh] custom-scrollbar">
+            {/* Body */}
+            <div className="p-6 space-y-5 overflow-y-auto max-h-[80vh] custom-scrollbar">
               <p className="text-xs text-on-surface-variant leading-relaxed">
-                Generate a secure, client-masked magic collaboration link. The system strips client identifiers automatically from the job description unless customized.
+                Create an anonymized magic link to collaborate with external sourcers. All client identity, direct contact details, and sensitive metrics will be stripped from the public partner workspace.
               </p>
 
-              {shareMessage && (
-                <div className={`p-3 rounded text-xs font-semibold flex items-start gap-2 ${
-                  shareSuccess ? "bg-emerald-50 text-emerald-800 border border-emerald-100" : "bg-red-50 text-red-800 border border-red-100"
+              {shareSuccessMessage && (
+                <div className={`p-3 rounded text-xs font-semibold flex items-center gap-2 ${
+                  generatedMagicLink ? "bg-emerald-50 text-emerald-800 border border-emerald-100" : "bg-red-50 text-red-800 border border-red-100"
                 }`}>
-                  <span className="material-symbols-outlined text-[16px] mt-0.5">
-                    {shareSuccess ? "check_circle" : "error"}
+                  <span className="material-symbols-outlined text-[16px]">
+                    {generatedMagicLink ? "check_circle" : "error"}
                   </span>
-                  <span className="flex-1">{shareMessage}</span>
+                  {shareSuccessMessage}
                 </div>
               )}
 
               {generatedMagicLink ? (
-                <div className="bg-slate-50 border border-slate-200 rounded-lg p-5 space-y-3 animate-in fade-in duration-200">
-                  <p className="text-xs font-bold text-slate-700">MAGIC COLLABORATION LINK GENERATED</p>
+                /* Display Generated Magic Link */
+                <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-3 animate-in fade-in duration-300">
+                  <p className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-emerald-600 text-[16px]">vpn_key</span>
+                    Magic Collaboration Link Generated
+                  </p>
+                  <p className="text-[10px] text-slate-500">
+                    Send this encrypted link to your partner. They will access the masked mandate details and CV dropzone without requiring an account.
+                  </p>
                   <div className="flex gap-2">
                     <input 
-                      type="text" 
                       readOnly 
-                      value={generatedMagicLink}
-                      className="w-full bg-white border border-slate-300 rounded px-3 py-2 text-xs font-mono text-slate-800 select-all outline-none"
+                      value={generatedMagicLink} 
+                      className="bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs flex-1 outline-none text-slate-600 font-mono select-all" 
                     />
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(generatedMagicLink);
-                        alert("Magic link copied to clipboard!");
-                      }}
-                      className="bg-[#0F172A] text-white px-3 py-2 rounded text-xs font-bold hover:brightness-90 transition-all cursor-pointer flex items-center gap-1 active:scale-95"
+                    <button 
+                      onClick={() => { 
+                        navigator.clipboard.writeText(generatedMagicLink); 
+                        alert("Magic link copied to clipboard!"); 
+                      }} 
+                      className="bg-[#0F172A] text-[#FFD400] px-4 py-2 text-xs font-bold rounded-lg hover:brightness-95 active:scale-95 transition-all cursor-pointer"
                     >
-                      <span className="material-symbols-outlined text-[14px]">content_copy</span>
                       Copy
                     </button>
                   </div>
-                  <p className="text-[10px] text-slate-400">
-                    Share this link with your partner. They will see a completely anonymized view of the mandate and can upload candidate profiles directly into your pipeline.
-                  </p>
                 </div>
               ) : (
+                /* Form Inputs */
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Partner Name *</label>
-                      <input 
-                        type="text" 
-                        required
-                        placeholder="Freelance Sourcer A"
-                        value={partnerName}
-                        onChange={(e) => setPartnerName(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-100 text-xs font-semibold text-slate-900"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Partner Email *</label>
-                      <input 
-                        type="email" 
-                        required
-                        placeholder="sourcer@freelance.com"
-                        value={partnerEmail}
-                        onChange={(e) => setPartnerEmail(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-100 text-xs font-semibold text-slate-900"
-                      />
-                    </div>
+                  {/* Readonly Actual Client */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Actual Client Name (Confidential)</label>
+                    <input 
+                      readOnly 
+                      value={jobs.find(j => j.jobId === selectedJobId)?.clientName || "Apex Clients"} 
+                      className="w-full px-3.5 py-2.5 bg-slate-100 border border-outline-variant rounded-lg text-xs font-semibold text-slate-500 cursor-not-allowed"
+                    />
                   </div>
 
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Masked Public Title</label>
+                  {/* Masked Public Title */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Masked Public Title (Visible to Partner)</label>
                     <input 
                       type="text" 
-                      placeholder="e.g. Leading Tier-1 E-Commerce Platform"
-                      value={maskedJobTitle}
-                      onChange={(e) => setMaskedJobTitle(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-100 text-xs font-semibold text-slate-900"
+                      value={maskedTitle} 
+                      onChange={(e) => setMaskedTitle(e.target.value)} 
+                      placeholder="e.g. Leading Tier-1 FinTech Platform"
+                      className="w-full px-3.5 py-2.5 bg-white border border-outline-variant rounded-lg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-secondary-container/20 transition-all text-on-surface"
                     />
                   </div>
 
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Masked Company Description / JD</label>
+                  {/* Masked Description */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Masked Description</label>
                     <textarea 
-                      rows={4}
-                      placeholder="Custom sanitized JD description. If left blank, the system automatically uses a sanitized template masking all client names, phone numbers, and URLs."
-                      value={maskedCompanyDescription}
-                      onChange={(e) => setMaskedCompanyDescription(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-100 text-xs font-semibold text-slate-900 resize-none"
+                      rows={3}
+                      value={maskedDesc} 
+                      onChange={(e) => setMaskedDesc(e.target.value)} 
+                      placeholder="Anonymized description of the company and role requirements..."
+                      className="w-full px-3.5 py-2.5 bg-white border border-outline-variant rounded-lg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-secondary-container/20 transition-all text-on-surface resize-none"
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Partner Split (%)</label>
+                  {/* Partner Identity */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Partner Email (Magic Dispatch)</label>
                       <input 
-                        type="number" 
-                        step="0.01"
-                        min="0"
-                        max="100"
-                        value={partnerSplit}
-                        onChange={(e) => setPartnerSplit(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-100 text-xs font-semibold text-slate-900"
+                        type="email" 
+                        value={partnerEmail} 
+                        onChange={(e) => setPartnerEmail(e.target.value)} 
+                        placeholder="partner@sourcers.com"
+                        className="w-full px-3.5 py-2.5 bg-white border border-outline-variant rounded-lg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-secondary-container/20 transition-all text-on-surface"
                       />
                     </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Agency Split (%)</label>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Partner Name (Optional)</label>
                       <input 
-                        type="number" 
-                        readOnly
-                        value={(100.00 - (parseFloat(partnerSplit) || 0.00)).toFixed(2)}
-                        className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-xs font-semibold text-slate-500 outline-none"
+                        type="text" 
+                        value={partnerName} 
+                        onChange={(e) => setPartnerName(e.target.value)} 
+                        placeholder="John Sourcer"
+                        className="w-full px-3.5 py-2.5 bg-white border border-outline-variant rounded-lg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-secondary-container/20 transition-all text-on-surface"
                       />
                     </div>
                   </div>
 
+                  {/* Split Fee */}
+                  <div className="bg-slate-50 border border-outline-variant rounded-xl p-4 space-y-2">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-bold text-slate-700">Split Fee Agreement</span>
+                      <span className="font-black text-[#0F172A] bg-amber-100 px-2 py-0.5 rounded border border-amber-200">
+                        {100 - partnerSplit}% Agency / {partnerSplit}% Partner
+                      </span>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="10" 
+                      max="90" 
+                      step="5"
+                      value={partnerSplit} 
+                      onChange={(e) => setPartnerSplit(Number(e.target.value))} 
+                      className="w-full accent-[#0F172A] cursor-pointer"
+                    />
+                    <div className="flex justify-between text-[10px] text-slate-400 font-semibold">
+                      <span>90% Agency / 10% Partner</span>
+                      <span>10% Agency / 90% Partner</span>
+                    </div>
+                  </div>
+
+                  {/* Generate Button */}
                   <button
-                    onClick={handleGeneratePartnerShare}
-                    disabled={generatingShare || !partnerName || !partnerEmail}
-                    className="w-full bg-[#0F172A] text-white font-extrabold py-3.5 rounded-lg hover:brightness-95 active:scale-95 transition-all shadow-md text-xs tracking-wider uppercase disabled:opacity-50 cursor-pointer"
+                    onClick={handleCreatePartnerShare}
+                    disabled={sharingJob || !partnerEmail || !maskedTitle}
+                    className="w-full bg-[#FFD400] text-primary-container font-extrabold py-3.5 rounded-lg hover:brightness-95 active:scale-95 transition-all shadow-md text-xs tracking-wider uppercase disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
-                    {generatingShare ? "Generating magic link..." : "Generate Magic Share Link"}
+                    {sharingJob ? "Generating Magic Vault..." : "Generate Encrypted Partner Link"}
                   </button>
                 </div>
               )}

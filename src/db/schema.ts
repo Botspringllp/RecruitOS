@@ -188,28 +188,27 @@ export const jobBoardPostings = pgTable('job_board_postings', {
   idxBoardPostingJob: index('idx_board_posting_job').on(t.jobId),
 }));
 
-// 12. Job Partner Shares (Anonymized Mandate Sharing & Masking Vault)
-export const jobPartnerShares = pgTable('job_partner_shares', {
+// 12. Partner Mandate Shares
+export const partnerMandateShares = pgTable('partner_mandate_shares', {
   shareId: uuid('share_id').defaultRandom().primaryKey(),
-  jobId: uuid('job_id')
-    .notNull()
-    .references(() => jobMandates.jobId, { onDelete: 'cascade' }),
   agencyId: uuid('agency_id')
     .notNull()
     .references(() => agencies.agencyId, { onDelete: 'cascade' }),
-  partnerName: varchar('partner_name', { length: 255 }).notNull(),
+  jobId: uuid('job_id')
+    .notNull()
+    .references(() => jobMandates.jobId, { onDelete: 'cascade' }),
   partnerEmail: varchar('partner_email', { length: 255 }).notNull(),
+  partnerName: varchar('partner_name', { length: 255 }),
   maskedJobTitle: varchar('masked_job_title', { length: 255 }).notNull(),
   maskedCompanyDescription: text('masked_company_description').notNull(),
-  agencySplitPercentage: numeric('agency_split_percentage', { precision: 5, scale: 2 }).default('50.00').notNull(),
-  partnerSplitPercentage: numeric('partner_split_percentage', { precision: 5, scale: 2 }).default('50.00').notNull(),
+  agencySplitPercentage: numeric('agency_split_percentage', { precision: 5, scale: 2 }).default('50.00'),
+  partnerSplitPercentage: numeric('partner_split_percentage', { precision: 5, scale: 2 }).default('50.00'),
   accessTokenHash: varchar('access_token_hash', { length: 64 }).unique().notNull(),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
 }, (t) => ({
-  idxPartnerShareJob: index('idx_partner_share_job').on(t.jobId),
-  idxPartnerShareAgency: index('idx_partner_share_agency').on(t.agencyId),
-  idxPartnerShareToken: index('idx_partner_share_token').on(t.accessTokenHash),
+  idxPartnerToken: index('idx_partner_token').on(t.accessTokenHash),
 }));
 
 

@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { jobPartnerShares, jobMandates } from "@/db/schema";
-import { eq, and, gt, sql } from "drizzle-orm";
-import { createHash } from "crypto";
+import { partnerMandateShares } from "@/db/schema";
+import { eq, and, sql } from "drizzle-orm";
+import crypto from "crypto";
+
+// SHA-256 Helper to secure tokens at rest
+function hashToken(token: string): string {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
 
 export async function GET(
   req: NextRequest,
@@ -14,71 +19,63 @@ export async function GET(
       return NextResponse.json({ error: "Access token is required" }, { status: 400 });
     }
 
-    // 1. Hash the token with SHA-256 to lookup the share record
-    const tokenHash = createHash("sha256").update(token).digest("hex");
+    const hashed = hashToken(token);
 
-    // 2. Query the share record (including validity window checks)
+    // Query active partner shares matching the token
     const shareList = await db
       .select({
-        shareId: jobPartnerShares.shareId,
-        jobId: jobPartnerShares.jobId,
-        maskedJobTitle: jobPartnerShares.maskedJobTitle,
-        maskedCompanyDescription: jobPartnerShares.maskedCompanyDescription,
-        partnerSplitPercentage: jobPartnerShares.partnerSplitPercentage,
-        agencySplitPercentage: jobPartnerShares.agencySplitPercentage,
-        expiresAt: jobPartnerShares.expiresAt,
+        shareId: partnerMandateShares.shareId,
+        jobId: partnerMandateShares.jobId,
+        maskedJobTitle: partnerMandateShares.maskedJobTitle,
+        maskedCompanyDescription: partnerMandateShares.maskedCompanyDescription,
+        partnerSplitPercentage: partnerMandateShares.partnerSplitPercentage,
+        expiresAt: partnerMandateShares.expiresAt,
+        isActive: partnerMandateShares.isActive,
       })
-      .from(jobPartnerShares)
+      .from(partnerMandateShares)
       .where(
         and(
-          eq(jobPartnerShares.accessTokenHash, tokenHash),
-          gt(jobPartnerShares.expiresAt, new Date())
+          eq(partnerMandateShares.accessTokenHash, hashed),
+          eq(partnerMandateShares.isActive, true)
         )
       )
       .limit(1);
 
     if (shareList.length === 0) {
       return NextResponse.json(
-        { error: "Magic link is invalid, expired, or deactivated" },
-        { status: 410 } // Gone
+        { error: "Invalid or inactive magic link" },
+        { status: 404 }
       );
     }
+
     const share = shareList[0];
 
-    // 3. Fetch associated job information (excluding any client or billing variables)
-    const jobList = await db
-      .select({
-        title: jobMandates.title,
-        status: jobMandates.status,
-      })
-      .from(jobMandates)
-      .where(eq(jobMandates.jobId, share.jobId))
-      .limit(1);
-
-    if (jobList.length === 0) {
-      return NextResponse.json({ error: "Associated job mandate was removed" }, { status: 404 });
+    // Enforce expiry validation
+    if (new Date() > new Date(share.expiresAt)) {
+      return NextResponse.json(
+        { error: "This magic sharing link has expired" },
+        { status: 410 }
+      );
     }
-    const job = jobList[0];
 
-    // 4. Return secure client-masked response payload ( DevTools safe)
+    // STRICT MASKING ENFORCEMENT:
+    // Only return the masked job metadata. Do NOT join job_mandates to return client_name or agency info.
     return NextResponse.json({
       success: true,
-      shareId: share.shareId,
-      maskedJobTitle: share.maskedJobTitle,
-      maskedCompanyDescription: share.maskedCompanyDescription,
-      partnerSplitPercentage: share.partnerSplitPercentage,
-      agencySplitPercentage: share.agencySplitPercentage,
-      expiresAt: share.expiresAt,
-      job: {
-        roleTitle: job.title,
-        status: job.status,
+      share: {
+        shareId: share.shareId,
+        jobId: share.jobId,
+        maskedJobTitle: share.maskedJobTitle,
+        maskedCompanyDescription: share.maskedCompanyDescription,
+        partnerSplitPercentage: share.partnerSplitPercentage,
+        expiresAt: share.expiresAt,
       }
     });
 
   } catch (error: any) {
-    console.error("Public partner share fetch failure:", error);
+    console.error("Public partner share retrieval failure:", error);
     return NextResponse.json(
-      { error: "Failed to load public partner mandate details" },
+      { error: error.message || "Failed to retrieve job sharing vault" },
       { status: 500 }
     );
   }
