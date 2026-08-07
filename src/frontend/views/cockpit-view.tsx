@@ -59,6 +59,17 @@ export default function CockpitView() {
   const [relationshipType, setRelationshipType] = useState<string>("SPOUSE");
   const [inheritedLocation, setInheritedLocation] = useState<string>("");
   const [linkingCandidate, setLinkingCandidate] = useState(false);
+
+  // Workflow 3: Daily Cockpit Execution & Communication States (RC-01 & RC-03)
+  const [dailyQueueSummary, setDailyQueueSummary] = useState<any>(null);
+  const [dailyTasks, setDailyTasks] = useState<any[]>([]);
+  const [viewModeRole, setViewModeRole] = useState<string>("my_queue"); // 'my_queue' | 'agency_aggregate'
+  const [selectedSubmissionForTimeline, setSelectedSubmissionForTimeline] = useState<any>(null);
+  const [timelineLogs, setTimelineLogs] = useState<any[]>([]);
+  const [loadingTimeline, setLoadingTimeline] = useState(false);
+  const [customMessageBody, setCustomMessageBody] = useState("");
+  const [selectedChannel, setSelectedChannel] = useState<"WHATSAPP" | "EMAIL">("WHATSAPP");
+  const [sendingCommunication, setSendingCommunication] = useState(false);
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [chasingId, setChasingId] = useState<string | null>(null);
@@ -87,24 +98,6 @@ export default function CockpitView() {
   const [converting, setConverting] = useState(false);
   const [convertSuccessMsg, setConvertSuccessMsg] = useState("");
   const [agreedFee, setAgreedFee] = useState("8.33");
-
-  // WORKFLOW 3: Daily Cockpit Execution & Communication Hub States (RC-01 & RC-03)
-  const [dailyQueueSummary, setDailyQueueSummary] = useState({
-    totalQueueItems: 0,
-    criticalBreaches: 0,
-    slaWarnings: 0,
-    highRiskItems: 0,
-  });
-  const [recruiterFilter, setRecruiterFilter] = useState("ALL");
-  const [activeCommDrawer, setActiveCommDrawer] = useState(false);
-  const [activeCommSubmission, setActiveCommSubmission] = useState<any | null>(null);
-  const [timelineLogs, setTimelineLogs] = useState<any[]>([]);
-  const [loadingTimeline, setLoadingTimeline] = useState(false);
-  const [commChannel, setCommChannel] = useState<"WHATSAPP" | "EMAIL" | "SYSTEM_NOTE">("WHATSAPP");
-  const [commMessageBody, setCommMessageBody] = useState("");
-  const [dispatchingComm, setDispatchingComm] = useState(false);
-  const [simulatingInbound, setSimulatingInbound] = useState(false);
-  const [simulatedInboundText, setSimulatedInboundText] = useState("");
 
   const handleConvertInboundMandate = async () => {
     if (!selectedJobId) return;
@@ -307,153 +300,67 @@ export default function CockpitView() {
     }
   };
 
-  const loadDailyQueueData = async () => {
+  const fetchDailyQueue = async (mode: string = viewModeRole) => {
     try {
-      const res = await fetch(`/api/v1/cockpit/daily-queue?recruiterId=${recruiterFilter}`);
+      const res = await fetch(`/api/v1/cockpit/daily-queue?viewMode=${mode}`);
       if (res.ok) {
         const json = await res.json();
-        setDailyQueueSummary(json.summary || {
-          totalQueueItems: 0,
-          criticalBreaches: 0,
-          slaWarnings: 0,
-          highRiskItems: 0
-        });
+        setDailyQueueSummary(json.summary || null);
+        setDailyTasks(json.dailyTasks || []);
       }
     } catch (e) {
-      console.error("Failed to load daily focus queue summary:", e);
+      console.error("Error fetching daily queue:", e);
     }
   };
 
-  const fetchTimelineLogs = async (submissionId: string, candidateId?: string) => {
+  const fetchTimelineLogs = async (sub: any) => {
+    if (!sub) return;
     setLoadingTimeline(true);
     try {
-      const url = submissionId 
-        ? `/api/v1/communications/timeline?submissionId=${submissionId}`
-        : `/api/v1/communications/timeline?candidateId=${candidateId}`;
-      const res = await fetch(url);
+      const res = await fetch(`/api/v1/communications/logs?submissionId=${sub.submissionId}&candidateId=${sub.candidateId}`);
       if (res.ok) {
         const json = await res.json();
         setTimelineLogs(json.logs || []);
       }
     } catch (e) {
-      console.error("Failed to load timeline logs:", e);
+      console.error("Error fetching timeline logs:", e);
     } finally {
       setLoadingTimeline(false);
     }
   };
 
-  const openCommunicationHub = (submission: any) => {
-    setActiveCommSubmission(submission);
-    setActiveCommDrawer(true);
-    fetchTimelineLogs(submission.submissionId, submission.candidateId);
-  };
+  const handleDispatchTemplateMessage = async (templateText?: string) => {
+    if (!selectedSubmissionForTimeline) return;
+    const bodyToSend = templateText || customMessageBody;
+    if (!bodyToSend.trim()) return;
 
-  const handleDispatchCommunication = async () => {
-    if (!activeCommSubmission || !commMessageBody.trim()) {
-      alert("Please enter a message to send.");
-      return;
-    }
-    setDispatchingComm(true);
+    setSendingCommunication(true);
     try {
       const res = await fetch("/api/v1/communications/dispatch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          submissionId: activeCommSubmission.submissionId,
-          candidateId: activeCommSubmission.candidateId,
-          channel: commChannel,
-          messageBody: commMessageBody,
-        })
+          submissionId: selectedSubmissionForTimeline.submissionId,
+          candidateId: selectedSubmissionForTimeline.candidateId,
+          channel: selectedChannel,
+          messageBody: bodyToSend,
+        }),
       });
       if (res.ok) {
-        setCommMessageBody("");
-        await fetchTimelineLogs(activeCommSubmission.submissionId, activeCommSubmission.candidateId);
+        setCustomMessageBody("");
+        await fetchTimelineLogs(selectedSubmissionForTimeline);
         await loadCockpitData();
-        await loadDailyQueueData();
+        await fetchDailyQueue();
       } else {
         const json = await res.json();
-        alert(`Dispatch failed: ${json.error}`);
+        alert(`Error dispatching message: ${json.error}`);
       }
     } catch (e: any) {
-      alert(`Error dispatching message: ${e.message}`);
+      alert(`Dispatch error: ${e.message}`);
     } finally {
-      setDispatchingComm(false);
+      setSendingCommunication(false);
     }
   };
-
-  const handleSimulateInboundReply = async (inboundText?: string) => {
-    const textToSend = inboundText || simulatedInboundText;
-    if (!activeCommSubmission || !textToSend.trim()) {
-      alert("Please enter an inbound message text to simulate.");
-      return;
-    }
-    setSimulatingInbound(true);
-    try {
-      const res = await fetch("/api/v1/communications/inbound-simulate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          submissionId: activeCommSubmission.submissionId,
-          candidateId: activeCommSubmission.candidateId,
-          channel: "WHATSAPP",
-          messageBody: textToSend,
-        })
-      });
-      const json = await res.json();
-      if (res.ok) {
-        setSimulatedInboundText("");
-        if (json.isNegativeSentiment) {
-          alert(`⚠️ High Risk Sentiment Detected! Matched Keywords: ${json.matchedKeywords.join(", ")}. High Risk Badge triggered on card.`);
-        }
-        await fetchTimelineLogs(activeCommSubmission.submissionId, activeCommSubmission.candidateId);
-        await loadCockpitData();
-        await loadDailyQueueData();
-      } else {
-        alert(`Simulation error: ${json.error}`);
-      }
-    } catch (e: any) {
-      alert(`Error: ${e.message}`);
-    } finally {
-      setSimulatingInbound(false);
-    }
-  };
-
-  const applyTemplate = (templateType: "screening" | "interview" | "offer" | "document") => {
-    if (!activeCommSubmission) return;
-    const name = activeCommSubmission.fullName || "Candidate";
-    const title = activeCommSubmission.currentTitle || "Open Role";
-    const company = activeCommSubmission.clientName || "our client";
-
-    let text = "";
-    if (templateType === "screening") {
-      text = `Hi ${name}, following up on your application for ${title} at ${company}. Are you available for a brief 10-min screening call today?`;
-    } else if (templateType === "interview") {
-      text = `Hi ${name}, quick reminder regarding your upcoming client interview for ${title}. Please confirm if your schedule is confirmed.`;
-    } else if (templateType === "offer") {
-      text = `Hi ${name}, we are preparing the formal offer letter for ${title}. Please let us know if you have any questions regarding compensation or start date.`;
-    } else if (templateType === "document") {
-      text = `Hi ${name}, please submit your updated CV and last 3 months pay slips for ${title} background verification.`;
-    }
-    setCommMessageBody(text);
-  };
-
-  useEffect(() => {
-    loadCockpitData();
-    fetchAllCandidates();
-    loadDailyQueueData();
-  }, [recruiterFilter]);
-
-  useEffect(() => {
-    if (selectedJobId) {
-      fetchSilverMedalists(selectedJobId);
-    }
-  }, [selectedJobId]);
-
-  useEffect(() => {
-    if (selectedCandidateForLinks) {
-      fetchRelationalLinks(selectedCandidateForLinks);
-    }
-  }, [selectedCandidateForLinks]);
 
   const handleBroadcast = async () => {
     if (!selectedJobId) return;
@@ -487,18 +394,42 @@ export default function CockpitView() {
     }
   };
 
+  useEffect(() => {
+    loadCockpitData();
+    fetchAllCandidates();
+    fetchDailyQueue();
+  }, []);
+
+  useEffect(() => {
+    if (selectedJobId) {
+      fetchSilverMedalists(selectedJobId);
+    }
+  }, [selectedJobId]);
+
+  useEffect(() => {
+    if (selectedCandidateForLinks) {
+      fetchRelationalLinks(selectedCandidateForLinks);
+    }
+  }, [selectedCandidateForLinks]);
+
+  useEffect(() => {
+    if (selectedSubmissionForTimeline) {
+      fetchTimelineLogs(selectedSubmissionForTimeline);
+    }
+  }, [selectedSubmissionForTimeline]);
+
   const getSlaStatus = (stage: string, stageUpdatedAtStr: string) => {
     const stageUpdatedAt = new Date(stageUpdatedAtStr);
     const diffMs = Date.now() - stageUpdatedAt.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffHours = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60)));
 
     if (diffHours >= 72) {
       return { level: "breach", text: `SLA BREACH: ${diffHours}h No Movement`, hours: diffHours };
     }
     if (diffHours >= 36) {
-      return { level: "warning", text: `SLA WARNING: ${diffHours}h Stagnant`, hours: diffHours };
+      return { level: "warning", text: `Warning: ${diffHours}h Aging`, hours: diffHours };
     }
-    return { level: "normal", text: `< 24h (${diffHours}h)`, hours: diffHours };
+    return { level: "green", text: `${diffHours}h in Stage (<24h Target)`, hours: diffHours };
   };
 
   const handleTriggerChase = async (sub: any) => {
@@ -838,62 +769,6 @@ export default function CockpitView() {
           </div>
         </header>
 
-        {/* MORNING DAILY FOCUS QUEUE & RECRUITER COCKPIT RADAR (RC-03) */}
-        <div className="bg-[#0F172A] text-white px-gutter py-4 border-b border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="flex items-center gap-4">
-            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#FFD400] text-[#0F172A] shadow-md flex-shrink-0">
-              <span className="material-symbols-outlined text-[24px]">radar</span>
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-bold text-sm text-white tracking-wide">Morning Recruiter Action Queue</h3>
-                <span className="bg-emerald-500/20 text-emerald-300 text-[10px] font-black px-2 py-0.5 rounded-full border border-emerald-500/30 uppercase tracking-widest">
-                  RC-03 Live Radar
-                </span>
-              </div>
-              <p className="text-xs text-slate-300">Prioritized daily action queue, visual SLA aging radar & multi-channel logs</p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Summary Stat Pills */}
-            <div className="flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700 text-xs">
-              <span className="text-slate-400 font-medium">Daily Queue:</span>
-              <span className="font-bold text-[#FFD400]">{dailyQueueSummary.totalQueueItems}</span>
-            </div>
-
-            <div className="flex items-center gap-2 bg-amber-500/10 px-3 py-1.5 rounded-lg border border-amber-500/30 text-xs text-amber-300">
-              <span className="font-medium">36h Warnings:</span>
-              <span className="font-black bg-amber-500/20 px-2 py-0.5 rounded">{dailyQueueSummary.slaWarnings}</span>
-            </div>
-
-            <div className="flex items-center gap-2 bg-red-500/10 px-3 py-1.5 rounded-lg border border-red-500/30 text-xs text-red-300">
-              <span className="font-medium">72h+ SLA Breaches:</span>
-              <span className="font-black bg-red-500/20 px-2 py-0.5 rounded animate-pulse">{dailyQueueSummary.criticalBreaches}</span>
-            </div>
-
-            {dailyQueueSummary.highRiskItems > 0 && (
-              <div className="flex items-center gap-2 bg-purple-500/10 px-3 py-1.5 rounded-lg border border-purple-500/30 text-xs text-purple-300">
-                <span className="font-medium">Negative Sentiment:</span>
-                <span className="font-black bg-purple-500/20 px-2 py-0.5 rounded">{dailyQueueSummary.highRiskItems}</span>
-              </div>
-            )}
-
-            {/* Recruiter Role Toggle (RC-03 Role Permissions) */}
-            <div className="flex items-center gap-2 pl-2 border-l border-slate-700">
-              <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Cockpit:</span>
-              <select 
-                className="bg-slate-800 text-white text-xs font-bold px-3 py-1.5 rounded-lg border border-slate-600 focus:outline-none focus:ring-1 focus:ring-[#FFD400] cursor-pointer"
-                value={recruiterFilter}
-                onChange={(e) => setRecruiterFilter(e.target.value)}
-              >
-                <option value="ALL">Agency Aggregate (Team Lead View)</option>
-                <option value="MY">My Assigned Tasks</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
         {/* Dashboard Content area */}
         <div className="p-gutter space-y-6 overflow-y-auto flex-1 custom-scrollbar">
           {/* Uploader Drag Zone */}
@@ -914,6 +789,136 @@ export default function CockpitView() {
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 rounded-xl backdrop-blur-sm z-30">
                 <div className="h-10 w-10 animate-spin rounded-full border-4 border-outline border-t-secondary-container mb-3"></div>
                 <p className="font-semibold text-sm text-primary-container animate-pulse">{parsingStatus}</p>
+              </div>
+            )}
+          </div>
+
+          {/* RC-03: MORNING COCKPIT DAILY EXECUTION QUEUE BANNER */}
+          <div className="bg-[#0F172A] rounded-xl p-5 text-white space-y-4 shadow-lg border border-slate-800 animate-in fade-in duration-300">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+              <div className="flex items-center gap-3">
+                <div className="bg-[#FFD400] text-[#0F172A] p-2 rounded-lg font-black flex items-center justify-center">
+                  <span className="material-symbols-outlined text-[20px]">wb_sunny</span>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-extrabold text-[#FFD400] text-sm tracking-wide uppercase">Morning Cockpit Focus Queue (RC-03)</h3>
+                    <span className="bg-amber-400/20 text-amber-300 text-[9px] font-black px-2 py-0.5 rounded border border-amber-400/30">
+                      SLA & Stagnation Aging Radar
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-300 mt-0.5">Prioritized daily action queue and multi-channel communication command center</p>
+                </div>
+              </div>
+
+              {/* Role Access Rules Switcher */}
+              <div className="flex items-center gap-2 bg-slate-800/80 p-1 rounded-lg border border-slate-700 self-start sm:self-auto">
+                <button
+                  onClick={() => {
+                    setViewModeRole("my_queue");
+                    fetchDailyQueue("my_queue");
+                  }}
+                  className={`px-3 py-1.5 rounded text-xs font-bold transition-all cursor-pointer ${
+                    viewModeRole === "my_queue"
+                      ? "bg-[#FFD400] text-[#0F172A] shadow-sm"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  My Assigned Tasks
+                </button>
+                <button
+                  onClick={() => {
+                    setViewModeRole("agency_aggregate");
+                    fetchDailyQueue("agency_aggregate");
+                  }}
+                  className={`px-3 py-1.5 rounded text-xs font-bold transition-all cursor-pointer ${
+                    viewModeRole === "agency_aggregate"
+                      ? "bg-[#FFD400] text-[#0F172A] shadow-sm"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  Agency-Wide Board
+                </button>
+              </div>
+            </div>
+
+            {/* Summary Metrics Bar */}
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 pt-2">
+              <div className="bg-slate-800/60 border border-slate-700/60 rounded-lg p-3 flex items-center gap-3">
+                <div className="bg-red-500/20 text-red-400 p-2 rounded-lg">
+                  <span className="material-symbols-outlined text-[18px]">error</span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Critical Breaches (72h+)</span>
+                  <span className="text-lg font-black text-red-400">{dailyQueueSummary?.slaBreachCount || 0} Cards</span>
+                </div>
+              </div>
+
+              <div className="bg-slate-800/60 border border-slate-700/60 rounded-lg p-3 flex items-center gap-3">
+                <div className="bg-amber-500/20 text-amber-400 p-2 rounded-lg">
+                  <span className="material-symbols-outlined text-[18px]">warning</span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">High-Risk Alerts</span>
+                  <span className="text-lg font-black text-amber-400">{dailyQueueSummary?.highRiskCount || 0} Leads</span>
+                </div>
+              </div>
+
+              <div className="bg-slate-800/60 border border-slate-700/60 rounded-lg p-3 flex items-center gap-3">
+                <div className="bg-yellow-500/20 text-yellow-400 p-2 rounded-lg">
+                  <span className="material-symbols-outlined text-[18px]">schedule</span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Aging Warnings (36h+)</span>
+                  <span className="text-lg font-black text-yellow-400">{dailyQueueSummary?.warningCount || 0} Cards</span>
+                </div>
+              </div>
+
+              <div className="bg-slate-800/60 border border-slate-700/60 rounded-lg p-3 flex items-center gap-3">
+                <div className="bg-emerald-500/20 text-emerald-400 p-2 rounded-lg">
+                  <span className="material-symbols-outlined text-[18px]">task_alt</span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Active Submissions</span>
+                  <span className="text-lg font-black text-emerald-400">{dailyQueueSummary?.totalSubmissions || submissions.length} Candidates</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Prioritized Task List Bar */}
+            {dailyTasks.length > 0 && (
+              <div className="space-y-2 pt-2 border-t border-slate-800">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#FFD400] flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[14px]">bolt</span>
+                  Prioritized Action Tasks Due Today ({dailyTasks.length})
+                </span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {dailyTasks.slice(0, 4).map((task) => (
+                    <div key={task.id} className="bg-slate-900 border border-slate-700/80 rounded-lg p-3 flex justify-between items-center">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${
+                            task.priority === "CRITICAL" ? "bg-red-500/20 text-red-400 border border-red-500/30" : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                          }`}>
+                            {task.type}
+                          </span>
+                          <h4 className="font-extrabold text-xs text-white truncate">{task.title}</h4>
+                        </div>
+                        <p className="text-[11px] text-slate-400 truncate mt-0.5">{task.description}</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          const sub = submissions.find(s => s.submissionId === task.submissionId);
+                          if (sub) setSelectedSubmissionForTimeline(sub);
+                        }}
+                        className="bg-[#FFD400] text-[#0F172A] text-[10px] font-black px-2.5 py-1.5 rounded flex items-center gap-1 hover:brightness-95 active:scale-95 transition-all cursor-pointer flex-shrink-0 ml-3"
+                      >
+                        <span className="material-symbols-outlined text-[12px]">forum</span>
+                        Open Feed
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -946,40 +951,41 @@ export default function CockpitView() {
                         .map(s => ({ ...s, sla: getSlaStatus(s.stage, s.stageUpdatedAt) }))
                         .sort((a, b) => b.sla.hours - a.sla.hours)
                         .map(s => {
+                          const isBreached = s.sla.level === "breach";
                           const isWarning = s.sla.level === "warning";
                           return (
                             <div 
                               key={s.submissionId} 
-                              className={`bg-white border rounded-lg p-4 shadow-sm space-y-3 transition-all relative group ${
-                                isWarning 
+                              onClick={() => setSelectedSubmissionForTimeline(s)}
+                              className={`bg-white border rounded-lg p-4 shadow-sm space-y-3 transition-all relative group cursor-pointer hover:shadow-md ${
+                                isBreached
+                                  ? "border-red-500 ring-2 ring-red-100 shadow-red-50"
+                                  : isWarning 
                                   ? "border-amber-400 ring-2 ring-amber-50" 
                                   : "border-outline-variant hover:border-slate-300"
                               }`}
                             >
+                              {s.riskStatus === "HIGH_RISK" && (
+                                <div className="bg-red-500 text-white font-black text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse inline-flex items-center gap-1">
+                                  <span className="material-symbols-outlined text-[10px]">warning</span>
+                                  HIGH RISK: Negative Sentiment Detected
+                                </div>
+                              )}
                               <div className="flex justify-between items-start gap-2">
                                 <div className="min-w-0">
                                   <h4 className="font-semibold text-on-surface text-sm truncate">{s.fullName}</h4>
                                   <p className="text-xs text-on-surface-variant truncate">{s.currentTitle} at {s.currentCompany || "Freelance"}</p>
                                 </div>
                                 <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${
-                                  s.sla.level === "breach"
-                                    ? "bg-red-100 text-red-700 animate-pulse"
+                                  isBreached
+                                    ? "bg-red-100 text-red-700 border border-red-300 animate-pulse font-extrabold"
                                     : isWarning 
-                                      ? "bg-amber-100 text-amber-700" 
-                                      : "bg-slate-100 text-slate-600"
+                                    ? "bg-amber-100 text-amber-700 border border-amber-300" 
+                                    : "bg-emerald-100 text-emerald-800 border border-emerald-300"
                                 }`}>
                                   {s.sla.text}
                                 </span>
                               </div>
-
-                              {/* High Risk Negative Sentiment Badge (RC-01) */}
-                              {s.tags && s.tags.some((t: string) => t.toLowerCase().includes("risk") || t.toLowerCase().includes("declining") || t.toLowerCase().includes("counter offer")) && (
-                                <div className="bg-purple-100 text-purple-900 border border-purple-300 text-[9px] font-black px-2 py-1 rounded flex items-center gap-1 animate-pulse">
-                                  <span className="material-symbols-outlined text-[12px]">warning</span>
-                                  HIGH RISK: Declining / Counter Offer
-                                </div>
-                              )}
-
                               <div className="flex flex-wrap gap-2 text-[10px]">
                                 <span className="bg-slate-100 text-on-surface-variant px-2 py-0.5 rounded font-medium">
                                   {s.totalExpMonths ? `${Math.round(s.totalExpMonths / 12)} Yrs` : "N/A Exp"}
@@ -989,20 +995,18 @@ export default function CockpitView() {
                                 </span>
                               </div>
                               <div className="pt-2 border-t border-slate-100 flex justify-between items-center text-[10px]">
+                                <span className="text-slate-400 truncate">
+                                  Sent: {new Date(s.stageUpdatedAt).toLocaleDateString()}
+                                </span>
                                 <button
-                                  onClick={() => openCommunicationHub(s)}
-                                  className="text-emerald-700 font-extrabold flex items-center gap-1 hover:underline cursor-pointer bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedSubmissionForTimeline(s);
+                                  }}
+                                  className="text-primary-container font-extrabold flex items-center gap-1 hover:underline cursor-pointer"
                                 >
-                                  <span className="material-symbols-outlined text-[12px]">chat</span>
-                                  WhatsApp Direct
-                                </button>
-                                <button
-                                  onClick={() => handleTriggerChase(s)}
-                                  disabled={chasingId === s.submissionId}
-                                  className="text-primary-container font-extrabold flex items-center gap-1 hover:underline cursor-pointer disabled:opacity-50"
-                                >
-                                  <span className="material-symbols-outlined text-[12px]">send</span>
-                                  {chasingId === s.submissionId ? "Chasing..." : "Trigger Chase"}
+                                  <span className="material-symbols-outlined text-[12px]">forum</span>
+                                  Open WhatsApp Feed
                                 </button>
                               </div>
                             </div>
@@ -1038,37 +1042,36 @@ export default function CockpitView() {
                           return (
                             <div 
                               key={s.submissionId} 
-                              className={`bg-white border rounded-lg p-4 shadow-sm space-y-3 transition-all relative group ${
+                              onClick={() => setSelectedSubmissionForTimeline(s)}
+                              className={`bg-white border rounded-lg p-4 shadow-sm space-y-3 transition-all relative group cursor-pointer hover:shadow-md ${
                                 isBreached 
-                                  ? "border-red-400 ring-2 ring-red-100 shadow-red-50" 
+                                  ? "border-red-500 ring-2 ring-red-100 shadow-red-50" 
                                   : isWarning 
                                     ? "border-amber-400 ring-2 ring-amber-50" 
                                     : "border-outline-variant hover:border-slate-300"
                               }`}
-                                                     <div className="flex justify-between items-start gap-2">
+                            >
+                              {s.riskStatus === "HIGH_RISK" && (
+                                <div className="bg-red-500 text-white font-black text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse inline-flex items-center gap-1">
+                                  <span className="material-symbols-outlined text-[10px]">warning</span>
+                                  HIGH RISK: Negative Sentiment Detected
+                                </div>
+                              )}
+                              <div className="flex justify-between items-start gap-2">
                                 <div className="min-w-0">
                                   <h4 className="font-semibold text-on-surface text-sm truncate">{s.fullName}</h4>
                                   <p className="text-xs text-on-surface-variant truncate">{s.currentTitle} at {s.currentCompany || "Freelance"}</p>
                                 </div>
                                 <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${
                                   isBreached 
-                                    ? "bg-red-100 text-red-700 animate-pulse font-black border border-red-300" 
+                                    ? "bg-red-100 text-red-700 border border-red-300 animate-pulse font-extrabold" 
                                     : isWarning 
-                                      ? "bg-amber-100 text-amber-700" 
-                                      : "bg-slate-100 text-slate-600"
+                                      ? "bg-amber-100 text-amber-700 border border-amber-300" 
+                                      : "bg-emerald-100 text-emerald-800 border border-emerald-300"
                                 }`}>
                                   {s.sla.text}
                                 </span>
                               </div>
-
-                              {/* High Risk Negative Sentiment Badge (RC-01) */}
-                              {s.tags && s.tags.some((t: string) => t.toLowerCase().includes("risk") || t.toLowerCase().includes("declining") || t.toLowerCase().includes("counter offer")) && (
-                                <div className="bg-purple-100 text-purple-900 border border-purple-300 text-[9px] font-black px-2 py-1 rounded flex items-center gap-1 animate-pulse">
-                                  <span className="material-symbols-outlined text-[12px]">warning</span>
-                                  HIGH RISK: Declining / Counter Offer
-                                </div>
-                              )}
-
                               <div className="flex flex-wrap gap-2 text-[10px]">
                                 <span className="bg-slate-100 text-on-surface-variant px-2 py-0.5 rounded font-medium">
                                   {s.totalExpMonths ? `${Math.round(s.totalExpMonths / 12)} Yrs` : "N/A Exp"}
@@ -1078,23 +1081,21 @@ export default function CockpitView() {
                                 </span>
                               </div>
                               <div className="pt-2 border-t border-slate-100 flex justify-between items-center text-[10px]">
+                                <span className="text-slate-400 truncate">
+                                  Sent: {new Date(s.stageUpdatedAt).toLocaleDateString()}
+                                </span>
                                 <button
-                                  onClick={() => openCommunicationHub(s)}
-                                  className="text-emerald-700 font-extrabold flex items-center gap-1 hover:underline cursor-pointer bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedSubmissionForTimeline(s);
+                                  }}
+                                  className="text-primary-container font-extrabold flex items-center gap-1 hover:underline cursor-pointer"
                                 >
-                                  <span className="material-symbols-outlined text-[12px]">chat</span>
-                                  WhatsApp Direct
-                                </button>
-                                <button
-                                  onClick={() => handleTriggerChase(s)}
-                                  disabled={chasingId === s.submissionId}
-                                  className="text-primary-container font-extrabold flex items-center gap-1 hover:underline cursor-pointer disabled:opacity-50"
-                                >
-                                  <span className="material-symbols-outlined text-[12px]">send</span>
-                                  {chasingId === s.submissionId ? "Chasing..." : "Trigger Chase"}
+                                  <span className="material-symbols-outlined text-[12px]">forum</span>
+                                  Open WhatsApp Feed
                                 </button>
                               </div>
-                            </div>  </div>
+                            </div>
                           );
                         })
                     )}
@@ -1132,30 +1133,17 @@ export default function CockpitView() {
                                   : "border-outline-variant hover:border-slate-300"
                               }`}
                             >
-                               <div className="flex justify-between items-start gap-2">
+                              <div className="flex justify-between items-start gap-2">
                                 <div className="min-w-0">
                                   <h4 className="font-semibold text-on-surface text-sm truncate">{s.fullName}</h4>
                                   <p className="text-xs text-on-surface-variant truncate">{s.currentTitle} at {s.currentCompany || "Freelance"}</p>
                                 </div>
                                 <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${
-                                  s.sla.level === "breach"
-                                    ? "bg-red-100 text-red-700 animate-pulse font-black border border-red-300"
-                                    : isWarning 
-                                      ? "bg-amber-100 text-amber-700" 
-                                      : "bg-slate-100 text-slate-600"
+                                  isWarning ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"
                                 }`}>
                                   {s.sla.text}
                                 </span>
                               </div>
-
-                              {/* High Risk Negative Sentiment Badge (RC-01) */}
-                              {s.tags && s.tags.some((t: string) => t.toLowerCase().includes("risk") || t.toLowerCase().includes("declining") || t.toLowerCase().includes("counter offer")) && (
-                                <div className="bg-purple-100 text-purple-900 border border-purple-300 text-[9px] font-black px-2 py-1 rounded flex items-center gap-1 animate-pulse">
-                                  <span className="material-symbols-outlined text-[12px]">warning</span>
-                                  HIGH RISK: Declining / Counter Offer
-                                </div>
-                              )}
-
                               <div className="flex flex-wrap gap-2 text-[10px]">
                                 <span className="bg-slate-100 text-on-surface-variant px-2 py-0.5 rounded font-medium">
                                   {s.totalExpMonths ? `${Math.round(s.totalExpMonths / 12)} Yrs` : "N/A Exp"}
@@ -1165,13 +1153,9 @@ export default function CockpitView() {
                                 </span>
                               </div>
                               <div className="pt-2 border-t border-slate-100 flex justify-between items-center text-[10px]">
-                                <button
-                                  onClick={() => openCommunicationHub(s)}
-                                  className="text-emerald-700 font-extrabold flex items-center gap-1 hover:underline cursor-pointer bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200"
-                                >
-                                  <span className="material-symbols-outlined text-[12px]">chat</span>
-                                  WhatsApp Direct
-                                </button>
+                                <span className="text-slate-400 truncate">
+                                  Sent: {new Date(s.stageUpdatedAt).toLocaleDateString()}
+                                </span>
                                 <button
                                   onClick={() => handleTriggerChase(s)}
                                   disabled={chasingId === s.submissionId}
@@ -2095,190 +2079,193 @@ export default function CockpitView() {
           </div>
         </div>
       )}
-
-      {/* UNIFIED MULTI-CHANNEL COMMUNICATION & TIMELINE DRAWER (RC-01) */}
-      {activeCommDrawer && activeCommSubmission && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="w-full max-w-lg bg-white h-full shadow-2xl flex flex-col justify-between border-l border-outline-variant animate-in slide-in-from-right duration-300">
-            {/* Header */}
-            <div className="p-4 bg-[#0F172A] text-white flex justify-between items-center border-b border-slate-800">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#FFD400] text-[#0F172A] flex items-center justify-center font-black text-sm shadow">
-                  {activeCommSubmission.fullName ? activeCommSubmission.fullName.charAt(0) : "C"}
-                </div>
-                <div>
-                  <h3 className="font-bold text-sm text-white">{activeCommSubmission.fullName}</h3>
-                  <p className="text-xs text-slate-300">{activeCommSubmission.currentTitle || "Candidate"} — {activeCommSubmission.jobTitle || "Mandate"}</p>
-                </div>
+      {/* RC-01: RIGHT SIDE EMBEDDED WHATSAPP CHAT FEED & TEMPLATE DISPATCH SLIDE-OVER */}
+      {selectedSubmissionForTimeline && (
+        <div className="fixed right-0 top-0 bottom-0 w-full sm:w-[450px] bg-white border-l border-slate-200 shadow-2xl z-50 flex flex-col animate-in slide-in-from-right duration-300">
+          {/* Panel Header */}
+          <div className="bg-[#0F172A] px-5 py-4 text-white flex justify-between items-center border-b border-slate-800">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-[#FFD400] text-[#0F172A] font-extrabold text-sm flex items-center justify-center border-2 border-white">
+                {selectedSubmissionForTimeline.fullName?.charAt(0) || "C"}
               </div>
-              <button 
-                onClick={() => setActiveCommDrawer(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-all cursor-pointer"
+              <div>
+                <h3 className="font-extrabold text-sm text-[#FFD400] truncate max-w-[220px]">
+                  {selectedSubmissionForTimeline.fullName}
+                </h3>
+                <p className="text-[11px] text-slate-300 truncate max-w-[220px]">
+                  {selectedSubmissionForTimeline.currentTitle} • {selectedSubmissionForTimeline.stage}
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setSelectedSubmissionForTimeline(null)}
+              className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+          </div>
+
+          {/* SLA & Risk Header Bar */}
+          <div className="bg-slate-50 border-b border-slate-200 px-5 py-2.5 flex justify-between items-center text-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-slate-400 uppercase">SLA Status:</span>
+              <span className={`px-2 py-0.5 rounded-full font-extrabold text-[10px] ${
+                getSlaStatus(selectedSubmissionForTimeline.stage, selectedSubmissionForTimeline.stageUpdatedAt).level === "breach"
+                  ? "bg-red-100 text-red-700 border border-red-300 animate-pulse"
+                  : getSlaStatus(selectedSubmissionForTimeline.stage, selectedSubmissionForTimeline.stageUpdatedAt).level === "warning"
+                  ? "bg-amber-100 text-amber-700 border border-amber-300"
+                  : "bg-emerald-100 text-emerald-800 border border-emerald-300"
+              }`}>
+                {getSlaStatus(selectedSubmissionForTimeline.stage, selectedSubmissionForTimeline.stageUpdatedAt).text}
+              </span>
+            </div>
+
+            {selectedSubmissionForTimeline.riskStatus === "HIGH_RISK" && (
+              <span className="bg-red-500 text-white font-black text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse shadow-sm">
+                HIGH RISK ALERT
+              </span>
+            )}
+          </div>
+
+          {/* Live Timeline Stream */}
+          <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-slate-100/50 custom-scrollbar">
+            {loadingTimeline ? (
+              <div className="flex flex-col items-center justify-center py-12 text-slate-400 text-xs">
+                <span className="material-symbols-outlined animate-spin text-[24px] mb-2">sync</span>
+                Loading timeline history...
+              </div>
+            ) : timelineLogs.length === 0 ? (
+              <div className="text-center py-12 text-slate-400 text-xs space-y-2">
+                <span className="material-symbols-outlined text-[32px] text-slate-300">chat</span>
+                <p>No prior communication logs found for this candidate.</p>
+                <p className="text-[10px] text-slate-400">Use the templates below to send the first WhatsApp message!</p>
+              </div>
+            ) : (
+              timelineLogs.map((log) => {
+                const isInbound = String(log.direction).toUpperCase() === "INBOUND";
+                return (
+                  <div
+                    key={log.messageId}
+                    className={`flex flex-col max-w-[85%] ${isInbound ? "self-start" : "self-end ml-auto"}`}
+                  >
+                    <div
+                      className={`p-3 rounded-xl text-xs space-y-1 shadow-sm ${
+                        isInbound
+                          ? "bg-white border border-slate-200 text-slate-800 rounded-tl-none"
+                          : "bg-[#0F172A] text-white rounded-tr-none"
+                      }`}
+                    >
+                      <div className="flex justify-between items-center text-[9px] opacity-75 mb-1 gap-4">
+                        <span className="font-bold uppercase tracking-wider">{log.channel} • {log.direction}</span>
+                        <span>{new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                      <p className="leading-relaxed whitespace-pre-wrap font-medium">{log.body}</p>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* 1-Click WhatsApp Template Selector Bar */}
+          <div className="p-3 bg-slate-50 border-t border-slate-200 space-y-2">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block">
+              1-Click WhatsApp Template Selection (RC-01)
+            </span>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => handleDispatchTemplateMessage(
+                  `Hi ${selectedSubmissionForTimeline.fullName}, following up regarding your screening status for ${selectedSubmissionForTimeline.jobTitle || 'the role'}. Are you available for a quick call today?`
+                )}
+                disabled={sendingCommunication}
+                className="bg-white border border-slate-300 hover:border-emerald-500 text-slate-800 text-[10px] font-bold py-2 px-2.5 rounded-lg flex items-center gap-1.5 hover:bg-emerald-50 transition-all cursor-pointer text-left truncate"
               >
-                <span className="material-symbols-outlined text-[20px]">close</span>
+                <span className="material-symbols-outlined text-emerald-600 text-[14px]">chat</span>
+                <span className="truncate">Screening Follow-Up</span>
+              </button>
+
+              <button
+                onClick={() => handleDispatchTemplateMessage(
+                  `Hi ${selectedSubmissionForTimeline.fullName}, reminding you of your scheduled client interview for ${selectedSubmissionForTimeline.jobTitle || 'the role'}. Please confirm if everything is set!`
+                )}
+                disabled={sendingCommunication}
+                className="bg-white border border-slate-300 hover:border-blue-500 text-slate-800 text-[10px] font-bold py-2 px-2.5 rounded-lg flex items-center gap-1.5 hover:bg-blue-50 transition-all cursor-pointer text-left truncate"
+              >
+                <span className="material-symbols-outlined text-blue-600 text-[14px]">event</span>
+                <span className="truncate">Interview Schedule</span>
+              </button>
+
+              <button
+                onClick={() => handleDispatchTemplateMessage(
+                  `Hi ${selectedSubmissionForTimeline.fullName}, great news! We have an update regarding your offer status for ${selectedSubmissionForTimeline.jobTitle || 'the role'}. Let's connect!`
+                )}
+                disabled={sendingCommunication}
+                className="bg-white border border-slate-300 hover:border-purple-500 text-slate-800 text-[10px] font-bold py-2 px-2.5 rounded-lg flex items-center gap-1.5 hover:bg-purple-50 transition-all cursor-pointer text-left truncate"
+              >
+                <span className="material-symbols-outlined text-purple-600 text-[14px]">celebration</span>
+                <span className="truncate">Offer Update</span>
+              </button>
+
+              <button
+                onClick={() => handleDispatchTemplateMessage(
+                  `Hi ${selectedSubmissionForTimeline.fullName}, we received your latest message. Let's schedule a 5-min call with our lead partner to address any questions!`
+                )}
+                disabled={sendingCommunication}
+                className="bg-white border border-slate-300 hover:border-amber-500 text-slate-800 text-[10px] font-bold py-2 px-2.5 rounded-lg flex items-center gap-1.5 hover:bg-amber-50 transition-all cursor-pointer text-left truncate"
+              >
+                <span className="material-symbols-outlined text-amber-600 text-[14px]">warning</span>
+                <span className="truncate">Risk Mitigation</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Custom Direct Message Dispatch Box */}
+          <div className="p-4 bg-white border-t border-slate-200 space-y-3">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setSelectedChannel("WHATSAPP")}
+                className={`flex-1 py-1.5 text-[10px] font-black rounded-lg uppercase tracking-wider flex items-center justify-center gap-1 border cursor-pointer ${
+                  selectedChannel === "WHATSAPP"
+                    ? "bg-emerald-600 text-white border-emerald-600"
+                    : "bg-slate-100 text-slate-600 border-slate-200"
+                }`}
+              >
+                <span className="material-symbols-outlined text-[14px]">forum</span>
+                WhatsApp Business
+              </button>
+              <button
+                onClick={() => setSelectedChannel("EMAIL")}
+                className={`flex-1 py-1.5 text-[10px] font-black rounded-lg uppercase tracking-wider flex items-center justify-center gap-1 border cursor-pointer ${
+                  selectedChannel === "EMAIL"
+                    ? "bg-blue-600 text-white border-blue-600"
+                    : "bg-slate-100 text-slate-600 border-slate-200"
+                }`}
+              >
+                <span className="material-symbols-outlined text-[14px]">mail</span>
+                Email Direct
               </button>
             </div>
 
-            {/* Timeline Activity Feed */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 custom-scrollbar">
-              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Live Activity & Chat Feed</span>
-                <span className="text-[10px] bg-slate-200 text-slate-700 px-2 py-0.5 rounded font-bold">RC-01 Unified Log</span>
-              </div>
-
-              {loadingTimeline ? (
-                <div className="flex items-center justify-center py-12 text-slate-400 text-xs">
-                  Loading communication timeline...
-                </div>
-              ) : timelineLogs.length === 0 ? (
-                <div className="text-center py-12 text-xs text-slate-400 border border-dashed border-slate-300 rounded-xl bg-white p-6">
-                  <span className="material-symbols-outlined text-[28px] text-slate-300 mb-2">chat</span>
-                  <p className="font-semibold">No historical interactions logged yet.</p>
-                  <p className="text-[10px] text-slate-400 mt-1">Select a 1-click template below to dispatch your first message via WhatsApp or Email!</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {timelineLogs.map((log) => {
-                    const isInbound = log.direction === "INBOUND" || log.direction === "inbound";
-                    return (
-                      <div 
-                        key={log.messageId || log.logId || Math.random()} 
-                        className={`flex flex-col ${isInbound ? "items-start" : "items-end"}`}
-                      >
-                        <div className={`max-w-[88%] rounded-2xl p-3 shadow-sm text-xs space-y-1.5 ${
-                          isInbound 
-                            ? "bg-white text-slate-800 border border-slate-200 rounded-tl-none" 
-                            : "bg-[#0F172A] text-white rounded-tr-none"
-                        }`}>
-                          <div className={`flex items-center justify-between gap-4 text-[10px] font-bold border-b pb-1 ${
-                            isInbound ? "border-slate-100 text-slate-500" : "border-slate-700 text-slate-300"
-                          }`}>
-                            <span className="flex items-center gap-1">
-                              <span className="material-symbols-outlined text-[12px]">
-                                {log.channel?.toLowerCase().includes("whatsapp") ? "chat" : "mail"}
-                              </span>
-                              {log.channel} • {isInbound ? "INBOUND REPLY" : "OUTBOUND DISPATCH"}
-                            </span>
-                            <span>{new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                          </div>
-                          <p className="leading-relaxed whitespace-pre-wrap">{log.body}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* 1-Click WhatsApp & Email Template Dispatcher & Simulation Controls */}
-            <div className="p-4 bg-white border-t border-outline-variant space-y-3">
-              {/* Template Buttons */}
-              <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block">
-                  1-Click Multi-Channel Templates:
-                </span>
-                <div className="flex flex-wrap gap-1.5 text-[11px]">
-                  <button 
-                    onClick={() => applyTemplate("screening")}
-                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded font-medium transition-all cursor-pointer"
-                  >
-                    [ Screening Follow-Up ]
-                  </button>
-                  <button 
-                    onClick={() => applyTemplate("interview")}
-                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded font-medium transition-all cursor-pointer"
-                  >
-                    [ Client Reminder ]
-                  </button>
-                  <button 
-                    onClick={() => applyTemplate("offer")}
-                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded font-medium transition-all cursor-pointer"
-                  >
-                    [ Offer Check-In ]
-                  </button>
-                  <button 
-                    onClick={() => applyTemplate("document")}
-                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded font-medium transition-all cursor-pointer"
-                  >
-                    [ Doc Request ]
-                  </button>
-                </div>
-              </div>
-
-              {/* Channel Selection & Message Body */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={() => setCommChannel("WHATSAPP")}
-                      className={`text-[10px] font-extrabold px-2.5 py-1 rounded flex items-center gap-1 cursor-pointer transition-all ${
-                        commChannel === "WHATSAPP" 
-                          ? "bg-emerald-600 text-white shadow-sm" 
-                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                      }`}
-                    >
-                      <span className="material-symbols-outlined text-[12px]">chat</span>
-                      WhatsApp Direct
-                    </button>
-                    <button 
-                      onClick={() => setCommChannel("EMAIL")}
-                      className={`text-[10px] font-extrabold px-2.5 py-1 rounded flex items-center gap-1 cursor-pointer transition-all ${
-                        commChannel === "EMAIL" 
-                          ? "bg-blue-600 text-white shadow-sm" 
-                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                      }`}
-                    >
-                      <span className="material-symbols-outlined text-[12px]">mail</span>
-                      Email
-                    </button>
-                  </div>
-                  <span className="text-[10px] text-slate-400 font-medium">Auto Variable Populated</span>
-                </div>
-
-                <textarea 
-                  rows={3}
-                  value={commMessageBody}
-                  onChange={(e) => setCommMessageBody(e.target.value)}
-                  placeholder="Type your message or click a 1-click template above..."
-                  className="w-full p-2.5 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F172A]"
-                />
-
-                <button 
-                  onClick={handleDispatchCommunication}
-                  disabled={dispatchingComm || !commMessageBody.trim()}
-                  className="w-full bg-[#0F172A] hover:bg-slate-800 text-[#FFD400] font-bold text-xs py-2.5 rounded-lg flex items-center justify-center gap-2 active:scale-95 transition-all shadow-md disabled:opacity-50 cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-[16px]">send</span>
-                  {dispatchingComm ? "Dispatching Message..." : `Dispatch via ${commChannel}`}
-                </button>
-              </div>
-
-              {/* Live Simulation Box for Negative Sentiment Keyword Detection */}
-              <div className="pt-3 border-t border-slate-200 space-y-2 bg-amber-50/60 p-2.5 rounded-lg border border-amber-200">
-                <div className="flex justify-between items-center text-[10px] font-bold text-amber-900">
-                  <span className="flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[14px]">psychology</span>
-                    Test Sentiment Detection (Simulate Inbound Candidate Reply)
-                  </span>
-                  <span className="bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded text-[9px]">Edge Case Rule</span>
-                </div>
-                <div className="flex gap-2">
-                  <input 
-                    type="text"
-                    value={simulatedInboundText}
-                    onChange={(e) => setSimulatedInboundText(e.target.value)}
-                    placeholder="e.g. I accepted a counter offer and am declining."
-                    className="flex-1 px-2.5 py-1.5 text-xs bg-white border border-amber-300 rounded focus:outline-none"
-                  />
-                  <button 
-                    onClick={() => handleSimulateInboundReply()}
-                    disabled={simulatingInbound || !simulatedInboundText.trim()}
-                    className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-3 py-1.5 rounded disabled:opacity-50 cursor-pointer"
-                  >
-                    Simulate
-                  </button>
-                </div>
-              </div>
+            <div className="flex gap-2">
+              <textarea
+                rows={2}
+                value={customMessageBody}
+                onChange={(e) => setCustomMessageBody(e.target.value)}
+                placeholder={`Type custom ${selectedChannel} message...`}
+                className="flex-1 p-2.5 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-slate-900 resize-none font-medium text-slate-800"
+              />
+              <button
+                onClick={() => handleDispatchTemplateMessage()}
+                disabled={sendingCommunication || !customMessageBody.trim()}
+                className="bg-[#0F172A] text-[#FFD400] font-black px-4 rounded-lg flex items-center justify-center hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
+              >
+                {sendingCommunication ? (
+                  <span className="material-symbols-outlined animate-spin text-[16px]">sync</span>
+                ) : (
+                  <span className="material-symbols-outlined text-[18px]">send</span>
+                )}
+              </button>
             </div>
           </div>
         </div>

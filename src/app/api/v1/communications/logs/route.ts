@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { communicationLog } from "@/db/schema";
-import { eq, or, and, asc } from "drizzle-orm";
+import { eq, and, or, asc } from "drizzle-orm";
 import { getTenantContext } from "@/backend/auth/tenant-context";
 
 export async function GET(req: NextRequest) {
@@ -12,28 +12,31 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const submissionId = searchParams.get("submissionId");
     const candidateId = searchParams.get("candidateId");
+    const submissionId = searchParams.get("submissionId");
 
-    if (!submissionId && !candidateId) {
-      return NextResponse.json({ error: "Either submissionId or candidateId is required." }, { status: 400 });
+    if (!candidateId && !submissionId) {
+      return NextResponse.json({ error: "Candidate ID or Submission ID required" }, { status: 400 });
     }
-
-    const { agencyId } = context;
-
-    // Fetch timeline entries sorted chronologically
-    const conditions = [];
-    if (submissionId) conditions.push(eq(communicationLog.submissionId, submissionId));
-    if (candidateId) conditions.push(eq(communicationLog.candidateId, candidateId));
 
     const logs = await db
       .select()
       .from(communicationLog)
-      .where(and(eq(communicationLog.agencyId, agencyId), or(...conditions)))
+      .where(
+        and(
+          eq(communicationLog.agencyId, context.agencyId),
+          submissionId
+            ? eq(communicationLog.submissionId, submissionId)
+            : eq(communicationLog.candidateId, candidateId!)
+        )
+      )
       .orderBy(asc(communicationLog.createdAt));
 
     return NextResponse.json({ success: true, logs });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Failed to load communication timeline" }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message || "Failed to fetch communication logs" },
+      { status: 500 }
+    );
   }
 }

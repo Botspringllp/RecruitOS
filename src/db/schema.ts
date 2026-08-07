@@ -117,14 +117,14 @@ export const communicationLog = pgTable('communication_log', {
   agencyId: uuid('agency_id')
     .notNull()
     .references(() => agencies.agencyId, { onDelete: 'cascade' }),
-  candidateId: uuid('candidate_id')
-    .references(() => candidateRecords.candidateId, { onDelete: 'set null' }),
   submissionId: uuid('submission_id')
     .references(() => candidateSubmissions.submissionId, { onDelete: 'cascade' }),
+  candidateId: uuid('candidate_id')
+    .references(() => candidateRecords.candidateId, { onDelete: 'set null' }),
   sentByUserId: uuid('sent_by_user_id')
     .references(() => users.userId, { onDelete: 'set null' }),
-  channel: varchar('channel', { length: 20 }).notNull(), // 'WHATSAPP' | 'EMAIL' | 'SYSTEM_NOTE' | 'whatsapp' | 'email'
-  direction: varchar('direction', { length: 10 }).notNull(), // 'INBOUND' | 'OUTBOUND' | 'inbound' | 'outbound'
+  channel: varchar('channel', { length: 20 }).notNull(), // 'WHATSAPP' | 'EMAIL' | 'SYSTEM_NOTE'
+  direction: varchar('direction', { length: 10 }).notNull(), // 'INBOUND' | 'OUTBOUND'
   fromAddress: varchar('from_address', { length: 255 }), // sender's phone or email
   toAddress: varchar('to_address', { length: 255 }), // recipient's phone or email
   body: text('body'),
@@ -210,6 +210,8 @@ export const candidateSubmissions = pgTable('candidate_submissions', {
     .references(() => candidateRecords.candidateId, { onDelete: 'cascade' }),
   sourceShareId: uuid('source_share_id').references(() => partnerMandateShares.shareId, { onDelete: 'set null' }),
   stage: varchar('stage', { length: 50 }).default('Screened').notNull(), // 'Screened' | 'Submitted' | 'Interviewing' | 'Offered' | 'Joined' | 'Rejected'
+  riskStatus: varchar('risk_status', { length: 50 }).default('NORMAL').notNull(), // 'NORMAL' | 'HIGH_RISK'
+  riskReason: text('risk_reason'),
   stageUpdatedAt: timestamp('stage_updated_at', { withTimezone: true }).defaultNow(),
   lastCommunicationAt: timestamp('last_communication_at', { withTimezone: true }).defaultNow(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
