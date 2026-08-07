@@ -9,8 +9,8 @@ function hashToken(token: string): string {
 }
 
 function normalizePhone(phone: string): string {
-  // Strip spaces, dashes, parentheses — strips country code formatting
-  return phone.replace(/[\s\-\(\)]/g, "");
+  const digitsOnly = phone.replace(/[^0-9]/g, "");
+  return digitsOnly.slice(-10);
 }
 
 export async function POST(
@@ -58,9 +58,9 @@ export async function POST(
     const normalizedPhone = phone ? normalizePhone(phone) : null;
 
     // 2. PO-03: Automated Candidate Ownership & Duplicate Arbitrator (200ms First-Touch Rule)
-    //    Normalize email and phone, then check against existing records.
+    // Normalize email and phone, then check against existing records.
     const phoneCondition = normalizedPhone
-      ? eq(candidateRecords.phone, normalizedPhone)
+      ? sql`RIGHT(${candidateRecords.phone}, 10) = ${normalizedPhone}`
       : sql`false`;
 
     const existingCandidates = await db
@@ -88,42 +88,50 @@ export async function POST(
 
     if (existingCandidates.length > 0) {
       const existing = existingCandidates[0];
-
-      // Use lastActivityAt if available, else fallback to createdAt
       const referenceDate = existing.lastActivityAt ?? existing.createdAt;
       const daysSinceLastActivity = referenceDate
         ? (now.getTime() - new Date(referenceDate).getTime()) / (1000 * 3600 * 24)
         : 0;
 
-      if (daysSinceLastActivity < 180) {
-        // Rule 1: Candidate is active In-House (< 180 days)
-        if (existing.sourceType === "Direct_Upload" || existing.sourceType === "Job_Board") {
-          return NextResponse.json(
-            { error: "Candidate active in client pipeline. (Rule 1)" },
-            { status: 409 }
-          );
-        }
-
-        // Rule 2: Another partner already submitted this candidate (First-touch wins)
-        if (existing.sourceType === "Partner_Vault") {
-          return NextResponse.json(
-            { error: "Candidate already submitted by a partner. First-touch arbitrator block. (Rule 2)" },
-            { status: 409 }
-          );
-        }
+      // Rule 1: Active In-House Submission < 90 Days: Blocked
+      if ((existing.sourceType === "Direct_Upload" || existing.sourceType === "Job_Board" || existing.sourceType === "Storefront_Inbound") && daysSinceLastActivity < 90) {
+        return NextResponse.json(
+          { error: "Candidate active in client pipeline." },
+          { status: 409 }
+        );
       }
 
-      // Rule 3: Stale lead (> 180 days) — Partner gets the ownership credit
-      candidateId = existing.candidateId;
-      await db
-        .update(candidateRecords)
-        .set({
-          sourceType: "Partner_Vault",
-          sourcePartnerEmail: partnerEmail,
-          lastActivityAt: now,
-          updatedAt: now,
-        })
-        .where(eq(candidateRecords.candidateId, candidateId));
+      // Rule 2: Prior Partner Submission: Blocked. First-touch partner wins.
+      if (existing.sourceType === "Partner_Vault" && daysSinceLastActivity < 180) {
+        return NextResponse.json(
+          { error: "Candidate already submitted by another partner. First-touch arbitrator block." },
+          { status: 409 }
+        );
+      }
+
+      // Rule 3: Unique or Stale Lead > 180 Days: Approved. Partner gets split rights.
+      if (daysSinceLastActivity >= 180) {
+        candidateId = existing.candidateId;
+        await db
+          .update(candidateRecords)
+          .set({
+            sourceType: "Partner_Vault",
+            sourcePartnerEmail: partnerEmail,
+            lastActivityAt: now,
+            updatedAt: now,
+          })
+          .where(eq(candidateRecords.candidateId, candidateId));
+      } else {
+        // Fallback catch-all for intermediate days (e.g. In-house between 90-180 days is approved for partner vault)
+        candidateId = existing.candidateId;
+        await db
+          .update(candidateRecords)
+          .set({
+            lastActivityAt: now,
+            updatedAt: now,
+          })
+          .where(eq(candidateRecords.candidateId, candidateId));
+      }
 
     } else {
       // Completely new candidate — insert and assign to this partner
@@ -133,7 +141,7 @@ export async function POST(
           agencyId,
           fullName,
           email: normalizedEmail,
-          phone: normalizedPhone,
+          phone: phone ? normalizePhone(phone) : null,
           sourceType: "Partner_Vault",
           sourcePartnerEmail: partnerEmail,
           lastActivityAt: now,

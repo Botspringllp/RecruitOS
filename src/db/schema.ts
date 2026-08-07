@@ -55,13 +55,34 @@ export const candidateRecords = pgTable('candidate_records', {
   currentCtc: numeric('current_ctc', { precision: 12, scale: 2 }),
   expectedCtc: numeric('expected_ctc', { precision: 12, scale: 2 }),
   resumeUrl: text('resume_url'),
+  sanitizedCvUrl: text('sanitized_cv_url'),
+  currentLocation: varchar('current_location', { length: 255 }),
+  tags: text('tags').array(),
   sourceType: varchar('source_type', { length: 50 }).default('Direct_Upload'), // 'Direct_Upload', 'Partner_Vault', 'Job_Board'
   sourcePartnerEmail: varchar('source_partner_email', { length: 255 }),
+  lastActivityAt: timestamp('last_activity_at', { withTimezone: true }).defaultNow(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 }, (t) => ({
   agencyPhoneIdx: index('idx_candidate_phone').on(t.agencyId, t.phone),
   agencyEmailIdx: index('idx_candidate_email').on(t.agencyId, t.email),
+}));
+
+// 4.1 Candidate Relational Links
+export const candidateRelationalLinks = pgTable('candidate_relational_links', {
+  linkId: uuid('link_id').defaultRandom().primaryKey(),
+  primaryCandidateId: uuid('primary_candidate_id')
+    .notNull()
+    .references(() => candidateRecords.candidateId, { onDelete: 'cascade' }),
+  relatedCandidateId: uuid('related_candidate_id')
+    .notNull()
+    .references(() => candidateRecords.candidateId, { onDelete: 'cascade' }),
+  relationshipType: varchar('relationship_type', { length: 50 }).notNull(), // 'SPOUSE' | 'COLLEAGUE' | 'REFERRAL'
+  inheritedTargetLocation: varchar('inherited_target_location', { length: 255 }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => ({
+  idxPrimaryCand: index('idx_primary_cand_link').on(t.primaryCandidateId),
+  idxRelatedCand: index('idx_related_cand_link').on(t.relatedCandidateId),
 }));
 
 // 5. Job Mandates
@@ -245,6 +266,23 @@ export const partnerMandateShares = pgTable('partner_mandate_shares', {
 }, (t) => ({
   idxPartnerToken: index('idx_partner_token').on(t.accessTokenHash),
 }));
+
+// 13. Storefront Candidate Applications
+export const storefrontCandidateApplications = pgTable('storefront_candidate_applications', {
+  applicationId: uuid('application_id').defaultRandom().primaryKey(),
+  agencyId: uuid('agency_id')
+    .notNull()
+    .references(() => agencies.agencyId, { onDelete: 'cascade' }),
+  candidateId: uuid('candidate_id')
+    .notNull()
+    .references(() => candidateRecords.candidateId, { onDelete: 'cascade' }),
+  sourceChannel: varchar('source_channel', { length: 50 }).default('Storefront_Direct').notNull(),
+  parsedSuccessfully: boolean('parsed_successfully').default(true).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => ({
+  idxStorefrontCandAgency: index('idx_storefront_cand_agency').on(t.agencyId),
+}));
+
 
 
 

@@ -48,6 +48,17 @@ export default function CockpitView() {
   // Cockpit Database States
   const [jobs, setJobs] = useState<any[]>([]);
   const [selectedJobId, setSelectedJobId] = useState<string>("");
+  
+  // Silver Medalist & Relational Mapping States
+  const [silverMedalists, setSilverMedalists] = useState<any[]>([]);
+  const [loadingSilver, setLoadingSilver] = useState(false);
+  const [allCandidates, setAllCandidates] = useState<any[]>([]);
+  const [selectedCandidateForLinks, setSelectedCandidateForLinks] = useState<string>("");
+  const [relationalLinks, setRelationalLinks] = useState<any[]>([]);
+  const [relatedCandidateId, setRelatedCandidateId] = useState<string>("");
+  const [relationshipType, setRelationshipType] = useState<string>("SPOUSE");
+  const [inheritedLocation, setInheritedLocation] = useState<string>("");
+  const [linkingCandidate, setLinkingCandidate] = useState(false);
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [chasingId, setChasingId] = useState<string | null>(null);
@@ -180,9 +191,120 @@ export default function CockpitView() {
     }
   };
 
+  const fetchAllCandidates = async () => {
+    try {
+      const res = await fetch("/api/v1/candidates");
+      if (res.ok) {
+        const json = await res.json();
+        setAllCandidates(json.candidates || []);
+      }
+    } catch (e) {
+      console.error("Error fetching all candidates:", e);
+    }
+  };
+
+  const fetchSilverMedalists = async (jobId: string) => {
+    if (!jobId) return;
+    setLoadingSilver(true);
+    try {
+      const res = await fetch(`/api/v1/cockpit/mandates/${jobId}/silver-medalists`);
+      if (res.ok) {
+        const json = await res.json();
+        setSilverMedalists(json.silverMedalists || []);
+      }
+    } catch (e) {
+      console.error("Error fetching silver medalists:", e);
+    } finally {
+      setLoadingSilver(false);
+    }
+  };
+
+  const fetchRelationalLinks = async (candId: string) => {
+    if (!candId) {
+      setRelationalLinks([]);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/v1/candidates/${candId}/links`);
+      if (res.ok) {
+        const json = await res.json();
+        setRelationalLinks(json.links || []);
+      }
+    } catch (e) {
+      console.error("Error fetching relational links:", e);
+    }
+  };
+
+  const handleRecycleCandidate = async (candidateId: string) => {
+    if (!selectedJobId || !candidateId) return;
+    try {
+      const res = await fetch(`/api/v1/cockpit/mandates/${selectedJobId}/silver-medalists`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ candidateId })
+      });
+      if (res.ok) {
+        alert("Candidate recycled successfully!");
+        await loadCockpitData();
+        await fetchSilverMedalists(selectedJobId);
+      } else {
+        const json = await res.json();
+        alert(`Error recycling candidate: ${json.error}`);
+      }
+    } catch (e: any) {
+      alert(`Recycling error: ${e.message}`);
+    }
+  };
+
+  const handleCreateRelationalLink = async () => {
+    if (!selectedCandidateForLinks || !relatedCandidateId) {
+      alert("Please select both candidates!");
+      return;
+    }
+    setLinkingCandidate(true);
+    try {
+      const res = await fetch(`/api/v1/candidates/${selectedCandidateForLinks}/links`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          relatedCandidateId,
+          relationshipType,
+          inheritedTargetLocation: inheritedLocation
+        })
+      });
+      if (res.ok) {
+        alert("Relational link created successfully and tags synced!");
+        await fetchRelationalLinks(selectedCandidateForLinks);
+        await fetchAllCandidates();
+        setRelatedCandidateId("");
+        setInheritedLocation("");
+      } else {
+        const json = await res.json();
+        alert(`Error: ${json.error}`);
+      }
+    } catch (e: any) {
+      alert(`Linking error: ${e.message}`);
+    } finally {
+      setLinkingCandidate(false);
+    }
+  };
+
   useEffect(() => {
     loadCockpitData();
+    fetchAllCandidates();
   }, []);
+
+  useEffect(() => {
+    if (selectedJobId) {
+      fetchSilverMedalists(selectedJobId);
+    }
+  }, [selectedJobId]);
+
+  useEffect(() => {
+    if (selectedCandidateForLinks) {
+      fetchRelationalLinks(selectedCandidateForLinks);
+    }
+  }, [selectedCandidateForLinks]);
 
   const handleBroadcast = async () => {
     if (!selectedJobId) return;
@@ -876,6 +998,193 @@ export default function CockpitView() {
                 </div>
               </div>
             )}
+          </div>
+
+          {/* TWO COLUMN WORKFLOW EXTENSIONS (RC-07 & RC-04) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-6 border-t border-outline-variant">
+            {/* Column 1: Silver Medalist Talent Recycler (RC-07) */}
+            <div className="bg-white rounded-xl border border-outline-variant p-6 space-y-6 shadow-sm">
+              <div className="flex justify-between items-start">
+                <div className="space-y-1">
+                  <span className="bg-amber-100 text-amber-800 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider border border-amber-200">
+                    RC-07 Recycler
+                  </span>
+                  <h3 className="text-base font-extrabold text-slate-900">Silver Medalist Talent Recycler</h3>
+                  <p className="text-xs text-on-surface-variant">
+                    Past 2nd/3rd place runner-up candidates matched from other client pipelines.
+                  </p>
+                </div>
+                <span className="material-symbols-outlined text-amber-500 text-[24px]">workspace_premium</span>
+              </div>
+
+              {loadingSilver ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="w-6 h-6 border-2 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
+                </div>
+              ) : silverMedalists.length === 0 ? (
+                <div className="text-center py-8 bg-slate-50 rounded-lg border border-dashed border-slate-200 text-xs text-on-surface-variant">
+                  <span className="material-symbols-outlined text-[18px] text-slate-300 block mb-1">dashboard_customize</span>
+                  No matching silver medalists found for this mandate
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {silverMedalists.map((cand) => (
+                    <div key={cand.candidateId} className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 hover:border-slate-300 transition-all">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-extrabold text-slate-800 text-sm">{cand.fullName}</h4>
+                          <p className="text-xs text-slate-500 font-medium">{cand.currentTitle} at {cand.currentCompany || "Freelance"}</p>
+                        </div>
+                        <div className="text-right">
+                          <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded border border-emerald-200">
+                            {cand.matchScore}% Match
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Matching Skills */}
+                      {cand.matchingSkills && cand.matchingSkills.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {cand.matchingSkills.map((skill: string, i: number) => (
+                            <span key={i} className="bg-slate-200 text-slate-700 text-[9px] font-bold px-2 py-0.5 rounded">
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-200/50 text-[11px]">
+                        <span className="text-slate-400 font-medium">Notice: {cand.noticePeriodDays} days</span>
+                        <button
+                          onClick={() => handleRecycleCandidate(cand.candidateId)}
+                          className="px-3 py-1.5 bg-[#FFD400] text-slate-900 font-black rounded text-[10px] hover:brightness-95 active:scale-95 transition-all shadow-sm cursor-pointer"
+                        >
+                          Recycle Profile
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Column 2: Relational Talent & Household Mapping (RC-04) */}
+            <div className="bg-white rounded-xl border border-outline-variant p-6 space-y-6 shadow-sm">
+              <div className="flex justify-between items-start">
+                <div className="space-y-1">
+                  <span className="bg-blue-100 text-blue-800 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider border border-blue-200">
+                    RC-04 Mapping
+                  </span>
+                  <h3 className="text-base font-extrabold text-slate-900">Relational &amp; Household Mapping</h3>
+                  <p className="text-xs text-on-surface-variant">
+                    Link candidates for relocation syncs (e.g. spousal/colleague job alignment).
+                  </p>
+                </div>
+                <span className="material-symbols-outlined text-blue-500 text-[24px]">hub</span>
+              </div>
+
+              {/* 1. Select Primary Candidate */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Primary Candidate</label>
+                <select
+                  value={selectedCandidateForLinks}
+                  onChange={(e) => setSelectedCandidateForLinks(e.target.value)}
+                  className="w-full bg-white border border-outline-variant rounded-lg px-3.5 py-2.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-secondary-container/30 transition-all text-on-surface cursor-pointer"
+                >
+                  <option value="">-- Choose Candidate --</option>
+                  {allCandidates.map(c => (
+                    <option key={c.candidateId} value={c.candidateId}>
+                      {c.fullName} ({c.currentTitle || "No Title"})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 2. Active Relational Links List */}
+              {selectedCandidateForLinks && (
+                <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                  <h4 className="text-xs font-extrabold text-slate-800">Current Links</h4>
+                  {relationalLinks.length === 0 ? (
+                    <p className="text-[11px] text-slate-400 font-medium">No active connections linked to this profile.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {relationalLinks.map((link) => (
+                        <div key={link.linkId} className="flex justify-between items-center bg-white p-2.5 rounded-lg border border-slate-100 shadow-sm text-xs">
+                          <div>
+                            <span className="font-extrabold text-slate-700">{link.relatedName}</span>
+                            <span className="bg-amber-100 text-amber-800 text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider ml-2">
+                              {link.relationshipType}
+                            </span>
+                          </div>
+                          {link.inheritedTargetLocation && (
+                            <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded">
+                              {link.inheritedTargetLocation}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* 3. Link New Candidate Form */}
+                  <div className="pt-3 border-t border-slate-200/60 space-y-4">
+                    <h5 className="text-[11px] font-extrabold text-slate-800">Create New Relational Connection</h5>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Related Candidate</label>
+                        <select
+                          value={relatedCandidateId}
+                          onChange={(e) => setRelatedCandidateId(e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-[11px] font-bold focus:outline-none focus:ring-2 focus:ring-slate-100 text-on-surface cursor-pointer"
+                        >
+                          <option value="">-- Choose Partner --</option>
+                          {allCandidates
+                            .filter(c => c.candidateId !== selectedCandidateForLinks)
+                            .map(c => (
+                              <option key={c.candidateId} value={c.candidateId}>
+                                {c.fullName}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Relationship</label>
+                        <select
+                          value={relationshipType}
+                          onChange={(e) => setRelationshipType(e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-[11px] font-bold focus:outline-none focus:ring-2 focus:ring-slate-100 text-on-surface cursor-pointer"
+                        >
+                          <option value="SPOUSE">Spouse</option>
+                          <option value="COLLEAGUE">Colleague</option>
+                          <option value="REFERRAL">Referral</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Sync Target Relocation Location</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Dubai"
+                        value={inheritedLocation}
+                        onChange={(e) => setInheritedLocation(e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-[11px] font-semibold focus:outline-none focus:ring-2 focus:ring-slate-100 text-on-surface"
+                      />
+                    </div>
+
+                    <button
+                      onClick={handleCreateRelationalLink}
+                      disabled={linkingCandidate || !relatedCandidateId}
+                      className="w-full py-2 bg-[#FFD400] text-slate-900 font-extrabold rounded text-[11px] hover:brightness-95 active:scale-95 transition-all shadow-sm cursor-pointer disabled:opacity-50"
+                    >
+                      {linkingCandidate ? "Syncing Mobility..." : "Link Profile & Sync Location / Tags"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </main>
