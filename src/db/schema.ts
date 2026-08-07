@@ -89,3 +89,130 @@ export const agencyChannels = pgTable('agency_channels', {
 }, (t) => ({
   unqChannelAddress: unique('unq_channel_address').on(t.channel, t.address),
 }));
+
+// 7. Agency Storefront Profiles
+export const agencyStorefrontProfiles = pgTable('agency_storefront_profiles', {
+  storefrontId: uuid('storefront_id').defaultRandom().primaryKey(),
+  agencyId: uuid('agency_id')
+    .notNull()
+    .unique()
+    .references(() => agencies.agencyId, { onDelete: 'cascade' }),
+  subdomain: varchar('subdomain', { length: 100 }).notNull().unique(),
+  customDomain: varchar('custom_domain', { length: 255 }).unique(),
+  brandLogoUrl: varchar('brand_logo_url', { length: 512 }),
+  primaryColor: varchar('primary_color', { length: 7 }).default('#0F172A').notNull(),
+  accentColor: varchar('accent_color', { length: 7 }).default('#FFD400').notNull(),
+  heroHeadline: varchar('hero_headline', { length: 255 }).default('Bespoke Executive Search & Talent Infrastructure').notNull(),
+  aboutText: text('about_text'),
+  featuredSpecializations: text('featured_specializations').array(), // list of areas (e.g. Fintech, Executive Leadership)
+  showMetricsBar: boolean('show_metrics_bar').default(true).notNull(),
+  isPublished: boolean('is_published').default(true).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+}, (t) => ({
+  subdomainIdx: index('idx_storefront_subdomain').on(t.subdomain),
+}));
+
+// 8. Inbound Client Mandates
+export const inboundClientMandates = pgTable('inbound_client_mandates', {
+  inboundId: uuid('inbound_id').defaultRandom().primaryKey(),
+  agencyId: uuid('agency_id')
+    .notNull()
+    .references(() => agencies.agencyId, { onDelete: 'cascade' }),
+  companyName: varchar('company_name', { length: 255 }).notNull(),
+  contactName: varchar('contact_name', { length: 255 }).notNull(),
+  contactEmail: varchar('contact_email', { length: 255 }).notNull(),
+  contactPhone: varchar('contact_phone', { length: 50 }).notNull(),
+  jobTitle: varchar('job_title', { length: 255 }).notNull(),
+  targetLocation: varchar('target_location', { length: 255 }).notNull(),
+  minBudget: numeric('min_budget', { precision: 12, scale: 2 }),
+  maxBudget: numeric('max_budget', { precision: 12, scale: 2 }),
+  selectedTermType: varchar('selected_term_type', { length: 50 }).default('Standard Contingency').notNull(),
+  rawJdUrl: varchar('raw_jd_url', { length: 512 }),
+  status: varchar('status', { length: 50 }).default('Pending Agency Review').notNull(), // 'Pending Agency Review' | 'Accepted Mandate' | 'Declined Terms Mismatch'
+  convertedJobId: uuid('converted_job_id').references(() => jobMandates.jobId),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => ({
+  inboundAgencyIdx: index('idx_inbound_agency').on(t.agencyId),
+}));
+
+// 9. Candidate Submissions (Pipeline Tracking)
+export const candidateSubmissions = pgTable('candidate_submissions', {
+  submissionId: uuid('submission_id').defaultRandom().primaryKey(),
+  agencyId: uuid('agency_id')
+    .notNull()
+    .references(() => agencies.agencyId, { onDelete: 'cascade' }),
+  jobId: uuid('job_id')
+    .notNull()
+    .references(() => jobMandates.jobId, { onDelete: 'cascade' }),
+  candidateId: uuid('candidate_id')
+    .notNull()
+    .references(() => candidateRecords.candidateId, { onDelete: 'cascade' }),
+  stage: varchar('stage', { length: 50 }).default('Screened').notNull(), // 'Screened' | 'Submitted' | 'Interviewing' | 'Offered' | 'Joined' | 'Rejected'
+  stageUpdatedAt: timestamp('stage_updated_at', { withTimezone: true }).defaultNow(),
+  lastCommunicationAt: timestamp('last_communication_at', { withTimezone: true }).defaultNow(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => ({
+  subAgencyIdx: index('idx_sub_agency').on(t.agencyId),
+  subJobIdx: index('idx_sub_job').on(t.jobId),
+  subCandidateIdx: index('idx_sub_candidate').on(t.candidateId),
+}));
+
+// 10. Agency Job Board Credentials
+export const agencyJobBoardCredentials = pgTable('agency_job_board_credentials', {
+  credentialId: uuid('credential_id').defaultRandom().primaryKey(),
+  agencyId: uuid('agency_id')
+    .notNull()
+    .references(() => agencies.agencyId, { onDelete: 'cascade' }),
+  boardName: varchar('board_name', { length: 50 }).notNull(), // 'Naukri' | 'Bayt' | 'LinkedIn'
+  apiKey: text('api_key'),
+  oauthToken: text('oauth_token'),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => ({
+  idxCredentialsAgency: index('idx_credentials_agency').on(t.agencyId),
+}));
+
+// 11. Job Board Postings
+export const jobBoardPostings = pgTable('job_board_postings', {
+  postingId: uuid('posting_id').defaultRandom().primaryKey(),
+  jobId: uuid('job_id')
+    .notNull()
+    .references(() => jobMandates.jobId, { onDelete: 'cascade' }),
+  boardName: varchar('board_name', { length: 50 }).notNull(), // 'Naukri' | 'Bayt' | 'LinkedIn'
+  externalJobId: varchar('external_job_id', { length: 255 }).notNull(),
+  postingStatus: varchar('posting_status', { length: 50 }).default('Published').notNull(),
+  applicationsCount: integer('applications_count').default(0).notNull(),
+  publishedAt: timestamp('published_at', { withTimezone: true }).defaultNow(),
+}, (t) => ({
+  idxBoardPostingJob: index('idx_board_posting_job').on(t.jobId),
+}));
+
+// 12. Job Partner Shares (Anonymized Mandate Sharing & Masking Vault)
+export const jobPartnerShares = pgTable('job_partner_shares', {
+  shareId: uuid('share_id').defaultRandom().primaryKey(),
+  jobId: uuid('job_id')
+    .notNull()
+    .references(() => jobMandates.jobId, { onDelete: 'cascade' }),
+  agencyId: uuid('agency_id')
+    .notNull()
+    .references(() => agencies.agencyId, { onDelete: 'cascade' }),
+  partnerName: varchar('partner_name', { length: 255 }).notNull(),
+  partnerEmail: varchar('partner_email', { length: 255 }).notNull(),
+  maskedJobTitle: varchar('masked_job_title', { length: 255 }).notNull(),
+  maskedCompanyDescription: text('masked_company_description').notNull(),
+  agencySplitPercentage: numeric('agency_split_percentage', { precision: 5, scale: 2 }).default('50.00').notNull(),
+  partnerSplitPercentage: numeric('partner_split_percentage', { precision: 5, scale: 2 }).default('50.00').notNull(),
+  accessTokenHash: varchar('access_token_hash', { length: 64 }).unique().notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => ({
+  idxPartnerShareJob: index('idx_partner_share_job').on(t.jobId),
+  idxPartnerShareAgency: index('idx_partner_share_agency').on(t.agencyId),
+  idxPartnerShareToken: index('idx_partner_share_token').on(t.accessTokenHash),
+}));
+
+
+
+
+

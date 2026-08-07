@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 
 interface ParsedData {
@@ -45,12 +45,182 @@ export default function CockpitView() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
 
-  // Mock candidates database for board display
+  // Cockpit Database States
+  const [jobs, setJobs] = useState<any[]>([]);
+  const [selectedJobId, setSelectedJobId] = useState<string>("");
+  const [submissions, setSubmissions] = useState<any[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
+  const [chasingId, setChasingId] = useState<string | null>(null);
+
+  // Job Board Broadcasting states
+  const [postings, setPostings] = useState<any[]>([]);
+  const [broadcastModalOpen, setBroadcastModalOpen] = useState(false);
+  const [selectedBoards, setSelectedBoards] = useState<string[]>(["Naukri", "Bayt", "LinkedIn"]);
+  const [broadcasting, setBroadcasting] = useState(false);
+  const [broadcastMessage, setBroadcastMessage] = useState("");
+  const [broadcastSuccess, setBroadcastSuccess] = useState(false);
+
+  // Partner Sharing & Masking Vault states
+  const [partnerShareModalOpen, setPartnerShareModalOpen] = useState(false);
+  const [partnerName, setPartnerName] = useState("");
+  const [partnerEmail, setPartnerEmail] = useState("");
+  const [maskedJobTitle, setMaskedJobTitle] = useState("");
+  const [maskedCompanyDescription, setMaskedCompanyDescription] = useState("");
+  const [partnerSplit, setPartnerSplit] = useState("50.00");
+  const [generatingShare, setGeneratingShare] = useState(false);
+  const [shareMessage, setShareMessage] = useState("");
+  const [shareSuccess, setShareSuccess] = useState(false);
+  const [generatedMagicLink, setGeneratedMagicLink] = useState("");
+
+  const handleGeneratePartnerShare = async () => {
+    if (!selectedJobId) return;
+    setGeneratingShare(true);
+    setShareMessage("");
+    setShareSuccess(false);
+    setGeneratedMagicLink("");
+
+    try {
+      const response = await fetch(`/api/v1/jobs/${selectedJobId}/partner-share`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          partner_name: partnerName,
+          partner_email: partnerEmail,
+          maskedjob_title: maskedJobTitle,
+          masked_company_description: maskedCompanyDescription,
+          partner_split_percentage: parseFloat(partnerSplit) || 50.00,
+        }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setShareSuccess(true);
+        setShareMessage("Magic partner collaboration link successfully created!");
+        setGeneratedMagicLink(window.location.origin + data.magicLink);
+        // Clear fields
+        setPartnerName("");
+        setPartnerEmail("");
+      } else {
+        throw new Error(data.error || "Failed to generate link");
+      }
+    } catch (err: any) {
+      setShareSuccess(false);
+      setShareMessage(err.message || "Failed to generate link due to an unexpected error.");
+    } finally {
+      setGeneratingShare(false);
+    }
+  };
+
+  // Fallback mock candidates database for board display when no jobs are linked
   const [candidates, setCandidates] = useState([
     { id: "1", name: "Ankit Sharma", title: "Senior Product Designer", company: "Apex Corp", status: "Interviewing", experience: "6 Years", notice: "30 Days", email: "ankit.sharma@example.com" },
     { id: "2", name: "Sarah Jenkins", title: "Infrastructure Lead", company: "CloudNet", status: "Screened", experience: "8 Years", notice: "Immediate", email: "sarah.j@example.com" },
     { id: "3", name: "David Chen", title: "Full Stack Dev", company: "DevWorks", status: "Interviewing", experience: "4 Years", notice: "60 Days", email: "david.chen@example.com" },
   ]);
+
+  const loadCockpitData = async () => {
+    try {
+      const response = await fetch("/api/v1/cockpit/submissions");
+      if (response.ok) {
+        const json = await response.json();
+        setJobs(json.jobs || []);
+        setSubmissions(json.submissions || []);
+        setPostings(json.postings || []);
+        if (json.jobs && json.jobs.length > 0 && !selectedJobId) {
+          setSelectedJobId(json.jobs[0].jobId);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load cockpit database profiles:", err);
+    } finally {
+      setLoadingData(false);
+    }
+  };
+
+  useEffect(() => {
+    loadCockpitData();
+  }, []);
+
+  const handleBroadcast = async () => {
+    if (!selectedJobId) return;
+    setBroadcasting(true);
+    setBroadcastMessage("");
+    setBroadcastSuccess(false);
+    try {
+      const response = await fetch(`/api/v1/jobs/${selectedJobId}/broadcast`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ selected_boards: selectedBoards }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setBroadcastSuccess(true);
+        setBroadcastMessage("Job mandate successfully broadcast across the selected portals!");
+        await loadCockpitData();
+        setTimeout(() => {
+          setBroadcastModalOpen(false);
+          setBroadcastMessage("");
+          setBroadcastSuccess(false);
+        }, 2000);
+      } else {
+        throw new Error(data.error || "Failed to broadcast");
+      }
+    } catch (err: any) {
+      setBroadcastSuccess(false);
+      setBroadcastMessage(err.message || "An unexpected error occurred.");
+    } finally {
+      setBroadcasting(false);
+    }
+  };
+
+  const getSlaStatus = (stage: string, stageUpdatedAtStr: string) => {
+    const stageUpdatedAt = new Date(stageUpdatedAtStr);
+    const diffMs = Date.now() - stageUpdatedAt.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+
+    if (stage === "Submitted") {
+      if (diffHours >= 72) return { level: "breach", text: `CRITICAL: ${Math.round(diffHours)}h SLA Breached`, hours: diffHours };
+      if (diffHours >= 48) return { level: "warning", text: `${Math.round(diffHours)}h in Submitted`, hours: diffHours };
+      return { level: "normal", text: `${Math.round(diffHours)}h in Submitted`, hours: diffHours };
+    }
+    
+    if (diffHours >= 24) return { level: "warning", text: `${Math.round(diffHours)}h Stagnant`, hours: diffHours };
+    return { level: "normal", text: `${Math.round(diffHours)}h in Stage`, hours: diffHours };
+  };
+
+  const handleTriggerChase = async (sub: any) => {
+    setChasingId(sub.submissionId);
+    try {
+      const selectedJob = jobs.find(j => j.jobId === selectedJobId);
+      const jobTitle = selectedJob ? selectedJob.title : "the role";
+      const response = await fetch("/api/v1/communications/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          candidateId: sub.candidateId,
+          channel: "whatsapp",
+          body: `Hi ${sub.fullName}, this is Ankit from Apex Recruitment. I sent your profile for ${jobTitle} 3 days ago and wanted to nudge you for updates. Let me know if you are free.`,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to send chase message");
+      }
+
+      alert(`Operational chase notification successfully sent to ${sub.fullName}!`);
+      
+      // Reset communication timestamp locally
+      setSubmissions(prev => prev.map(s => {
+        if (s.submissionId === sub.submissionId) {
+          return { ...s, lastCommunicationAt: new Date().toISOString() };
+        }
+        return s;
+      }));
+    } catch (err: any) {
+      alert(`Failed to send chase: ${err.message}`);
+    } finally {
+      setChasingId(null);
+    }
+  };
 
   const triggerFileUpload = () => {
     fileInputRef.current?.click();
@@ -274,14 +444,60 @@ export default function CockpitView() {
         <header className="flex justify-between items-center h-16 px-gutter w-full bg-white border-b border-outline-variant shadow-sm z-10">
           <div className="flex items-center gap-6">
             <h2 className="font-headline-md text-[18px] font-bold text-on-surface">Candidate Central</h2>
-            <div className="relative w-80">
+            <div className="relative w-72">
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
               <input
-                className="w-full pl-10 pr-4 py-2 bg-surface text-body-sm border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary-container/30 transition-all"
+                className="w-full pl-10 pr-4 py-2 bg-surface text-body-sm border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary-container/30 transition-all font-semibold"
                 placeholder="Search candidates..."
                 type="text"
               />
             </div>
+
+            {/* Dynamic Job Mandate Selector */}
+            {jobs.length > 0 && (
+              <div className="flex items-center gap-2.5">
+                <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Job Mandate:</span>
+                <select 
+                  className="bg-surface border border-outline-variant rounded-lg px-3.5 py-2 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-secondary-container/30 transition-all text-on-surface bg-white cursor-pointer"
+                  value={selectedJobId}
+                  onChange={(e) => setSelectedJobId(e.target.value)}
+                >
+                  {jobs.map(j => (
+                    <option key={j.jobId} value={j.jobId}>
+                      {j.clientName || "Inbound"} — {j.title}
+                    </option>
+                  ))}
+                </select>
+
+                <button
+                  onClick={() => setBroadcastModalOpen(true)}
+                  className="bg-secondary-container text-primary-container text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 hover:brightness-95 active:scale-95 transition-all cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[16px]">podcasts</span>
+                  Broadcast Mandate
+                </button>
+
+                <button
+                  onClick={() => {
+                    const selectedJob = jobs.find(j => j.jobId === selectedJobId);
+                    setMaskedJobTitle(selectedJob ? `Leading Tier-1 Platform — ${selectedJob.title}` : "Leading Tier-1 Platform");
+                    setMaskedCompanyDescription(selectedJob ? `We are hiring a ${selectedJob.title} on behalf of our client. Sanitized requirements below.` : "");
+                    setPartnerShareModalOpen(true);
+                  }}
+                  className="bg-[#0F172A] text-white text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 hover:brightness-95 active:scale-95 transition-all cursor-pointer ml-1.5"
+                >
+                  <span className="material-symbols-outlined text-[16px]">share</span>
+                  Share with Partner
+                </button>
+
+                {postings.filter(p => p.jobId === selectedJobId).length > 0 && (
+                  <div className="flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2.5 py-1.5 rounded-lg border border-emerald-200 animate-in fade-in duration-200">
+                    <span className="material-symbols-outlined text-[12px]">check_circle</span>
+                    Active on: {postings.filter(p => p.jobId === selectedJobId).map(p => p.boardName).join(", ")}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-4">
             <button className="p-2 text-on-surface-variant hover:text-primary transition-colors active:scale-95">
@@ -332,63 +548,287 @@ export default function CockpitView() {
           {/* Kanban / Candidate Board simulation */}
           <div>
             <h3 className="font-headline-md text-[18px] font-bold text-on-surface mb-4">Pipeline Candidates</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Column 1: Screened */}
-              <div className="bg-slate-100/50 p-4 rounded-xl border border-outline-variant space-y-4">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Screened</span>
-                  <span className="bg-slate-200 text-on-surface text-[10px] font-bold px-2 py-0.5 rounded-full">
-                    {candidates.filter(c => c.status === "Screened").length}
-                  </span>
-                </div>
-                {candidates.filter(c => c.status === "Screened").map(c => (
-                  <div key={c.id} className="bg-white border border-outline-variant rounded-lg p-4 shadow-sm space-y-3">
-                    <div>
-                      <h4 className="font-semibold text-on-surface text-sm">{c.name}</h4>
-                      <p className="text-xs text-on-surface-variant">{c.title}</p>
-                    </div>
-                    <div className="flex flex-wrap gap-2 text-[10px]">
-                      <span className="bg-slate-100 text-on-surface-variant px-2 py-0.5 rounded font-medium">{c.experience}</span>
-                      <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-medium">{c.notice} Notice</span>
-                    </div>
+            
+            {jobs.length > 0 ? (
+              /* Database-driven Kanban Board with SLA Radar */
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in duration-300">
+                {/* Column 1: Screened */}
+                <div className="bg-slate-100/50 p-4 rounded-xl border border-outline-variant space-y-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Screened</span>
+                    <span className="bg-slate-200 text-on-surface text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      {submissions.filter(s => s.jobId === selectedJobId && s.stage.toLowerCase() === "screened").length}
+                    </span>
                   </div>
-                ))}
-              </div>
-
-              {/* Column 2: Interviewing */}
-              <div className="bg-slate-100/50 p-4 rounded-xl border border-outline-variant space-y-4">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Interviewing</span>
-                  <span className="bg-slate-200 text-on-surface text-[10px] font-bold px-2 py-0.5 rounded-full">
-                    {candidates.filter(c => c.status === "Interviewing").length}
-                  </span>
-                </div>
-                {candidates.filter(c => c.status === "Interviewing").map(c => (
-                  <div key={c.id} className="bg-white border border-outline-variant rounded-lg p-4 shadow-sm space-y-3">
-                    <div>
-                      <h4 className="font-semibold text-on-surface text-sm">{c.name}</h4>
-                      <p className="text-xs text-on-surface-variant">{c.title}</p>
-                    </div>
-                    <div className="flex flex-wrap gap-2 text-[10px]">
-                      <span className="bg-slate-100 text-on-surface-variant px-2 py-0.5 rounded font-medium">{c.experience}</span>
-                      <span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded font-medium">{c.notice} Notice</span>
-                    </div>
+                  
+                  <div className="space-y-4">
+                    {submissions.filter(s => s.jobId === selectedJobId && s.stage.toLowerCase() === "screened").length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-8 text-center text-xs text-on-surface-variant border border-dashed border-outline-variant rounded-lg bg-white/20">
+                        <span className="material-symbols-outlined text-[20px] text-slate-300 mb-1">inbox</span>
+                        No candidates screened
+                      </div>
+                    ) : (
+                      submissions
+                        .filter(s => s.jobId === selectedJobId && s.stage.toLowerCase() === "screened")
+                        .map(s => ({ ...s, sla: getSlaStatus(s.stage, s.stageUpdatedAt) }))
+                        .sort((a, b) => b.sla.hours - a.sla.hours)
+                        .map(s => {
+                          const isWarning = s.sla.level === "warning";
+                          return (
+                            <div 
+                              key={s.submissionId} 
+                              className={`bg-white border rounded-lg p-4 shadow-sm space-y-3 transition-all relative group ${
+                                isWarning 
+                                  ? "border-amber-400 ring-2 ring-amber-50" 
+                                  : "border-outline-variant hover:border-slate-300"
+                              }`}
+                            >
+                              <div className="flex justify-between items-start gap-2">
+                                <div className="min-w-0">
+                                  <h4 className="font-semibold text-on-surface text-sm truncate">{s.fullName}</h4>
+                                  <p className="text-xs text-on-surface-variant truncate">{s.currentTitle} at {s.currentCompany || "Freelance"}</p>
+                                </div>
+                                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${
+                                  isWarning ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"
+                                }`}>
+                                  {s.sla.text}
+                                </span>
+                              </div>
+                              <div className="flex flex-wrap gap-2 text-[10px]">
+                                <span className="bg-slate-100 text-on-surface-variant px-2 py-0.5 rounded font-medium">
+                                  {s.totalExpMonths ? `${Math.round(s.totalExpMonths / 12)} Yrs` : "N/A Exp"}
+                                </span>
+                                <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-medium">
+                                  {s.noticePeriodDays}d Notice
+                                </span>
+                              </div>
+                              <div className="pt-2 border-t border-slate-100 flex justify-between items-center text-[10px]">
+                                <span className="text-slate-400 truncate">
+                                  Sent: {new Date(s.stageUpdatedAt).toLocaleDateString()}
+                                </span>
+                                <button
+                                  onClick={() => handleTriggerChase(s)}
+                                  disabled={chasingId === s.submissionId}
+                                  className="text-primary-container font-extrabold flex items-center gap-1 hover:underline cursor-pointer disabled:opacity-50"
+                                >
+                                  <span className="material-symbols-outlined text-[12px]">send</span>
+                                  {chasingId === s.submissionId ? "Chasing..." : "Trigger Chase"}
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })
+                    )}
                   </div>
-                ))}
-              </div>
+                </div>
 
-              {/* Column 3: Submitted */}
-              <div className="bg-slate-100/50 p-4 rounded-xl border border-outline-variant space-y-4">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Submitted to Client</span>
-                  <span className="bg-slate-200 text-on-surface text-[10px] font-bold px-2 py-0.5 rounded-full">0</span>
+                {/* Column 2: Submitted to Client */}
+                <div className="bg-slate-100/50 p-4 rounded-xl border border-outline-variant space-y-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Submitted to Client</span>
+                    <span className="bg-slate-200 text-on-surface text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      {submissions.filter(s => s.jobId === selectedJobId && s.stage.toLowerCase() === "submitted").length}
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    {submissions.filter(s => s.jobId === selectedJobId && s.stage.toLowerCase() === "submitted").length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-8 text-center text-xs text-on-surface-variant border border-dashed border-outline-variant rounded-lg bg-white/20">
+                        <span className="material-symbols-outlined text-[20px] text-slate-300 mb-1">inbox</span>
+                        No candidates submitted
+                      </div>
+                    ) : (
+                      submissions
+                        .filter(s => s.jobId === selectedJobId && s.stage.toLowerCase() === "submitted")
+                        .map(s => ({ ...s, sla: getSlaStatus(s.stage, s.stageUpdatedAt) }))
+                        .sort((a, b) => b.sla.hours - a.sla.hours)
+                        .map(s => {
+                          const isBreached = s.sla.level === "breach";
+                          const isWarning = s.sla.level === "warning";
+                          return (
+                            <div 
+                              key={s.submissionId} 
+                              className={`bg-white border rounded-lg p-4 shadow-sm space-y-3 transition-all relative group ${
+                                isBreached 
+                                  ? "border-red-400 ring-2 ring-red-100 shadow-red-50" 
+                                  : isWarning 
+                                    ? "border-amber-400 ring-2 ring-amber-50" 
+                                    : "border-outline-variant hover:border-slate-300"
+                              }`}
+                            >
+                              <div className="flex justify-between items-start gap-2">
+                                <div className="min-w-0">
+                                  <h4 className="font-semibold text-on-surface text-sm truncate">{s.fullName}</h4>
+                                  <p className="text-xs text-on-surface-variant truncate">{s.currentTitle} at {s.currentCompany || "Freelance"}</p>
+                                </div>
+                                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${
+                                  isBreached 
+                                    ? "bg-red-100 text-red-700 animate-pulse" 
+                                    : isWarning 
+                                      ? "bg-amber-100 text-amber-700" 
+                                      : "bg-slate-100 text-slate-600"
+                                }`}>
+                                  {s.sla.text}
+                                </span>
+                              </div>
+                              <div className="flex flex-wrap gap-2 text-[10px]">
+                                <span className="bg-slate-100 text-on-surface-variant px-2 py-0.5 rounded font-medium">
+                                  {s.totalExpMonths ? `${Math.round(s.totalExpMonths / 12)} Yrs` : "N/A Exp"}
+                                </span>
+                                <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-medium">
+                                  {s.noticePeriodDays}d Notice
+                                </span>
+                              </div>
+                              <div className="pt-2 border-t border-slate-100 flex justify-between items-center text-[10px]">
+                                <span className="text-slate-400 truncate">
+                                  Sent: {new Date(s.stageUpdatedAt).toLocaleDateString()}
+                                </span>
+                                <button
+                                  onClick={() => handleTriggerChase(s)}
+                                  disabled={chasingId === s.submissionId}
+                                  className="text-primary-container font-extrabold flex items-center gap-1 hover:underline cursor-pointer disabled:opacity-50"
+                                >
+                                  <span className="material-symbols-outlined text-[12px]">send</span>
+                                  {chasingId === s.submissionId ? "Chasing..." : "Trigger Chase"}
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })
+                    )}
+                  </div>
                 </div>
-                <div className="flex flex-col items-center justify-center py-8 text-center text-xs text-on-surface-variant border border-dashed border-outline-variant rounded-lg bg-white/20">
-                  <span className="material-symbols-outlined text-[20px] text-slate-300 mb-1">inbox</span>
-                  No candidates in review
+
+                {/* Column 3: Interviewing */}
+                <div className="bg-slate-100/50 p-4 rounded-xl border border-outline-variant space-y-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Interviewing</span>
+                    <span className="bg-slate-200 text-on-surface text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      {submissions.filter(s => s.jobId === selectedJobId && s.stage.toLowerCase() === "interviewing").length}
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    {submissions.filter(s => s.jobId === selectedJobId && s.stage.toLowerCase() === "interviewing").length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-8 text-center text-xs text-on-surface-variant border border-dashed border-outline-variant rounded-lg bg-white/20">
+                        <span className="material-symbols-outlined text-[20px] text-slate-300 mb-1">inbox</span>
+                        No candidates in interview
+                      </div>
+                    ) : (
+                      submissions
+                        .filter(s => s.jobId === selectedJobId && s.stage.toLowerCase() === "interviewing")
+                        .map(s => ({ ...s, sla: getSlaStatus(s.stage, s.stageUpdatedAt) }))
+                        .sort((a, b) => b.sla.hours - a.sla.hours)
+                        .map(s => {
+                          const isWarning = s.sla.level === "warning";
+                          return (
+                            <div 
+                              key={s.submissionId} 
+                              className={`bg-white border rounded-lg p-4 shadow-sm space-y-3 transition-all relative group ${
+                                isWarning 
+                                  ? "border-amber-400 ring-2 ring-amber-50" 
+                                  : "border-outline-variant hover:border-slate-300"
+                              }`}
+                            >
+                              <div className="flex justify-between items-start gap-2">
+                                <div className="min-w-0">
+                                  <h4 className="font-semibold text-on-surface text-sm truncate">{s.fullName}</h4>
+                                  <p className="text-xs text-on-surface-variant truncate">{s.currentTitle} at {s.currentCompany || "Freelance"}</p>
+                                </div>
+                                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${
+                                  isWarning ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"
+                                }`}>
+                                  {s.sla.text}
+                                </span>
+                              </div>
+                              <div className="flex flex-wrap gap-2 text-[10px]">
+                                <span className="bg-slate-100 text-on-surface-variant px-2 py-0.5 rounded font-medium">
+                                  {s.totalExpMonths ? `${Math.round(s.totalExpMonths / 12)} Yrs` : "N/A Exp"}
+                                </span>
+                                <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-medium">
+                                  {s.noticePeriodDays}d Notice
+                                </span>
+                              </div>
+                              <div className="pt-2 border-t border-slate-100 flex justify-between items-center text-[10px]">
+                                <span className="text-slate-400 truncate">
+                                  Sent: {new Date(s.stageUpdatedAt).toLocaleDateString()}
+                                </span>
+                                <button
+                                  onClick={() => handleTriggerChase(s)}
+                                  disabled={chasingId === s.submissionId}
+                                  className="text-primary-container font-extrabold flex items-center gap-1 hover:underline cursor-pointer disabled:opacity-50"
+                                >
+                                  <span className="material-symbols-outlined text-[12px]">send</span>
+                                  {chasingId === s.submissionId ? "Chasing..." : "Trigger Chase"}
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              /* Fallback static demo list when no database seeds are present */
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Column 1: Screened */}
+                <div className="bg-slate-100/50 p-4 rounded-xl border border-outline-variant space-y-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Screened</span>
+                    <span className="bg-slate-200 text-on-surface text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      {candidates.filter(c => c.status === "Screened").length}
+                    </span>
+                  </div>
+                  {candidates.filter(c => c.status === "Screened").map(c => (
+                    <div key={c.id} className="bg-white border border-outline-variant rounded-lg p-4 shadow-sm space-y-3">
+                      <div>
+                        <h4 className="font-semibold text-on-surface text-sm">{c.name}</h4>
+                        <p className="text-xs text-on-surface-variant">{c.title}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2 text-[10px]">
+                        <span className="bg-slate-100 text-on-surface-variant px-2 py-0.5 rounded font-medium">{c.experience}</span>
+                        <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-medium">{c.notice} Notice</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Column 2: Interviewing */}
+                <div className="bg-slate-100/50 p-4 rounded-xl border border-outline-variant space-y-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Interviewing</span>
+                    <span className="bg-slate-200 text-on-surface text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      {candidates.filter(c => c.status === "Interviewing").length}
+                    </span>
+                  </div>
+                  {candidates.filter(c => c.status === "Interviewing").map(c => (
+                    <div key={c.id} className="bg-white border border-outline-variant rounded-lg p-4 shadow-sm space-y-3">
+                      <div>
+                        <h4 className="font-semibold text-on-surface text-sm">{c.name}</h4>
+                        <p className="text-xs text-on-surface-variant">{c.title}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2 text-[10px]">
+                        <span className="bg-slate-100 text-on-surface-variant px-2 py-0.5 rounded font-medium">{c.experience}</span>
+                        <span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded font-medium">{c.notice} Notice</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Column 3: Submitted */}
+                <div className="bg-slate-100/50 p-4 rounded-xl border border-outline-variant space-y-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Submitted to Client</span>
+                    <span className="bg-slate-200 text-on-surface text-[10px] font-bold px-2 py-0.5 rounded-full">0</span>
+                  </div>
+                  <div className="flex flex-col items-center justify-center py-8 text-center text-xs text-on-surface-variant border border-dashed border-outline-variant rounded-lg bg-white/20">
+                    <span className="material-symbols-outlined text-[20px] text-slate-300 mb-1">inbox</span>
+                    No candidates in review
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </main>
@@ -638,6 +1078,296 @@ export default function CockpitView() {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL OVERLAY: Job Board Broadcast Modal */}
+      {broadcastModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-8 modal-overlay">
+          <div className="bg-white w-full max-w-lg rounded-xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in duration-300">
+            {/* Modal Header */}
+            <div className="bg-primary-container px-6 py-4 flex justify-between items-center text-on-primary">
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-secondary-container">podcasts</span>
+                <h2 className="font-headline-md text-[18px] font-bold">Broadcast Mandate to External Portals</h2>
+              </div>
+              <button 
+                onClick={() => setBroadcastModalOpen(false)}
+                className="p-1 hover:bg-white/10 rounded transition-colors text-white cursor-pointer"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-6">
+              <p className="text-xs text-on-surface-variant leading-relaxed">
+                Select the external portals to broadcast the current job mandate. The system formats and publishes the posting concurrently using active agency credentials.
+              </p>
+
+              {/* Success / Error notification banner */}
+              {broadcastMessage && (
+                <div className={`p-3 rounded text-xs font-semibold flex items-center gap-2 ${
+                  broadcastSuccess ? "bg-emerald-50 text-emerald-800 border border-emerald-100" : "bg-red-50 text-red-800 border border-red-100"
+                }`}>
+                  <span className="material-symbols-outlined text-[16px]">
+                    {broadcastSuccess ? "check_circle" : "error"}
+                  </span>
+                  {broadcastMessage}
+                </div>
+              )}
+
+              {/* Integration Toggle Cards */}
+              <div className="space-y-3">
+                {/* Naukri */}
+                <div 
+                  onClick={() => {
+                    setSelectedBoards(prev => 
+                      prev.includes("Naukri") ? prev.filter(b => b !== "Naukri") : [...prev, "Naukri"]
+                    );
+                  }}
+                  className={`border rounded-xl p-4 flex justify-between items-center cursor-pointer transition-all hover:bg-slate-50 ${
+                    selectedBoards.includes("Naukri") ? "border-amber-400 bg-amber-50/10 ring-2 ring-amber-50" : "border-outline-variant"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-sky-50 flex items-center justify-center font-black text-sky-700 text-sm">
+                      N
+                    </div>
+                    <div>
+                      <p className="font-semibold text-xs text-on-surface">Naukri.com</p>
+                      <p className="text-[10px] text-on-surface-variant font-medium">Connected - Account #8412</p>
+                    </div>
+                  </div>
+                  {selectedBoards.includes("Naukri") ? (
+                    <div className="w-5 h-5 rounded-full bg-[#FFD400] flex items-center justify-center">
+                      <span className="material-symbols-outlined text-primary-container text-[12px] font-black">check</span>
+                    </div>
+                  ) : (
+                    <div className="w-5 h-5 rounded-full border border-outline-variant"></div>
+                  )}
+                </div>
+
+                {/* Bayt */}
+                <div 
+                  onClick={() => {
+                    setSelectedBoards(prev => 
+                      prev.includes("Bayt") ? prev.filter(b => b !== "Bayt") : [...prev, "Bayt"]
+                    );
+                  }}
+                  className={`border rounded-xl p-4 flex justify-between items-center cursor-pointer transition-all hover:bg-slate-50 ${
+                    selectedBoards.includes("Bayt") ? "border-amber-400 bg-amber-50/10 ring-2 ring-amber-50" : "border-outline-variant"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center font-black text-green-700 text-sm">
+                      B
+                    </div>
+                    <div>
+                      <p className="font-semibold text-xs text-on-surface">Bayt.com</p>
+                      <p className="text-[10px] text-on-surface-variant font-medium">Connected - Gulf Region</p>
+                    </div>
+                  </div>
+                  {selectedBoards.includes("Bayt") ? (
+                    <div className="w-5 h-5 rounded-full bg-[#FFD400] flex items-center justify-center">
+                      <span className="material-symbols-outlined text-primary-container text-[12px] font-black">check</span>
+                    </div>
+                  ) : (
+                    <div className="w-5 h-5 rounded-full border border-outline-variant"></div>
+                  )}
+                </div>
+
+                {/* LinkedIn */}
+                <div 
+                  onClick={() => {
+                    setSelectedBoards(prev => 
+                      prev.includes("LinkedIn") ? prev.filter(b => b !== "LinkedIn") : [...prev, "LinkedIn"]
+                    );
+                  }}
+                  className={`border rounded-xl p-4 flex justify-between items-center cursor-pointer transition-all hover:bg-slate-50 ${
+                    selectedBoards.includes("LinkedIn") ? "border-amber-400 bg-amber-50/10 ring-2 ring-amber-50" : "border-outline-variant"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center font-black text-blue-700 text-sm">
+                      in
+                    </div>
+                    <div>
+                      <p className="font-semibold text-xs text-on-surface">LinkedIn Jobs</p>
+                      <p className="text-[10px] text-on-surface-variant font-medium">Connected</p>
+                    </div>
+                  </div>
+                  {selectedBoards.includes("LinkedIn") ? (
+                    <div className="w-5 h-5 rounded-full bg-[#FFD400] flex items-center justify-center">
+                      <span className="material-symbols-outlined text-primary-container text-[12px] font-black">check</span>
+                    </div>
+                  ) : (
+                    <div className="w-5 h-5 rounded-full border border-outline-variant"></div>
+                  )}
+                </div>
+              </div>
+
+              {/* Bottom CTA Button */}
+              <button
+                onClick={handleBroadcast}
+                disabled={broadcasting || selectedBoards.length === 0}
+                className="w-full bg-[#FFD400] text-primary-container font-extrabold py-3.5 rounded-lg hover:brightness-95 active:scale-95 transition-all shadow-md text-xs tracking-wider uppercase disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {broadcasting ? "Publishing Mandate..." : `Publish Mandate across ${selectedBoards.length} Job Boards`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL OVERLAY: Partner Sharing & Masking Vault Modal */}
+      {partnerShareModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-8 modal-overlay">
+          <div className="bg-white w-full max-w-xl rounded-xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in duration-300">
+            {/* Modal Header */}
+            <div className="bg-[#0F172A] px-6 py-4 flex justify-between items-center text-white">
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-amber-400">vpn_key</span>
+                <h2 className="font-headline-md text-[18px] font-bold">Anonymized Partner Sharing Drawer</h2>
+              </div>
+              <button 
+                onClick={() => {
+                  setPartnerShareModalOpen(false);
+                  setShareMessage("");
+                  setGeneratedMagicLink("");
+                }}
+                className="p-1 hover:bg-white/10 rounded transition-colors text-white cursor-pointer"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-4 overflow-y-auto max-h-[75vh] custom-scrollbar">
+              <p className="text-xs text-on-surface-variant leading-relaxed">
+                Generate a secure, client-masked magic collaboration link. The system strips client identifiers automatically from the job description unless customized.
+              </p>
+
+              {shareMessage && (
+                <div className={`p-3 rounded text-xs font-semibold flex items-start gap-2 ${
+                  shareSuccess ? "bg-emerald-50 text-emerald-800 border border-emerald-100" : "bg-red-50 text-red-800 border border-red-100"
+                }`}>
+                  <span className="material-symbols-outlined text-[16px] mt-0.5">
+                    {shareSuccess ? "check_circle" : "error"}
+                  </span>
+                  <span className="flex-1">{shareMessage}</span>
+                </div>
+              )}
+
+              {generatedMagicLink ? (
+                <div className="bg-slate-50 border border-slate-200 rounded-lg p-5 space-y-3 animate-in fade-in duration-200">
+                  <p className="text-xs font-bold text-slate-700">MAGIC COLLABORATION LINK GENERATED</p>
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      readOnly 
+                      value={generatedMagicLink}
+                      className="w-full bg-white border border-slate-300 rounded px-3 py-2 text-xs font-mono text-slate-800 select-all outline-none"
+                    />
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(generatedMagicLink);
+                        alert("Magic link copied to clipboard!");
+                      }}
+                      className="bg-[#0F172A] text-white px-3 py-2 rounded text-xs font-bold hover:brightness-90 transition-all cursor-pointer flex items-center gap-1 active:scale-95"
+                    >
+                      <span className="material-symbols-outlined text-[14px]">content_copy</span>
+                      Copy
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-slate-400">
+                    Share this link with your partner. They will see a completely anonymized view of the mandate and can upload candidate profiles directly into your pipeline.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Partner Name *</label>
+                      <input 
+                        type="text" 
+                        required
+                        placeholder="Freelance Sourcer A"
+                        value={partnerName}
+                        onChange={(e) => setPartnerName(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-100 text-xs font-semibold text-slate-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Partner Email *</label>
+                      <input 
+                        type="email" 
+                        required
+                        placeholder="sourcer@freelance.com"
+                        value={partnerEmail}
+                        onChange={(e) => setPartnerEmail(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-100 text-xs font-semibold text-slate-900"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Masked Public Title</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. Leading Tier-1 E-Commerce Platform"
+                      value={maskedJobTitle}
+                      onChange={(e) => setMaskedJobTitle(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-100 text-xs font-semibold text-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Masked Company Description / JD</label>
+                    <textarea 
+                      rows={4}
+                      placeholder="Custom sanitized JD description. If left blank, the system automatically uses a sanitized template masking all client names, phone numbers, and URLs."
+                      value={maskedCompanyDescription}
+                      onChange={(e) => setMaskedCompanyDescription(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-100 text-xs font-semibold text-slate-900 resize-none"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Partner Split (%)</label>
+                      <input 
+                        type="number" 
+                        step="0.01"
+                        min="0"
+                        max="100"
+                        value={partnerSplit}
+                        onChange={(e) => setPartnerSplit(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-100 text-xs font-semibold text-slate-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Agency Split (%)</label>
+                      <input 
+                        type="number" 
+                        readOnly
+                        value={(100.00 - (parseFloat(partnerSplit) || 0.00)).toFixed(2)}
+                        className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-xs font-semibold text-slate-500 outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleGeneratePartnerShare}
+                    disabled={generatingShare || !partnerName || !partnerEmail}
+                    className="w-full bg-[#0F172A] text-white font-extrabold py-3.5 rounded-lg hover:brightness-95 active:scale-95 transition-all shadow-md text-xs tracking-wider uppercase disabled:opacity-50 cursor-pointer"
+                  >
+                    {generatingShare ? "Generating magic link..." : "Generate Magic Share Link"}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
