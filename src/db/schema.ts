@@ -119,8 +119,12 @@ export const communicationLog = pgTable('communication_log', {
     .references(() => agencies.agencyId, { onDelete: 'cascade' }),
   candidateId: uuid('candidate_id')
     .references(() => candidateRecords.candidateId, { onDelete: 'set null' }),
-  channel: varchar('channel', { length: 20 }).notNull(), // 'whatsapp' | 'email'
-  direction: varchar('direction', { length: 10 }).notNull(), // 'inbound' | 'outbound'
+  submissionId: uuid('submission_id')
+    .references(() => candidateSubmissions.submissionId, { onDelete: 'cascade' }),
+  sentByUserId: uuid('sent_by_user_id')
+    .references(() => users.userId, { onDelete: 'set null' }),
+  channel: varchar('channel', { length: 20 }).notNull(), // 'WHATSAPP' | 'EMAIL' | 'SYSTEM_NOTE' | 'whatsapp' | 'email'
+  direction: varchar('direction', { length: 10 }).notNull(), // 'INBOUND' | 'OUTBOUND' | 'inbound' | 'outbound'
   fromAddress: varchar('from_address', { length: 255 }), // sender's phone or email
   toAddress: varchar('to_address', { length: 255 }), // recipient's phone or email
   body: text('body'),
@@ -130,6 +134,7 @@ export const communicationLog = pgTable('communication_log', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
 }, (t) => ({
   commCandidateIdx: index('idx_comm_candidate').on(t.agencyId, t.candidateId, t.createdAt),
+  commSubmissionIdx: index('idx_comm_submission').on(t.submissionId),
   commUnmatchedIdx: index('idx_comm_unmatched').on(t.agencyId, t.matched),
 }));
 

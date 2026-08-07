@@ -36,8 +36,7 @@ async function runTests() {
     let agencyId: string;
     if (agency.length === 0) {
       const [newAgency] = await db.insert(schema.agencies).values({
-        name: "Test Global Recruiting",
-        billingPlan: "enterprise"
+        agencyName: "Test Global Recruiting",
       }).returning();
       agencyId = newAgency.agencyId;
       console.log("Created test agency:", agencyId);
