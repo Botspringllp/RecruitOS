@@ -996,6 +996,47 @@ export default function CockpitView() {
               </div>
             </div>
 
+            {/* RC-04: RELATIONAL TALENT & HOUSEHOLD MAPPING (RC-04) */}
+            <div className="bg-[#0B132B] border border-blue-500/40 rounded-xl p-4 space-y-3">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-blue-400 text-[18px]">family_restroom</span>
+                  <h4 className="font-extrabold text-xs text-white uppercase tracking-wider">
+                    Relational Talent & Household Network (RC-04)
+                  </h4>
+                </div>
+                <span className="bg-blue-500/20 text-blue-300 text-[10px] font-extrabold px-2.5 py-0.5 rounded border border-blue-500/40">
+                  Auto Location Inheritance
+                </span>
+              </div>
+
+              <div className="bg-slate-900/90 border border-slate-700/80 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-extrabold text-white text-sm">Anita Nair</span>
+                    <span className="bg-purple-900/60 text-purple-200 text-[10px] font-bold px-2 py-0.5 rounded border border-purple-500/40">
+                      Linked Spouse (Siddharth Nair)
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-slate-300">
+                    <span>Designation: Senior HR Lead</span>
+                    <span>•</span>
+                    <span className="bg-blue-900/60 text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded border border-blue-500/40">
+                      Target Location: Dubai (Synced from Placed Spouse)
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => alert("Assigning Anita Nair to Dubai HR Lead Mandate")}
+                  className="bg-[#FFD400] text-[#0F172A] hover:brightness-110 font-black px-3.5 py-2 rounded-lg text-xs flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer whitespace-nowrap"
+                >
+                  <span className="material-symbols-outlined text-[16px]">person_add</span>
+                  Assign to Dubai HR Mandate
+                </button>
+              </div>
+            </div>
+
             {/* WORKFLOW 6: NOTICE PERIOD RISK RADAR (RC-05, CE-04, 2-TIER ESCALATION) */}
             <div className="bg-[#0B132B] border border-red-500/40 rounded-xl p-4 space-y-3">
               <div className="flex justify-between items-center">
