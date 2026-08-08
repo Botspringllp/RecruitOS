@@ -59,6 +59,7 @@ export default function CockpitView() {
   const [relationshipType, setRelationshipType] = useState<string>("SPOUSE");
   const [inheritedLocation, setInheritedLocation] = useState<string>("");
   const [linkingCandidate, setLinkingCandidate] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Workflow 3: Daily Cockpit Execution & Communication States (RC-01 & RC-03)
   const [dailyQueueSummary, setDailyQueueSummary] = useState<any>(null);
@@ -721,52 +722,58 @@ export default function CockpitView() {
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Side Navigation Bar */}
-      <aside className="flex h-screen w-sidebar-width flex-col fixed left-0 top-0 bg-primary-container z-20">
-        <div className="p-gutter flex flex-col gap-stack-sm">
-          {/* Logo Brand */}
-          <div className="flex items-center gap-3 mb-8">
-            <div className="flex h-10 w-10 items-center justify-center rounded bg-secondary-container">
-              <span className="material-symbols-outlined text-primary-container" style={{ fontVariationSettings: "'FILL' 1" }}>
+      <aside className={`flex h-screen flex-col fixed left-0 top-0 bg-[#0F172A] text-white z-20 transition-all duration-300 shadow-xl ${sidebarCollapsed ? "w-16" : "w-60"}`}>
+        <div className="p-3 flex flex-col gap-4">
+          {/* Logo Brand & Name - Clicking bag logo or name toggles Sidebar collapse/expand */}
+          <button
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            title="Click logo or title to toggle Sidebar"
+            className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-800 transition-all cursor-pointer text-left w-full group border border-transparent hover:border-slate-700"
+          >
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#FFD400] text-[#0F172A] shrink-0 font-black shadow-md group-hover:scale-105 transition-transform">
+              <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>
                 work
               </span>
             </div>
-            <div>
-              <h1 className="font-headline-md text-[20px] font-bold text-on-primary leading-tight">RecruitPro</h1>
-              <p className="text-[12px] text-on-primary-container opacity-70">Enterprise HRMS</p>
-            </div>
-          </div>
+            {!sidebarCollapsed && (
+              <div className="flex-1 min-w-0">
+                <h1 className="font-extrabold text-[16px] text-white leading-tight truncate group-hover:text-[#FFD400] transition-colors">RecruitPro</h1>
+                <p className="text-[10px] text-slate-400 font-medium truncate">Enterprise HRMS</p>
+              </div>
+            )}
+          </button>
 
           {/* Navigation Links */}
-          <nav className="flex flex-col gap-1">
-            <Link href="#" className="flex items-center gap-stack-md px-gutter py-stack-md text-on-primary-container hover:bg-on-primary-fixed-variant/5 transition-all duration-200">
-              <span className="material-symbols-outlined">dashboard</span>
-              <span className="font-label-md">Dashboard</span>
+          <nav className="flex flex-col gap-1.5 mt-2">
+            <Link href="#" title="Dashboard" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-all duration-200 ${sidebarCollapsed ? "justify-center" : ""}`}>
+              <span className="material-symbols-outlined text-[20px]">dashboard</span>
+              {!sidebarCollapsed && <span className="text-xs font-bold">Dashboard</span>}
             </Link>
-            <Link href="#" className="relative flex items-center gap-stack-md px-gutter py-stack-md text-secondary-container border-l-4 border-secondary-container bg-on-primary-fixed-variant/10 transition-all duration-200">
-              <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>group</span>
-              <span className="font-label-md">Candidates</span>
+            <Link href="#" title="Candidates" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#FFD400] bg-amber-400/10 font-bold border-l-4 border-[#FFD400] transition-all duration-200 ${sidebarCollapsed ? "justify-center" : ""}`}>
+              <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>group</span>
+              {!sidebarCollapsed && <span className="text-xs">Candidates</span>}
             </Link>
-            <Link href="#" className="flex items-center gap-stack-md px-gutter py-stack-md text-on-primary-container hover:bg-on-primary-fixed-variant/5 transition-all duration-200">
-              <span className="material-symbols-outlined">event_available</span>
-              <span className="font-label-md">Interviews</span>
+            <Link href="#" title="Interviews" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-all duration-200 ${sidebarCollapsed ? "justify-center" : ""}`}>
+              <span className="material-symbols-outlined text-[20px]">event_available</span>
+              {!sidebarCollapsed && <span className="text-xs font-bold">Interviews</span>}
             </Link>
-            <Link href="#" className="flex items-center gap-stack-md px-gutter py-stack-md text-on-primary-container hover:bg-on-primary-fixed-variant/5 transition-all duration-200">
-              <span className="material-symbols-outlined">work</span>
-              <span className="font-label-md">Jobs</span>
+            <Link href="#" title="Jobs" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-all duration-200 ${sidebarCollapsed ? "justify-center" : ""}`}>
+              <span className="material-symbols-outlined text-[20px]">work</span>
+              {!sidebarCollapsed && <span className="text-xs font-bold">Jobs</span>}
             </Link>
-            <Link href="#" className="flex items-center gap-stack-md px-gutter py-stack-md text-on-primary-container hover:bg-on-primary-fixed-variant/5 transition-all duration-200">
-              <span className="material-symbols-outlined">assessment</span>
-              <span className="font-label-md">Reports</span>
+            <Link href="#" title="Reports" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-all duration-200 ${sidebarCollapsed ? "justify-center" : ""}`}>
+              <span className="material-symbols-outlined text-[20px]">assessment</span>
+              {!sidebarCollapsed && <span className="text-xs font-bold">Reports</span>}
             </Link>
-            <Link href="#" className="flex items-center gap-stack-md px-gutter py-stack-md text-on-primary-container hover:bg-on-primary-fixed-variant/5 transition-all duration-200">
-              <span className="material-symbols-outlined">settings</span>
-              <span className="font-label-md">Settings</span>
+            <Link href="#" title="Settings" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-all duration-200 ${sidebarCollapsed ? "justify-center" : ""}`}>
+              <span className="material-symbols-outlined text-[20px]">settings</span>
+              {!sidebarCollapsed && <span className="text-xs font-bold">Settings</span>}
             </Link>
           </nav>
         </div>
 
         {/* Floating Import Actions */}
-        <div className="mt-auto p-gutter space-y-3">
+        <div className="mt-auto p-3 space-y-3">
           <input
             type="file"
             ref={fileInputRef}
@@ -777,106 +784,103 @@ export default function CockpitView() {
           <button
             onClick={triggerFileUpload}
             disabled={uploading}
-            className="w-full bg-secondary-container text-primary-container font-label-md py-3 rounded-lg flex items-center justify-center gap-2 active:scale-95 transition-all hover:brightness-95 disabled:opacity-50"
+            title="Import Resume"
+            className={`w-full bg-[#FFD400] text-[#0F172A] font-black py-2.5 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all hover:bg-amber-300 disabled:opacity-50 shadow-md ${sidebarCollapsed ? "px-0" : "px-3"}`}
           >
-            <span className="material-symbols-outlined text-[20px]">cloud_upload</span>
-            {uploading ? "Uploading..." : "Import Resume"}
+            <span className="material-symbols-outlined text-[18px]">cloud_upload</span>
+            {!sidebarCollapsed && <span className="text-xs">Import Resume</span>}
           </button>
         </div>
       </aside>
 
       {/* Main Panel */}
-      <main className="flex-1 ml-[240px] flex flex-col h-screen overflow-hidden min-w-0 bg-[#0F172A]/5">
+      <main className={`flex-1 transition-all duration-300 flex flex-col h-screen overflow-hidden min-w-0 bg-[#F8FAFC] ${sidebarCollapsed ? "ml-16" : "ml-60"}`}>
         {/* Header App Bar */}
-        <header className="flex flex-wrap lg:flex-nowrap justify-between items-center min-h-[64px] py-2 px-4 sm:px-6 w-full bg-white border-b border-outline-variant shadow-sm z-10 gap-3 overflow-x-auto">
-          <div className="flex flex-wrap items-center gap-3 flex-1 min-w-0">
-            <h2 className="font-headline-md text-[18px] font-bold text-on-surface whitespace-nowrap">Candidate Central</h2>
-            <div className="relative w-48 lg:w-60 shrink-0">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px]">search</span>
+        <header className="flex items-center justify-between h-14 px-3 sm:px-4 w-full bg-white border-b border-slate-200 shadow-xs z-10 gap-2 shrink-0 min-w-0">
+          {/* Left section */}
+          <div className="flex items-center gap-2 shrink-0">
+            <h2 className="font-extrabold text-[15px] text-slate-900 whitespace-nowrap">Candidate Central</h2>
+            <div className="relative w-32 xl:w-44">
+              <span className="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-[15px]">search</span>
               <input
-                className="w-full pl-9 pr-3 py-1.5 bg-surface text-xs border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary-container/30 transition-all font-semibold"
+                className="w-full pl-7 pr-2 py-1 bg-slate-50 text-[11px] border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400/40 transition-all font-semibold"
                 placeholder="Search candidates..."
                 type="text"
               />
             </div>
-
-            {/* Dynamic Job Mandate Selector */}
-            {jobs.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider whitespace-nowrap">Mandate:</span>
-                  <select 
-                    className="bg-surface border border-outline-variant rounded-lg px-2.5 py-1.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-secondary-container/30 transition-all text-on-surface bg-white cursor-pointer max-w-[200px] truncate"
-                    value={selectedJobId}
-                    onChange={(e) => setSelectedJobId(e.target.value)}
-                  >
-                    {jobs.map(j => (
-                      <option key={j.jobId} value={j.jobId}>
-                        {j.clientName || "Inbound"} — {j.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <button
-                    onClick={() => setBroadcastModalOpen(true)}
-                    className="bg-secondary-container text-primary-container text-xs font-bold px-2.5 py-1.5 rounded-lg flex items-center gap-1 hover:brightness-95 active:scale-95 transition-all cursor-pointer whitespace-nowrap"
-                  >
-                    <span className="material-symbols-outlined text-[15px]">podcasts</span>
-                    Broadcast
-                  </button>
-
-                  <button
-                    onClick={openPartnerShareModal}
-                    className="bg-[#0F172A] text-[#FFD400] text-xs font-bold px-2.5 py-1.5 rounded-lg flex items-center gap-1 hover:brightness-95 active:scale-95 transition-all cursor-pointer border border-[#FFD400]/30 whitespace-nowrap"
-                  >
-                    <span className="material-symbols-outlined text-[15px]">share</span>
-                    Share
-                  </button>
-
-                  <button
-                    onClick={() => setConvertModalOpen(true)}
-                    className="bg-amber-400 text-[#0F172A] text-xs font-black px-2.5 py-1.5 rounded-lg flex items-center gap-1 hover:brightness-95 active:scale-95 transition-all cursor-pointer border border-amber-500 shadow-sm whitespace-nowrap"
-                  >
-                    <span className="material-symbols-outlined text-[15px]">gavel</span>
-                    Owner Conversion
-                  </button>
-
-                  <button
-                    onClick={handleGenerateClientPortalLink}
-                    disabled={generatingClientToken || !selectedJobId}
-                    className="bg-emerald-600 text-white text-xs font-black px-2.5 py-1.5 rounded-lg flex items-center gap-1 hover:bg-emerald-700 active:scale-95 transition-all cursor-pointer border border-emerald-700 shadow-sm disabled:opacity-50 whitespace-nowrap"
-                  >
-                    <span className="material-symbols-outlined text-[15px]">link</span>
-                    {generatingClientToken ? "Link..." : "Client Link"}
-                  </button>
-
-                  {postings.filter(p => p.jobId === selectedJobId).length > 0 && (
-                    <div className="flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-1 rounded-lg border border-emerald-200 animate-in fade-in duration-200 whitespace-nowrap">
-                      <span className="material-symbols-outlined text-[12px]">check_circle</span>
-                      Active on: {postings.filter(p => p.jobId === selectedJobId).map(p => p.boardName).join(", ")}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
-          <div className="flex items-center gap-3 shrink-0 ml-auto">
-            <button className="p-1.5 text-on-surface-variant hover:text-primary transition-colors active:scale-95">
-              <span className="material-symbols-outlined text-[20px]">notifications</span>
-            </button>
-            <button className="p-1.5 text-on-surface-variant hover:text-primary transition-colors active:scale-95">
-              <span className="material-symbols-outlined text-[20px]">help_outline</span>
-            </button>
-            <div className="h-6 w-[1px] bg-outline-variant mx-1"></div>
-            <div className="flex items-center gap-2.5">
-              <div className="text-right hidden sm:block">
-                <p className="text-xs text-on-surface font-bold leading-tight">Ankit Sharma</p>
-                <p className="text-[10px] text-on-surface-variant font-medium">Global Recruiter</p>
+
+          {/* Middle section: Job Mandate & Quick Actions */}
+          {jobs.length > 0 && (
+            <div className="flex items-center gap-1.5 shrink min-w-0">
+              <div className="flex items-center gap-1 shrink-0">
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider whitespace-nowrap hidden lg:inline">Job:</span>
+                <select 
+                  className="bg-slate-50 border border-slate-200 rounded-lg px-1.5 py-1 text-[11px] font-bold focus:outline-none focus:ring-2 focus:ring-amber-400/40 text-slate-800 cursor-pointer max-w-[120px] sm:max-w-[150px] xl:max-w-[180px] truncate"
+                  value={selectedJobId}
+                  onChange={(e) => setSelectedJobId(e.target.value)}
+                >
+                  {jobs.map(j => (
+                    <option key={j.jobId} value={j.jobId}>
+                      {j.clientName || "Inbound"} — {j.title}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <div className="w-8 h-8 rounded-full border-2 border-secondary-container p-0.5 shrink-0">
-                <div className="w-full h-full rounded-full bg-primary-container text-white flex items-center justify-center font-bold text-xs">
+
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  onClick={() => setBroadcastModalOpen(true)}
+                  className="bg-[#0F172A] text-[#FFD400] text-[10px] sm:text-[11px] font-extrabold px-2 py-1 rounded-md flex items-center gap-1 hover:bg-slate-800 active:scale-95 transition-all cursor-pointer whitespace-nowrap border border-slate-700 shadow-xs"
+                >
+                  <span className="material-symbols-outlined text-[13px]">podcasts</span>
+                  Broadcast
+                </button>
+
+                <button
+                  onClick={openPartnerShareModal}
+                  className="bg-slate-100 text-slate-800 text-[10px] sm:text-[11px] font-extrabold px-2 py-1 rounded-md flex items-center gap-1 hover:bg-slate-200 active:scale-95 transition-all cursor-pointer border border-slate-300 whitespace-nowrap"
+                >
+                  <span className="material-symbols-outlined text-[13px]">share</span>
+                  Share
+                </button>
+
+                <button
+                  onClick={() => setConvertModalOpen(true)}
+                  className="bg-amber-400 text-[#0F172A] text-[10px] sm:text-[11px] font-black px-2 py-1 rounded-md flex items-center gap-1 hover:bg-amber-300 active:scale-95 transition-all cursor-pointer border border-amber-500 shadow-xs whitespace-nowrap"
+                >
+                  <span className="material-symbols-outlined text-[13px]">gavel</span>
+                  Conversion
+                </button>
+
+                <button
+                  onClick={handleGenerateClientPortalLink}
+                  disabled={generatingClientToken || !selectedJobId}
+                  className="bg-emerald-600 text-white text-[10px] sm:text-[11px] font-black px-2 py-1 rounded-md flex items-center gap-1 hover:bg-emerald-700 active:scale-95 transition-all cursor-pointer shadow-xs disabled:opacity-50 whitespace-nowrap"
+                >
+                  <span className="material-symbols-outlined text-[13px]">link</span>
+                  {generatingClientToken ? "Link..." : "Client Link"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Right section: Profile & Notifications */}
+          <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+            <button className="p-1 text-slate-500 hover:text-slate-900 transition-colors active:scale-95 rounded-lg hover:bg-slate-100">
+              <span className="material-symbols-outlined text-[18px]">notifications</span>
+            </button>
+            <button className="p-1 text-slate-500 hover:text-slate-900 transition-colors active:scale-95 rounded-lg hover:bg-slate-100">
+              <span className="material-symbols-outlined text-[18px]">help_outline</span>
+            </button>
+            <div className="h-4 w-[1px] bg-slate-200 mx-0.5"></div>
+            <div className="flex items-center gap-1.5">
+              <div className="text-right hidden xl:block">
+                <p className="text-[11px] text-slate-900 font-extrabold leading-tight">Ankit Sharma</p>
+                <p className="text-[9px] text-slate-500 font-medium">Global Recruiter</p>
+              </div>
+              <div className="w-7 h-7 rounded-full border-2 border-amber-400 p-0.5 shrink-0 bg-[#0F172A]">
+                <div className="w-full h-full rounded-full bg-[#0F172A] text-[#FFD400] flex items-center justify-center font-black text-[10px]">
                   AS
                 </div>
               </div>
