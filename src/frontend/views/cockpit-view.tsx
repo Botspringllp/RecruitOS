@@ -786,15 +786,15 @@ export default function CockpitView() {
       </aside>
 
       {/* Main Panel */}
-      <main className="flex-1 ml-sidebar-width flex flex-col min-h-screen">
+      <main className="flex-1 ml-[240px] flex flex-col h-screen overflow-hidden min-w-0 bg-[#0F172A]/5">
         {/* Header App Bar */}
-        <header className="flex justify-between items-center h-16 px-gutter w-full bg-white border-b border-outline-variant shadow-sm z-10">
-          <div className="flex items-center gap-6">
-            <h2 className="font-headline-md text-[18px] font-bold text-on-surface">Candidate Central</h2>
-            <div className="relative w-72">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
+        <header className="flex flex-wrap lg:flex-nowrap justify-between items-center min-h-[64px] py-2 px-4 sm:px-6 w-full bg-white border-b border-outline-variant shadow-sm z-10 gap-3 overflow-x-auto">
+          <div className="flex flex-wrap items-center gap-3 flex-1 min-w-0">
+            <h2 className="font-headline-md text-[18px] font-bold text-on-surface whitespace-nowrap">Candidate Central</h2>
+            <div className="relative w-48 lg:w-60 shrink-0">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px]">search</span>
               <input
-                className="w-full pl-10 pr-4 py-2 bg-surface text-body-sm border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary-container/30 transition-all font-semibold"
+                className="w-full pl-9 pr-3 py-1.5 bg-surface text-xs border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary-container/30 transition-all font-semibold"
                 placeholder="Search candidates..."
                 type="text"
               />
@@ -802,77 +802,81 @@ export default function CockpitView() {
 
             {/* Dynamic Job Mandate Selector */}
             {jobs.length > 0 && (
-              <div className="flex items-center gap-2.5">
-                <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Job Mandate:</span>
-                <select 
-                  className="bg-surface border border-outline-variant rounded-lg px-3.5 py-2 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-secondary-container/30 transition-all text-on-surface bg-white cursor-pointer"
-                  value={selectedJobId}
-                  onChange={(e) => setSelectedJobId(e.target.value)}
-                >
-                  {jobs.map(j => (
-                    <option key={j.jobId} value={j.jobId}>
-                      {j.clientName || "Inbound"} — {j.title}
-                    </option>
-                  ))}
-                </select>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider whitespace-nowrap">Mandate:</span>
+                  <select 
+                    className="bg-surface border border-outline-variant rounded-lg px-2.5 py-1.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-secondary-container/30 transition-all text-on-surface bg-white cursor-pointer max-w-[200px] truncate"
+                    value={selectedJobId}
+                    onChange={(e) => setSelectedJobId(e.target.value)}
+                  >
+                    {jobs.map(j => (
+                      <option key={j.jobId} value={j.jobId}>
+                        {j.clientName || "Inbound"} — {j.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-                <button
-                  onClick={() => setBroadcastModalOpen(true)}
-                  className="bg-secondary-container text-primary-container text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 hover:brightness-95 active:scale-95 transition-all cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-[16px]">podcasts</span>
-                  Broadcast Mandate
-                </button>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button
+                    onClick={() => setBroadcastModalOpen(true)}
+                    className="bg-secondary-container text-primary-container text-xs font-bold px-2.5 py-1.5 rounded-lg flex items-center gap-1 hover:brightness-95 active:scale-95 transition-all cursor-pointer whitespace-nowrap"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">podcasts</span>
+                    Broadcast
+                  </button>
 
-                <button
-                  onClick={openPartnerShareModal}
-                  className="bg-[#0F172A] text-[#FFD400] text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 hover:brightness-95 active:scale-95 transition-all cursor-pointer border border-[#FFD400]/30 ml-2"
-                >
-                  <span className="material-symbols-outlined text-[16px]">share</span>
-                  Share Mandate
-                </button>
+                  <button
+                    onClick={openPartnerShareModal}
+                    className="bg-[#0F172A] text-[#FFD400] text-xs font-bold px-2.5 py-1.5 rounded-lg flex items-center gap-1 hover:brightness-95 active:scale-95 transition-all cursor-pointer border border-[#FFD400]/30 whitespace-nowrap"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">share</span>
+                    Share
+                  </button>
 
-                <button
-                  onClick={() => setConvertModalOpen(true)}
-                  className="bg-amber-400 text-[#0F172A] text-xs font-black px-3 py-2 rounded-lg flex items-center gap-1.5 hover:brightness-95 active:scale-95 transition-all cursor-pointer border border-amber-500 shadow-sm ml-2"
-                >
-                  <span className="material-symbols-outlined text-[16px]">gavel</span>
-                  Owner Conversion
-                </button>
+                  <button
+                    onClick={() => setConvertModalOpen(true)}
+                    className="bg-amber-400 text-[#0F172A] text-xs font-black px-2.5 py-1.5 rounded-lg flex items-center gap-1 hover:brightness-95 active:scale-95 transition-all cursor-pointer border border-amber-500 shadow-sm whitespace-nowrap"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">gavel</span>
+                    Owner Conversion
+                  </button>
 
-                <button
-                  onClick={handleGenerateClientPortalLink}
-                  disabled={generatingClientToken || !selectedJobId}
-                  className="bg-emerald-600 text-white text-xs font-black px-3 py-2 rounded-lg flex items-center gap-1.5 hover:bg-emerald-700 active:scale-95 transition-all cursor-pointer border border-emerald-700 shadow-sm ml-2 disabled:opacity-50"
-                >
-                  <span className="material-symbols-outlined text-[16px]">link</span>
-                  {generatingClientToken ? "Generating Link..." : "Client Portal Link"}
-                </button>
+                  <button
+                    onClick={handleGenerateClientPortalLink}
+                    disabled={generatingClientToken || !selectedJobId}
+                    className="bg-emerald-600 text-white text-xs font-black px-2.5 py-1.5 rounded-lg flex items-center gap-1 hover:bg-emerald-700 active:scale-95 transition-all cursor-pointer border border-emerald-700 shadow-sm disabled:opacity-50 whitespace-nowrap"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">link</span>
+                    {generatingClientToken ? "Link..." : "Client Link"}
+                  </button>
 
-                {postings.filter(p => p.jobId === selectedJobId).length > 0 && (
-                  <div className="flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2.5 py-1.5 rounded-lg border border-emerald-200 animate-in fade-in duration-200">
-                    <span className="material-symbols-outlined text-[12px]">check_circle</span>
-                    Active on: {postings.filter(p => p.jobId === selectedJobId).map(p => p.boardName).join(", ")}
-                  </div>
-                )}
+                  {postings.filter(p => p.jobId === selectedJobId).length > 0 && (
+                    <div className="flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-1 rounded-lg border border-emerald-200 animate-in fade-in duration-200 whitespace-nowrap">
+                      <span className="material-symbols-outlined text-[12px]">check_circle</span>
+                      Active on: {postings.filter(p => p.jobId === selectedJobId).map(p => p.boardName).join(", ")}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
-          <div className="flex items-center gap-4">
-            <button className="p-2 text-on-surface-variant hover:text-primary transition-colors active:scale-95">
-              <span className="material-symbols-outlined">notifications</span>
+          <div className="flex items-center gap-3 shrink-0 ml-auto">
+            <button className="p-1.5 text-on-surface-variant hover:text-primary transition-colors active:scale-95">
+              <span className="material-symbols-outlined text-[20px]">notifications</span>
             </button>
-            <button className="p-2 text-on-surface-variant hover:text-primary transition-colors active:scale-95">
-              <span className="material-symbols-outlined">help_outline</span>
+            <button className="p-1.5 text-on-surface-variant hover:text-primary transition-colors active:scale-95">
+              <span className="material-symbols-outlined text-[20px]">help_outline</span>
             </button>
-            <div className="h-8 w-[1px] bg-outline-variant mx-2"></div>
-            <div className="flex items-center gap-3">
-              <div className="text-right hidden lg:block">
-                <p className="text-label-sm text-on-surface font-semibold">Ankit Sharma</p>
+            <div className="h-6 w-[1px] bg-outline-variant mx-1"></div>
+            <div className="flex items-center gap-2.5">
+              <div className="text-right hidden sm:block">
+                <p className="text-xs text-on-surface font-bold leading-tight">Ankit Sharma</p>
                 <p className="text-[10px] text-on-surface-variant font-medium">Global Recruiter</p>
               </div>
-              <div className="w-10 h-10 rounded-full border-2 border-secondary-container p-0.5">
-                <div className="w-full h-full rounded-full bg-primary-container text-white flex items-center justify-center font-bold text-sm">
+              <div className="w-8 h-8 rounded-full border-2 border-secondary-container p-0.5 shrink-0">
+                <div className="w-full h-full rounded-full bg-primary-container text-white flex items-center justify-center font-bold text-xs">
                   AS
                 </div>
               </div>
@@ -881,7 +885,7 @@ export default function CockpitView() {
         </header>
 
         {/* Dashboard Content area */}
-        <div className="p-gutter space-y-6 overflow-y-auto flex-1 custom-scrollbar">
+        <div className="p-4 sm:p-6 space-y-6 overflow-y-auto overflow-x-hidden flex-1 custom-scrollbar">
           {/* Uploader Drag Zone */}
           <div 
             onClick={triggerFileUpload}
