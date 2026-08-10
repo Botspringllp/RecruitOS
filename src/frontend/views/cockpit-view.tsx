@@ -60,6 +60,7 @@ export default function CockpitView() {
   const [inheritedLocation, setInheritedLocation] = useState<string>("");
   const [linkingCandidate, setLinkingCandidate] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [activeNavTab, setActiveNavTab] = useState<string>("dashboard");
 
   // Workflow 3: Daily Cockpit Execution & Communication States (RC-01 & RC-03)
   const [dailyQueueSummary, setDailyQueueSummary] = useState<any>(null);
@@ -743,32 +744,150 @@ export default function CockpitView() {
             )}
           </button>
 
-          {/* Navigation Links */}
-          <nav className="flex flex-col gap-1.5 mt-2">
-            <Link href="#" title="Dashboard" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-all duration-200 ${sidebarCollapsed ? "justify-center" : ""}`}>
-              <span className="material-symbols-outlined text-[20px]">dashboard</span>
-              {!sidebarCollapsed && <span className="text-xs font-bold">Dashboard</span>}
-            </Link>
-            <Link href="#" title="Candidates" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#FFD400] bg-amber-400/10 font-bold border-l-4 border-[#FFD400] transition-all duration-200 ${sidebarCollapsed ? "justify-center" : ""}`}>
-              <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>group</span>
-              {!sidebarCollapsed && <span className="text-xs">Candidates</span>}
-            </Link>
-            <Link href="#" title="Interviews" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-all duration-200 ${sidebarCollapsed ? "justify-center" : ""}`}>
-              <span className="material-symbols-outlined text-[20px]">event_available</span>
-              {!sidebarCollapsed && <span className="text-xs font-bold">Interviews</span>}
-            </Link>
-            <Link href="#" title="Jobs" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-all duration-200 ${sidebarCollapsed ? "justify-center" : ""}`}>
-              <span className="material-symbols-outlined text-[20px]">work</span>
-              {!sidebarCollapsed && <span className="text-xs font-bold">Jobs</span>}
-            </Link>
-            <Link href="#" title="Reports" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-all duration-200 ${sidebarCollapsed ? "justify-center" : ""}`}>
-              <span className="material-symbols-outlined text-[20px]">assessment</span>
-              {!sidebarCollapsed && <span className="text-xs font-bold">Reports</span>}
-            </Link>
-            <Link href="#" title="Settings" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-all duration-200 ${sidebarCollapsed ? "justify-center" : ""}`}>
-              <span className="material-symbols-outlined text-[20px]">settings</span>
-              {!sidebarCollapsed && <span className="text-xs font-bold">Settings</span>}
-            </Link>
+          {/* Navigation Links (11 Modular Screens Breakdown) */}
+          <nav className="flex flex-col gap-1 mt-1 overflow-y-auto max-h-[calc(100vh-180px)] custom-scrollbar pr-1">
+            <button
+              onClick={() => setActiveNavTab("dashboard")}
+              title="Main Dashboard"
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-extrabold transition-all duration-200 cursor-pointer text-left ${
+                activeNavTab === "dashboard"
+                  ? "bg-[#FFD400] text-[#0F172A] shadow-sm font-black"
+                  : "text-slate-300 hover:bg-slate-800 hover:text-white"
+              } ${sidebarCollapsed ? "justify-center" : ""}`}
+            >
+              <span className="material-symbols-outlined text-[18px]">dashboard</span>
+              {!sidebarCollapsed && <span>Dashboard</span>}
+            </button>
+
+            <button
+              onClick={() => setActiveNavTab("pipeline")}
+              title="Recruitment Pipeline (Core Screen)"
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-extrabold transition-all duration-200 cursor-pointer text-left ${
+                activeNavTab === "pipeline"
+                  ? "bg-[#FFD400] text-[#0F172A] shadow-sm font-black"
+                  : "text-slate-300 hover:bg-slate-800 hover:text-white"
+              } ${sidebarCollapsed ? "justify-center" : ""}`}
+            >
+              <span className="material-symbols-outlined text-[18px]">view_kanban</span>
+              {!sidebarCollapsed && <span className="flex-1 flex justify-between items-center">Pipeline <span className="bg-amber-400/20 text-[#FFD400] text-[9px] px-1.5 py-0.5 rounded font-black">CORE</span></span>}
+            </button>
+
+            <button
+              onClick={() => setActiveNavTab("candidates")}
+              title="Candidate Sourcing & Profiles"
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-extrabold transition-all duration-200 cursor-pointer text-left ${
+                activeNavTab === "candidates"
+                  ? "bg-[#FFD400] text-[#0F172A] shadow-sm font-black"
+                  : "text-slate-300 hover:bg-slate-800 hover:text-white"
+              } ${sidebarCollapsed ? "justify-center" : ""}`}
+            >
+              <span className="material-symbols-outlined text-[18px]">group</span>
+              {!sidebarCollapsed && <span>Candidates</span>}
+            </button>
+
+            <button
+              onClick={() => setActiveNavTab("jobs")}
+              title="Job Requirements & Mandates"
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-extrabold transition-all duration-200 cursor-pointer text-left ${
+                activeNavTab === "jobs"
+                  ? "bg-[#FFD400] text-[#0F172A] shadow-sm font-black"
+                  : "text-slate-300 hover:bg-slate-800 hover:text-white"
+              } ${sidebarCollapsed ? "justify-center" : ""}`}
+            >
+              <span className="material-symbols-outlined text-[18px]">work</span>
+              {!sidebarCollapsed && <span>Job Requirements</span>}
+            </button>
+
+            <button
+              onClick={() => setActiveNavTab("clients")}
+              title="Client Management"
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-extrabold transition-all duration-200 cursor-pointer text-left ${
+                activeNavTab === "clients"
+                  ? "bg-[#FFD400] text-[#0F172A] shadow-sm font-black"
+                  : "text-slate-300 hover:bg-slate-800 hover:text-white"
+              } ${sidebarCollapsed ? "justify-center" : ""}`}
+            >
+              <span className="material-symbols-outlined text-[18px]">domain</span>
+              {!sidebarCollapsed && <span>Clients</span>}
+            </button>
+
+            <button
+              onClick={() => setActiveNavTab("interviews")}
+              title="Interview Management"
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-extrabold transition-all duration-200 cursor-pointer text-left ${
+                activeNavTab === "interviews"
+                  ? "bg-[#FFD400] text-[#0F172A] shadow-sm font-black"
+                  : "text-slate-300 hover:bg-slate-800 hover:text-white"
+              } ${sidebarCollapsed ? "justify-center" : ""}`}
+            >
+              <span className="material-symbols-outlined text-[18px]">event_available</span>
+              {!sidebarCollapsed && <span>Interviews</span>}
+            </button>
+
+            <button
+              onClick={() => setActiveNavTab("offers")}
+              title="Offer Management & CTC Fee Guard"
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-extrabold transition-all duration-200 cursor-pointer text-left ${
+                activeNavTab === "offers"
+                  ? "bg-[#FFD400] text-[#0F172A] shadow-sm font-black"
+                  : "text-slate-300 hover:bg-slate-800 hover:text-white"
+              } ${sidebarCollapsed ? "justify-center" : ""}`}
+            >
+              <span className="material-symbols-outlined text-[18px]">badge</span>
+              {!sidebarCollapsed && <span>Offers & CTC</span>}
+            </button>
+
+            <button
+              onClick={() => setActiveNavTab("notice_period")}
+              title="Notice Period Risk Radar (Unique Feature)"
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-extrabold transition-all duration-200 cursor-pointer text-left ${
+                activeNavTab === "notice_period"
+                  ? "bg-[#FFD400] text-[#0F172A] shadow-sm font-black"
+                  : "text-red-400 bg-red-950/40 border border-red-500/30 hover:bg-red-900/50 hover:text-white"
+              } ${sidebarCollapsed ? "justify-center" : ""}`}
+            >
+              <span className="material-symbols-outlined text-[18px] animate-pulse">radar</span>
+              {!sidebarCollapsed && <span className="flex-1 flex justify-between items-center">Notice Radar <span className="bg-red-500 text-white text-[8px] px-1 py-0.2 rounded font-black">UNIQUE</span></span>}
+            </button>
+
+            <button
+              onClick={() => setActiveNavTab("joining_probation")}
+              title="Joining & Probation Guarantee"
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-extrabold transition-all duration-200 cursor-pointer text-left ${
+                activeNavTab === "joining_probation"
+                  ? "bg-[#FFD400] text-[#0F172A] shadow-sm font-black"
+                  : "text-slate-300 hover:bg-slate-800 hover:text-white"
+              } ${sidebarCollapsed ? "justify-center" : ""}`}
+            >
+              <span className="material-symbols-outlined text-[18px]">verified_user</span>
+              {!sidebarCollapsed && <span>Joining & Probation</span>}
+            </button>
+
+            <button
+              onClick={() => setActiveNavTab("reports")}
+              title="Reports & Analytics"
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-extrabold transition-all duration-200 cursor-pointer text-left ${
+                activeNavTab === "reports"
+                  ? "bg-[#FFD400] text-[#0F172A] shadow-sm font-black"
+                  : "text-slate-300 hover:bg-slate-800 hover:text-white"
+              } ${sidebarCollapsed ? "justify-center" : ""}`}
+            >
+              <span className="material-symbols-outlined text-[18px]">assessment</span>
+              {!sidebarCollapsed && <span>Reports</span>}
+            </button>
+
+            <button
+              onClick={() => setActiveNavTab("settings")}
+              title="Settings & Administration"
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-extrabold transition-all duration-200 cursor-pointer text-left ${
+                activeNavTab === "settings"
+                  ? "bg-[#FFD400] text-[#0F172A] shadow-sm font-black"
+                  : "text-slate-300 hover:bg-slate-800 hover:text-white"
+              } ${sidebarCollapsed ? "justify-center" : ""}`}
+            >
+              <span className="material-symbols-outlined text-[18px]">settings</span>
+              {!sidebarCollapsed && <span>Settings</span>}
+            </button>
           </nav>
         </div>
 
@@ -799,7 +918,19 @@ export default function CockpitView() {
         <header className="flex items-center justify-between h-14 px-3 sm:px-4 w-full bg-white border-b border-slate-200 shadow-xs z-10 gap-2 shrink-0 min-w-0">
           {/* Left section */}
           <div className="flex items-center gap-2 shrink-0">
-            <h2 className="font-extrabold text-[15px] text-slate-900 whitespace-nowrap">Candidate Central</h2>
+            <h2 className="font-extrabold text-[15px] text-slate-900 whitespace-nowrap">
+              {activeNavTab === "dashboard" && "Executive Command Dashboard"}
+              {activeNavTab === "pipeline" && "Recruitment Pipeline (Kanban)"}
+              {activeNavTab === "candidates" && "Candidate Sourcing & Profiles"}
+              {activeNavTab === "jobs" && "Job Requirements & Mandates"}
+              {activeNavTab === "clients" && "Client Management"}
+              {activeNavTab === "interviews" && "Interview Management"}
+              {activeNavTab === "offers" && "Offer Management & CTC Guard"}
+              {activeNavTab === "notice_period" && "Notice Period Risk Radar"}
+              {activeNavTab === "joining_probation" && "Joining & Probation Guarantee"}
+              {activeNavTab === "reports" && "Reports & SLA Analytics"}
+              {activeNavTab === "settings" && "Company Settings & Administration"}
+            </h2>
             <div className="relative w-32 xl:w-44">
               <span className="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-[15px]">search</span>
               <input
@@ -888,9 +1019,90 @@ export default function CockpitView() {
           </div>
         </header>
 
-        {/* Dashboard Content area */}
+        {/* Dashboard Content area (Modular Views by Tab) */}
         <div className="p-4 sm:p-6 space-y-6 overflow-y-auto overflow-x-hidden flex-1 custom-scrollbar">
-          {/* Uploader Drag Zone */}
+
+          {/* TAB 1: EXECUTIVE COMMAND DASHBOARD (DASH-01) */}
+          {activeNavTab === "dashboard" && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              {/* Executive Summary Metrics Bar */}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                <div 
+                  onClick={() => setActiveNavTab("jobs")}
+                  className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-2xs hover:border-amber-400 hover:shadow-xs transition-all cursor-pointer"
+                >
+                  <div className="flex items-center justify-between text-slate-500 mb-1">
+                    <span className="text-[10px] font-black uppercase tracking-wider">Active Jobs</span>
+                    <span className="material-symbols-outlined text-[16px] text-amber-500">work</span>
+                  </div>
+                  <p className="text-xl font-black text-slate-900">{jobs.length}</p>
+                  <span className="text-[10px] font-extrabold text-emerald-600">3 High Priority</span>
+                </div>
+
+                <div 
+                  onClick={() => setActiveNavTab("candidates")}
+                  className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-2xs hover:border-blue-400 hover:shadow-xs transition-all cursor-pointer"
+                >
+                  <div className="flex items-center justify-between text-slate-500 mb-1">
+                    <span className="text-[10px] font-black uppercase tracking-wider">Active Talent</span>
+                    <span className="material-symbols-outlined text-[16px] text-blue-500">group</span>
+                  </div>
+                  <p className="text-xl font-black text-slate-900">{submissions.length}</p>
+                  <span className="text-[10px] font-extrabold text-blue-600">In Pipeline</span>
+                </div>
+
+                <div 
+                  onClick={() => setActiveNavTab("interviews")}
+                  className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-2xs hover:border-purple-400 hover:shadow-xs transition-all cursor-pointer"
+                >
+                  <div className="flex items-center justify-between text-slate-500 mb-1">
+                    <span className="text-[10px] font-black uppercase tracking-wider">Interviews Today</span>
+                    <span className="material-symbols-outlined text-[16px] text-purple-500">event_available</span>
+                  </div>
+                  <p className="text-xl font-black text-purple-600">4 Slots</p>
+                  <span className="text-[10px] font-extrabold text-purple-700">2 Prep Kits Sent</span>
+                </div>
+
+                <div 
+                  onClick={() => setActiveNavTab("offers")}
+                  className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-2xs hover:border-emerald-400 hover:shadow-xs transition-all cursor-pointer"
+                >
+                  <div className="flex items-center justify-between text-slate-500 mb-1">
+                    <span className="text-[10px] font-black uppercase tracking-wider">Offers Pending</span>
+                    <span className="material-symbols-outlined text-[16px] text-emerald-500">badge</span>
+                  </div>
+                  <p className="text-xl font-black text-emerald-600">2 Offers</p>
+                  <span className="text-[10px] font-extrabold text-emerald-700">CTC Fee Audited</span>
+                </div>
+
+                <div 
+                  onClick={() => setActiveNavTab("joining_probation")}
+                  className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-2xs hover:border-slate-400 hover:shadow-xs transition-all cursor-pointer"
+                >
+                  <div className="flex items-center justify-between text-slate-500 mb-1">
+                    <span className="text-[10px] font-black uppercase tracking-wider">Joining This Week</span>
+                    <span className="material-symbols-outlined text-[16px] text-[#0F172A]">task_alt</span>
+                  </div>
+                  <p className="text-xl font-black text-slate-900">1 Joining</p>
+                  <span className="text-[10px] font-extrabold text-amber-600">Day 1 HR Verified</span>
+                </div>
+
+                <div 
+                  onClick={() => setActiveNavTab("offers")}
+                  className="bg-white border border-amber-300 rounded-xl p-3.5 shadow-2xs hover:border-amber-400 hover:shadow-xs transition-all cursor-pointer bg-amber-50/30"
+                >
+                  <div className="flex items-center justify-between text-slate-500 mb-1">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-700">Est. Revenue</span>
+                    <span className="material-symbols-outlined text-[16px] text-amber-600">payments</span>
+                  </div>
+                  <p className="text-xl font-black text-[#0F172A]">$45,000</p>
+                  <span className="text-[10px] font-extrabold text-amber-700">8.33% Placement Fee</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Uploader Drag Zone (Visible under Candidate Central) */}
           <div 
             onClick={triggerFileUpload}
             className="group relative flex flex-col items-center justify-center border-2 border-dashed border-outline-variant rounded-xl bg-white p-8 text-center cursor-pointer transition-all hover:bg-slate-50/50 hover:border-secondary-container"
@@ -913,7 +1125,8 @@ export default function CockpitView() {
           </div>
 
           {/* RC-03: MORNING COCKPIT DAILY EXECUTION QUEUE BANNER */}
-          <div className="bg-[#0F172A] rounded-xl p-5 text-white space-y-4 shadow-lg border border-slate-800 animate-in fade-in duration-300">
+          {activeNavTab === "dashboard" && (
+            <div className="bg-[#0F172A] rounded-xl p-5 text-white space-y-4 shadow-lg border border-slate-800 animate-in fade-in duration-300">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
               <div className="flex items-center gap-3">
                 <div className="bg-[#FFD400] text-[#0F172A] p-2 rounded-lg font-black flex items-center justify-center">
@@ -1003,8 +1216,10 @@ export default function CockpitView() {
                 </div>
               </div>
             </div>
+          </div>
+        )}
 
-            {/* RC-04: RELATIONAL TALENT & HOUSEHOLD MAPPING (RC-04) */}
+          {/* RC-04: RELATIONAL TALENT & HOUSEHOLD MAPPING (RC-04) (Visible under Candidates) */}
             <div className="bg-[#0B132B] border border-blue-500/40 rounded-xl p-4 space-y-3">
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
@@ -1260,8 +1475,9 @@ export default function CockpitView() {
           </div>
 
           {/* Kanban / Candidate Board simulation */}
-          <div>
-            <h3 className="font-headline-md text-[18px] font-bold text-on-surface mb-4">Pipeline Candidates</h3>
+          {(activeNavTab === "pipeline" || activeNavTab === "dashboard") && (
+            <div>
+              <h3 className="font-headline-md text-[18px] font-bold text-on-surface mb-4">Pipeline Candidates</h3>
             
             {jobs.length > 0 ? (
               /* Database-driven Kanban Board with SLA Radar */
@@ -1569,9 +1785,11 @@ export default function CockpitView() {
               </div>
             )}
           </div>
+          )}
 
-          {/* TWO COLUMN WORKFLOW EXTENSIONS (RC-07 & RC-04) */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-6 border-t border-outline-variant">
+          {/* TWO COLUMN WORKFLOW EXTENSIONS (RC-07 & RC-04) (Visible under Candidates) */}
+          {(activeNavTab === "candidates" || activeNavTab === "dashboard") && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-6 border-t border-outline-variant">
             {/* Column 1: Silver Medalist Talent Recycler (RC-07) */}
             <div className="bg-white rounded-xl border border-outline-variant p-6 space-y-6 shadow-sm">
               <div className="flex justify-between items-start">
@@ -1756,7 +1974,7 @@ export default function CockpitView() {
               )}
             </div>
           </div>
-        </div>
+        )}
       </main>
 
       {/* MODAL OVERLAY: Resume Parsing & Duplicate Check */}
