@@ -25,6 +25,55 @@ RecruitOS uses a **Shared Database with Row-Level Security (RLS)** model:
    ```
 4. Row-Level Security policies filter data automatically at the engine level, preventing cross-tenant data leakage.
 
+### 🗺️ RecruitOS Master Architecture Diagram
+
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│                      RECRUITOS MASTER ARCHITECTURE                      │
+│ FOUNDATION: Multi-Tenant JWT Middleware & PostgreSQL Row-Level Security │ 
+├─────────────────────────────────────────────────────────────────────────┤
+│ ZONE 1: RECRUITER COCKPIT (Internal Command Center & SLA Radar)          │
+│   ├── RC-01: WhatsApp & Email Communication Log                         │
+│   ├── RC-02: Auto CV Parsing & Intake Engine                            │
+│   ├── RC-03: Pipeline SLA & Stagnation Aging Radar                      │
+│   ├── RC-04: Relational Talent & Household Mapping                      │
+│   ├── RC-05: Post-Offer 90-Day Drop-Off Radar                           │
+│   ├── RC-06: Settlement & Auto-Invoicing Engine                         │
+│   ├── RC-07: Silver Medalist Talent Recycler                            │
+│   └── RC-08: Job Board One-Click Broadcast & Webhook Ingestion          │
+├─────────────────────────────────────────────────────────────────────────┤
+│ ZONE 2: CLIENT & INTERVIEWER PORTAL (The Feedback Engine)               │
+│   ├── CF-01: Zero-Login Magic Link Presenter                            │
+│   ├── CF-02: One-Click Decision & Rejection Matrix                      │
+│   ├── CF-03: Asynchronous Interview Slot Selector                       │
+│   └── CF-04: Client SLA Chase Engine & Reminders                        │
+├─────────────────────────────────────────────────────────────────────────┤
+│ ZONE 3: CANDIDATE EXPERIENCE HUB (The Engagement Loop & Prep)           │
+│   ├── CE-01: 1-Click WhatsApp Slot Confirmator                          │
+│   ├── CE-02: Automated Interview Prep Kit Trigger                       │
+│   ├── CE-03: Post-Interview Feedback Collector                          │
+│   └── CE-04: Notice Period Counter-Offer Pulse                          │
+├─────────────────────────────────────────────────────────────────────────┤
+│ ZONE 4: HR & COMPLIANCE ZONE (Post-Offer Handoff)                       │
+│   ├── HC-01: Compliance Document Vault & Upload Checklist               │
+│   ├── HC-02: Offer Audit & CTC Placement Fee Guard                      │
+│   ├── HC-03: Zero-Touch Client HR Onboarding Handoff                    │
+│   └── HC-04: 90-Day Probation Guarantee Clock                           │
+├─────────────────────────────────────────────────────────────────────────┤
+│ ZONE 5: PARTNER & VENDOR NETWORK (Split-Fee Management)                 │
+│   ├── PO-01: Anonymized Mandate Share & Masking Vault                   │
+│   ├── PO-02: Isolated Partner Submission Workspace                      │
+│   ├── PO-03: Candidate Duplicate Arbitrator (200ms First-Touch Rule)    │
+│   └── PO-04: Split-Fee Ledger & Auto-Settlement Interlink               │
+├─────────────────────────────────────────────────────────────────────────┤
+│ ZONE 6: AGENCY STOREFRONT (Inbound Lead Generation)                     │
+│   ├── AS-01: Public Agency Storefront Microsite Engine                  │
+│   ├── AS-02: Self-Serve Client Mandate Ingestion Wizard                 │
+│   ├── AS-03: Hot Talent Showcase & Teaser Gallery                       │
+│   └── AS-04: Candidate Application Portal & Resume Dropzone             │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
 ---
 
 ## 📂 Project Directory Structure
