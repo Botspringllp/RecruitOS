@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 export default function CockpitView() {
@@ -112,6 +112,24 @@ export default function CockpitView() {
     priority: "High",
     commercialModel: "15% Contingency Fee",
   });
+
+  // Load mandates from localStorage if present
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("recruitos_open_mandates");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Merge unique mandates by id
+          const ids = new Set(parsed.map(m => m.id));
+          const baseFiltered = openMandatesList.filter(m => !ids.has(m.id));
+          setOpenMandatesList([...parsed, ...baseFiltered]);
+        }
+      }
+    } catch (err) {
+      console.error("Error reading mandates from localStorage", err);
+    }
+  }, [activeNavTab]);
 
   const toggleTask = (id: number) => {
     setMyTasks(myTasks.map(t => t.id === id ? { ...t, done: !t.done } : t));
@@ -953,9 +971,9 @@ export default function CockpitView() {
                   <p className="text-xs text-slate-500">Incoming hiring offers submitted by prospective hiring clients</p>
                 </div>
 
-                {/* Button: Add Company -> Opens Public Website */}
+                {/* Button: Add Company -> Opens Standalone Public Website Route */}
                 <button
-                  onClick={() => setShowStorefront(true)}
+                  onClick={() => router.push("/storefront")}
                   className="bg-[#0F172A] text-white hover:bg-slate-800 font-black px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-md cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-[18px] text-[#FFD400]">add_business</span>
