@@ -6,26 +6,46 @@ import { useRouter } from "next/navigation";
 export default function CockpitView() {
   const router = useRouter();
 
-  // Sidebar & Navigation State
+  // Navigation State
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeNavTab, setActiveNavTab] = useState<string>("dashboard");
 
-  // Profile Slide-Over Drawer State
+  // Profile Drawer State
   const [profileDrawerOpen, setProfileDrawerOpen] = useState(false);
 
-  // Search Bar State
-  const [searchCategory, setSearchCategory] = useState("Candidates");
+  // Search State
+  const [searchCategory, setSearchCategory] = useState("Requirements");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Notifications Popover State
+  // Notifications State
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [unreadNotifications, setUnreadNotifications] = useState(3);
 
-  // Quick Action Modal States
-  const [activeModal, setActiveModal] = useState<"requirement" | "client" | "interview" | "offer" | "candidate" | null>(null);
-  const [modalSuccessMessage, setModalSuccessMessage] = useState("");
+  // Job Opening -> Candidate View Flow State
+  const [selectedJob, setSelectedJob] = useState<any | null>(null);
 
-  // Interactive Task List State for "Today's Tasks"
+  // Open Mandates -> Details & Storefront State
+  const [selectedMandate, setSelectedMandate] = useState<any | null>(null);
+  const [showStorefront, setShowStorefront] = useState(false);
+  const [showStorefrontForm, setShowStorefrontForm] = useState(false);
+
+  // Date Filter State for Pipeline Snapshot
+  const [pipelineDateFilter, setPipelineDateFilter] = useState("Today");
+
+  // View More Modals
+  const [showAllHighRiskModal, setShowAllHighRiskModal] = useState(false);
+  const [showAllPendingFeedbackModal, setShowAllPendingFeedbackModal] = useState(false);
+
+  // Add Candidate Modal (used inside Job-Candidate view)
+  const [addCandidateModalOpen, setAddCandidateModalOpen] = useState(false);
+  const [newCandidateForm, setNewCandidateForm] = useState({
+    name: "",
+    email: "",
+    status: "New",
+    rating: "4.0 ⭐",
+    skills: "",
+  });
+
+  // Interactive Tasks State
   const [myTasks, setMyTasks] = useState([
     { id: 1, text: "Follow up Rahul", done: false },
     { id: 2, text: "Schedule Interview Priya", done: false },
@@ -34,9 +54,64 @@ export default function CockpitView() {
     { id: 5, text: "Notice Period Review", done: false },
   ]);
 
-  // Form Field States
-  const [formField1, setFormField1] = useState("");
-  const [formField2, setFormField2] = useState("");
+  // Initial Mandates List State
+  const [openMandatesList, setOpenMandatesList] = useState([
+    {
+      id: "MAND-001",
+      companyName: "Apex Tech Solutions",
+      industry: "Information Technology",
+      contactPerson: "Sarah Jenkins (HR VP)",
+      position: "Full Stack Lead",
+      openings: 4,
+      experience: "5-8 Years",
+      location: "Dubai, UAE",
+      compensation: "$90,000 - $110,000 / Year",
+      priority: "Urgent",
+      commercialModel: "15% Annual CTC Contingency Fee",
+      dateSubmitted: "10 Aug 2026",
+    },
+    {
+      id: "MAND-002",
+      companyName: "Global Logistics Corp",
+      industry: "Supply Chain & Freight",
+      contactPerson: "Mohammed Al-Rashid",
+      position: "DevOps Architect",
+      openings: 2,
+      experience: "6-10 Years",
+      location: "Riyadh, KSA",
+      compensation: "$100,000 - $130,000 / Year",
+      priority: "High",
+      commercialModel: "18% Retained Executive Search",
+      dateSubmitted: "09 Aug 2026",
+    },
+    {
+      id: "MAND-003",
+      companyName: "Horizon Labs",
+      industry: "Biotech & Healthcare",
+      contactPerson: "Dr. Elena Rostova",
+      position: "Senior Product Manager",
+      openings: 3,
+      experience: "4-7 Years",
+      location: "Singapore",
+      compensation: "$85,000 - $105,000 / Year",
+      priority: "High",
+      commercialModel: "12.5% Success Fee",
+      dateSubmitted: "08 Aug 2026",
+    },
+  ]);
+
+  // New Storefront Requirement Form State
+  const [storefrontForm, setStorefrontForm] = useState({
+    companyName: "",
+    contactPerson: "",
+    position: "",
+    openings: "1",
+    experience: "",
+    location: "",
+    compensation: "",
+    priority: "High",
+    commercialModel: "15% Contingency Fee",
+  });
 
   const toggleTask = (id: number) => {
     setMyTasks(myTasks.map(t => t.id === id ? { ...t, done: !t.done } : t));
@@ -47,30 +122,50 @@ export default function CockpitView() {
     router.push("/login");
   };
 
-  const handleModalSubmit = (e: React.FormEvent, title: string) => {
+  const handleAddCandidateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setModalSuccessMessage(`${title} created successfully!`);
-    setTimeout(() => {
-      setModalSuccessMessage("");
-      setActiveModal(null);
-      setFormField1("");
-      setFormField2("");
-    }, 1500);
+    alert(`Candidate ${newCandidateForm.name} added to ${selectedJob?.title || "Job Mandate"}!`);
+    setAddCandidateModalOpen(false);
+    setNewCandidateForm({ name: "", email: "", status: "New", rating: "4.0 ⭐", skills: "" });
+  };
+
+  const handleSubmitStorefrontRequirement = (e: React.FormEvent) => {
+    e.preventDefault();
+    const newMandate = {
+      id: `MAND-00${openMandatesList.length + 1}`,
+      companyName: storefrontForm.companyName || "New Client Corp",
+      industry: "Enterprise Services",
+      contactPerson: storefrontForm.contactPerson || "Hiring Manager",
+      position: storefrontForm.position || "Software Engineer",
+      openings: parseInt(storefrontForm.openings) || 1,
+      experience: storefrontForm.experience || "3-5 Years",
+      location: storefrontForm.location || "Remote / Onsite",
+      compensation: storefrontForm.compensation || "Competitive Market Rate",
+      priority: storefrontForm.priority || "High",
+      commercialModel: storefrontForm.commercialModel || "15% Contingency Fee",
+      dateSubmitted: "Just Now",
+    };
+
+    setOpenMandatesList([newMandate, ...openMandatesList]);
+    setShowStorefrontForm(false);
+    setShowStorefront(false);
+    setActiveNavTab("open_mandates");
+    setSelectedMandate(newMandate);
   };
 
   return (
     <div className="flex h-screen bg-[#F8FAFC] font-sans text-slate-900 overflow-hidden">
 
       {/* ========================================================================= */}
-      {/* 1. LEFT SIDEBAR NAVIGATION (Stitch Dark Slate #0F172A + Yellow #FFD400) */}
+      {/* 1. LEFT SIDEBAR NAVIGATION (RecruitPro Branding) */}
       {/* ========================================================================= */}
       <aside 
         className={`bg-[#0F172A] flex flex-col justify-between transition-all duration-300 z-30 select-none shadow-xl ${
           sidebarCollapsed ? "w-20" : "w-64"
         }`}
       >
-        {/* Top Brand Header */}
         <div>
+          {/* Brand Header */}
           <div 
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
             className="p-5 border-b border-slate-800/80 flex items-center gap-3 cursor-pointer hover:bg-slate-800/50 transition-all group"
@@ -92,30 +187,44 @@ export default function CockpitView() {
             )}
           </div>
 
-          {/* Main Navigation Items */}
+          {/* Navigation Options */}
           <nav className="p-3 space-y-1.5 mt-3">
             {[
               { id: "dashboard", label: "Dashboard", icon: "grid_view" },
-              { id: "candidates", label: "Candidates", icon: "group" },
-              { id: "interviews", label: "Interviews", icon: "event" },
               { id: "jobs", label: "Jobs", icon: "business_center" },
+              { id: "open_mandates", label: "Open Mandates", icon: "storefront", badge: openMandatesList.length },
+              { id: "new_mandates", label: "New Mandates", icon: "assignment_ind", adminOnly: true },
+              { id: "interviews", label: "Interviews", icon: "event" },
               { id: "reports", label: "Reports", icon: "bar_chart" },
             ].map((tab) => {
-              const isActive = activeNavTab === tab.id;
+              const isActive = activeNavTab === tab.id && !showStorefront;
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveNavTab(tab.id)}
-                  className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  onClick={() => {
+                    setShowStorefront(false);
+                    setSelectedJob(null);
+                    setSelectedMandate(null);
+                    setActiveNavTab(tab.id);
+                  }}
+                  className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     isActive
                       ? "bg-[#FFD400] text-[#0F172A] shadow-md font-black"
                       : "text-slate-300 hover:text-white hover:bg-slate-800/60"
                   }`}
                 >
-                  <span className={`material-symbols-outlined text-[20px] ${isActive ? "text-[#0F172A]" : "text-slate-400"}`}>
-                    {tab.icon}
-                  </span>
-                  {!sidebarCollapsed && <span>{tab.label}</span>}
+                  <div className="flex items-center gap-3">
+                    <span className={`material-symbols-outlined text-[20px] ${isActive ? "text-[#0F172A]" : "text-slate-400"}`}>
+                      {tab.icon}
+                    </span>
+                    {!sidebarCollapsed && <span>{tab.label}</span>}
+                  </div>
+
+                  {!sidebarCollapsed && tab.badge && (
+                    <span className="bg-[#FFD400] text-[#0F172A] font-black text-[10px] px-2 py-0.5 rounded-full animate-pulse shadow-2xs">
+                      {tab.badge}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -125,17 +234,10 @@ export default function CockpitView() {
         {/* Bottom Actions */}
         <div className="p-3 border-t border-slate-800/80 space-y-2">
           <button
-            onClick={() => setActiveModal("candidate")}
-            className={`w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#FFD400] text-[#0F172A] hover:brightness-105 font-black text-xs transition-all active:scale-95 cursor-pointer shadow-md ${
-              sidebarCollapsed ? "px-0" : ""
-            }`}
-          >
-            <span className="material-symbols-outlined text-[18px]">person_add</span>
-            {!sidebarCollapsed && <span>+ Add New Candidate</span>}
-          </button>
-
-          <button
-            onClick={() => setActiveNavTab("settings")}
+            onClick={() => {
+              setShowStorefront(false);
+              setActiveNavTab("settings");
+            }}
             className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeNavTab === "settings"
                 ? "bg-[#FFD400] text-[#0F172A]"
@@ -147,7 +249,7 @@ export default function CockpitView() {
           </button>
 
           <button
-            onClick={() => alert("RecruitPro Support: support@recruitpro.com")}
+            onClick={() => alert("RecruitPro Support Desk: support@recruitpro.com")}
             className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all cursor-pointer"
           >
             <span className="material-symbols-outlined text-[20px]">help</span>
@@ -157,22 +259,22 @@ export default function CockpitView() {
       </aside>
 
       {/* ========================================================================= */}
-      {/* 2. MAIN LIGHT SURFACES WRAPPER (#F8FAFC Background + Crisp White Cards) */}
+      {/* 2. MAIN WORKSPACE CONTENT */}
       {/* ========================================================================= */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#F8FAFC]">
 
-        {/* TOP HEADER BAR (Clean White Surface) */}
+        {/* TOP HEADER BAR */}
         <header className="bg-white border-b border-slate-200 px-6 py-3.5 flex items-center justify-between gap-4 z-20 shadow-2xs">
           
-          {/* SEARCH BAR WITH CATEGORY SELECTOR */}
+          {/* SEARCH BAR */}
           <div className="flex items-center gap-2 bg-slate-100/80 border border-slate-200 rounded-xl p-1.5 w-full max-w-xl">
             <select
               value={searchCategory}
               onChange={(e) => setSearchCategory(e.target.value)}
               className="bg-white text-slate-800 text-xs font-bold rounded-lg px-3 py-1.5 focus:outline-none cursor-pointer border border-slate-200 shadow-2xs"
             >
-              <option value="Candidates">Search Candidate</option>
               <option value="Requirements">Search Requirement</option>
+              <option value="Candidates">Search Candidate</option>
               <option value="Clients">Search Client</option>
               <option value="Interviews">Search Interview</option>
             </select>
@@ -189,41 +291,31 @@ export default function CockpitView() {
             </div>
           </div>
 
-          {/* RIGHT SIDE ACTIONS: NOTIFICATIONS, MESSAGES, PROFILE */}
+          {/* RIGHT ACTIONS: NOTIFICATIONS, MESSAGES, PROFILE */}
           <div className="flex items-center gap-4">
             
             {/* Notifications 🔔 */}
             <div className="relative">
               <button
-                onClick={() => {
-                  setNotificationsOpen(!notificationsOpen);
-                  setUnreadNotifications(0);
-                }}
+                onClick={() => setNotificationsOpen(!notificationsOpen)}
                 className="relative p-2.5 text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/70 rounded-xl transition-all cursor-pointer"
               >
                 <span className="material-symbols-outlined text-[20px]">notifications</span>
-                {unreadNotifications > 0 && (
-                  <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white font-black text-[9px] rounded-full flex items-center justify-center animate-bounce">
-                    {unreadNotifications}
-                  </span>
-                )}
+                <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white font-black text-[9px] rounded-full flex items-center justify-center animate-bounce">
+                  3
+                </span>
               </button>
 
-              {/* Popover */}
               {notificationsOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-white border border-slate-200 rounded-2xl shadow-xl p-4 space-y-3 z-50 animate-in fade-in zoom-in duration-200">
+                <div className="absolute right-0 mt-2 w-80 bg-white border border-slate-200 rounded-2xl shadow-xl p-4 space-y-3 z-50 animate-in fade-in">
                   <div className="flex justify-between items-center border-b border-slate-100 pb-2">
                     <h4 className="font-extrabold text-xs text-slate-900">Notifications</h4>
-                    <span className="text-[10px] text-amber-600 font-bold">Mark all read</span>
+                    <span className="text-[10px] text-amber-600 font-bold">Mark read</span>
                   </div>
                   <div className="space-y-2 text-xs">
-                    <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-200/60">
-                      <p className="font-bold text-amber-900">High Risk Alert: Rahul</p>
-                      <p className="text-[11px] text-amber-700 mt-0.5">Notice period 15 days remaining.</p>
-                    </div>
-                    <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200">
-                      <p className="font-bold text-slate-900">New Requirement Created</p>
-                      <p className="text-[11px] text-slate-600 mt-0.5">Infosys posted React Developer mandate.</p>
+                    <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-200">
+                      <p className="font-bold text-amber-900">High Risk Candidate: Rahul</p>
+                      <p className="text-[11px] text-amber-700 mt-0.5">Accepted offer, 15 days notice remaining.</p>
                     </div>
                   </div>
                 </div>
@@ -232,14 +324,13 @@ export default function CockpitView() {
 
             {/* Messages 💬 */}
             <button
-              onClick={() => alert("Direct Messages Studio: No unread candidate messages.")}
-              className="relative p-2.5 text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/70 rounded-xl transition-all cursor-pointer"
+              onClick={() => alert("Direct Messages Studio")}
+              className="p-2.5 text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/70 rounded-xl transition-all cursor-pointer"
             >
               <span className="material-symbols-outlined text-[20px]">chat</span>
-              <span className="absolute -top-1 -right-1 h-2.5 w-2.5 bg-emerald-500 rounded-full border-2 border-white"></span>
             </button>
 
-            {/* Profile Avatar 👤 */}
+            {/* Profile Avatar 👤 (Displays "Divyanshu") */}
             <div 
               onClick={() => setProfileDrawerOpen(true)}
               className="flex items-center gap-2.5 p-1.5 pr-3 bg-slate-100 hover:bg-amber-100/60 border border-slate-200 hover:border-amber-400 rounded-xl transition-all cursor-pointer group"
@@ -249,7 +340,7 @@ export default function CockpitView() {
               </div>
               <div className="text-left hidden sm:block">
                 <p className="text-xs font-black text-slate-900 group-hover:text-amber-700 transition-colors">
-                  Divyanshu Sharma
+                  Divyanshu
                 </p>
                 <p className="text-[9px] font-extrabold text-amber-600 uppercase tracking-wider">
                   Agency Owner
@@ -259,46 +350,120 @@ export default function CockpitView() {
           </div>
         </header>
 
-        {/* MAIN DASHBOARD CONTENT (Clean Light Palette: Slate & White Cards) */}
+        {/* MAIN SCROLLABLE CONTENT */}
         <main className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
 
           {/* ========================================================================= */}
-          {/* TAB 1: DASHBOARD VIEW (10 Sections with Crisp Light Aesthetics) */}
+          {/* VIEW A: PUBLIC AGENCY STOREFRONT WEBSITE (Triggered from + Add Company) */}
           {/* ========================================================================= */}
-          {activeNavTab === "dashboard" && (
+          {showStorefront && (
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden animate-in fade-in duration-300">
+              
+              {/* Storefront Top Navbar */}
+              <nav className="bg-[#0F172A] text-white px-8 py-4 flex justify-between items-center border-b border-slate-800">
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-xl bg-[#FFD400] text-[#0F172A] flex items-center justify-center font-black">
+                    <span className="material-symbols-outlined text-[22px]">work</span>
+                  </div>
+                  <span className="text-xl font-black tracking-tight">Apex Recruitment Partners</span>
+                </div>
+
+                <div className="flex items-center gap-6 text-xs font-bold text-slate-300">
+                  <span className="hover:text-white cursor-pointer">Services</span>
+                  <span className="hover:text-white cursor-pointer">Markets</span>
+                  <span className="hover:text-white cursor-pointer">About</span>
+                  
+                  {/* Gold Button: Submit Hiring Requirement */}
+                  <button
+                    onClick={() => setShowStorefrontForm(true)}
+                    className="bg-[#FFD400] text-[#0F172A] font-black px-4 py-2.5 rounded-xl hover:brightness-105 shadow-md active:scale-95 transition-all cursor-pointer"
+                  >
+                    SUBMIT HIRING REQUIREMENT
+                  </button>
+
+                  <button
+                    onClick={() => setShowStorefront(false)}
+                    className="text-slate-400 hover:text-white text-xs underline cursor-pointer"
+                  >
+                    Back to Cockpit
+                  </button>
+                </div>
+              </nav>
+
+              {/* Storefront Hero Section */}
+              <div className="p-12 md:p-16 text-center space-y-6 bg-gradient-to-b from-[#0F172A]/5 to-transparent">
+                <span className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
+                  ✦ EXCLUSIVELY GLOBAL, LOCALLY ROOTED
+                </span>
+
+                <h1 className="text-4xl md:text-6xl font-black text-slate-900 tracking-tight max-w-3xl mx-auto leading-tight">
+                  Premier Executive Search for <span className="bg-[#0F172A] text-[#FFD400] px-3 py-1 rounded-xl">Gulf</span> & Emerging Markets
+                </h1>
+
+                <p className="text-sm text-slate-600 max-w-2xl mx-auto font-medium leading-relaxed">
+                  Connecting world-class talent with industry leaders across the UAE, KSA, and beyond. We combine local market intelligence with a global search footprint.
+                </p>
+
+                <div className="flex justify-center gap-4 pt-2">
+                  <button 
+                    onClick={() => setShowStorefrontForm(true)}
+                    className="bg-[#0F172A] text-white font-black text-xs px-6 py-3 rounded-xl hover:bg-slate-800 transition-all cursor-pointer shadow-md"
+                  >
+                    View Market Capabilities →
+                  </button>
+                </div>
+              </div>
+
+              {/* Storefront Stats Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 bg-[#0F172A] text-white text-center divide-y md:divide-y-0 md:divide-x divide-slate-800">
+                <div className="p-8">
+                  <p className="text-3xl font-black text-[#FFD400]">140+</p>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-1">Executive Placements</p>
+                </div>
+                <div className="p-8">
+                  <p className="text-3xl font-black text-[#FFD400]">72h</p>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-1">Average Shortlist SLA</p>
+                </div>
+                <div className="p-8">
+                  <p className="text-3xl font-black text-[#FFD400]">98%</p>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-1">Placement Retention Rate</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* TAB 1: DASHBOARD VIEW (Exact Specs requested by User) */}
+          {/* ========================================================================= */}
+          {activeNavTab === "dashboard" && !showStorefront && (
             <div className="space-y-6 animate-in fade-in duration-300">
 
-              {/* ----------------------------------------------------------------- */}
-              {/* SECTION 1: WELCOME BANNER (Stitch Navy #0F172A + Yellow #FFD400 Accent) */}
-              {/* ----------------------------------------------------------------- */}
+              {/* Welcome Section */}
               <div className="bg-[#0F172A] border border-slate-800 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
-                <div className="absolute -right-10 -top-10 w-80 h-80 bg-[#FFD400]/10 rounded-full blur-3xl pointer-events-none"></div>
-
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 z-10 relative">
                   <div className="space-y-1">
                     <h2 className="text-2xl md:text-3xl font-black tracking-tight text-white">
                       Good Morning, <span className="text-[#FFD400]">Divyanshu</span> 👋
                     </h2>
                     <p className="text-xs text-slate-300 font-medium">
-                      Here is your agency recruitment dashboard for today:
+                      Here is your agency execution summary for today:
                     </p>
                   </div>
 
-                  {/* Summary Bullets */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="bg-slate-800/80 border border-slate-700 px-3.5 py-2 rounded-xl text-center shadow-xs">
+                    <div className="bg-slate-800/80 border border-slate-700 px-3.5 py-2 rounded-xl text-center">
                       <span className="text-[10px] font-extrabold text-[#FFD400] uppercase tracking-wider block">Today</span>
                       <span className="text-sm font-black text-white">8 Interviews</span>
                     </div>
-                    <div className="bg-slate-800/80 border border-slate-700 px-3.5 py-2 rounded-xl text-center shadow-xs">
+                    <div className="bg-slate-800/80 border border-slate-700 px-3.5 py-2 rounded-xl text-center">
                       <span className="text-[10px] font-extrabold text-sky-400 uppercase tracking-wider block">Pending</span>
                       <span className="text-sm font-black text-white">5 Follow-ups</span>
                     </div>
-                    <div className="bg-slate-800/80 border border-slate-700 px-3.5 py-2 rounded-xl text-center shadow-xs">
+                    <div className="bg-slate-800/80 border border-slate-700 px-3.5 py-2 rounded-xl text-center">
                       <span className="text-[10px] font-extrabold text-emerald-400 uppercase tracking-wider block">Offers</span>
                       <span className="text-sm font-black text-white">3 Pending</span>
                     </div>
-                    <div className="bg-slate-800/80 border border-slate-700 px-3.5 py-2 rounded-xl text-center shadow-xs">
+                    <div className="bg-slate-800/80 border border-slate-700 px-3.5 py-2 rounded-xl text-center">
                       <span className="text-[10px] font-extrabold text-purple-400 uppercase tracking-wider block">This Week</span>
                       <span className="text-sm font-black text-white">2 Joining</span>
                     </div>
@@ -306,122 +471,56 @@ export default function CockpitView() {
                 </div>
               </div>
 
-              {/* ----------------------------------------------------------------- */}
-              {/* SECTION 2: QUICK ACTION BUTTONS */}
-              {/* ----------------------------------------------------------------- */}
-              <div className="flex flex-wrap items-center gap-3">
-                <button
-                  onClick={() => setActiveModal("requirement")}
-                  className="flex-1 min-w-[180px] bg-[#FFD400] text-[#0F172A] hover:brightness-105 font-black px-4 py-3 rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-[18px]">add_circle</span>
-                  <span>+ Create Requirement</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveModal("client")}
-                  className="flex-1 min-w-[180px] bg-white border border-slate-200 hover:border-slate-300 text-slate-800 font-extrabold px-4 py-3 rounded-xl text-xs flex items-center justify-center gap-2 shadow-2xs active:scale-95 transition-all cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-[18px] text-sky-500">domain_add</span>
-                  <span>+ Add Client</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveModal("interview")}
-                  className="flex-1 min-w-[180px] bg-white border border-slate-200 hover:border-slate-300 text-slate-800 font-extrabold px-4 py-3 rounded-xl text-xs flex items-center justify-center gap-2 shadow-2xs active:scale-95 transition-all cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-[18px] text-purple-500">calendar_month</span>
-                  <span>+ Schedule Interview</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveModal("offer")}
-                  className="flex-1 min-w-[180px] bg-white border border-slate-200 hover:border-slate-300 text-slate-800 font-extrabold px-4 py-3 rounded-xl text-xs flex items-center justify-center gap-2 shadow-2xs active:scale-95 transition-all cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-[18px] text-emerald-600">badge</span>
-                  <span>+ Create Offer</span>
-                </button>
-              </div>
-
-              {/* ----------------------------------------------------------------- */}
-              {/* SECTION 3: KPI CARDS (6 GRID CARDS - Clean White Surfaces) */}
-              {/* ----------------------------------------------------------------- */}
+              {/* KPI Cards */}
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                
-                {/* Card 1: Open Requirements */}
-                <div className="bg-white border border-slate-200/80 rounded-2xl p-4 space-y-1 shadow-2xs hover:shadow-md transition-all">
-                  <div className="flex items-center justify-between text-slate-500">
-                    <span className="text-[10px] font-black uppercase tracking-wider">Open Requirements</span>
-                    <span className="material-symbols-outlined text-[18px] text-amber-500">business_center</span>
-                  </div>
+                <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-1 shadow-2xs">
+                  <span className="text-[10px] font-black uppercase text-slate-500 block">Open Requirements</span>
                   <p className="text-2xl font-black text-slate-900">25</p>
                   <span className="text-[10px] font-extrabold text-amber-600">3 Urgent Mandates</span>
                 </div>
 
-                {/* Card 2: Active Candidates */}
-                <div className="bg-white border border-slate-200/80 rounded-2xl p-4 space-y-1 shadow-2xs hover:shadow-md transition-all">
-                  <div className="flex items-center justify-between text-slate-500">
-                    <span className="text-[10px] font-black uppercase tracking-wider">Active Candidates</span>
-                    <span className="material-symbols-outlined text-[18px] text-sky-500">group</span>
-                  </div>
+                <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-1 shadow-2xs">
+                  <span className="text-[10px] font-black uppercase text-slate-500 block">Active Candidates</span>
                   <p className="text-2xl font-black text-slate-900">356</p>
-                  <span className="text-[10px] font-extrabold text-sky-600">In Active Sourcing</span>
+                  <span className="text-[10px] font-extrabold text-sky-600">In Sourcing</span>
                 </div>
 
-                {/* Card 3: Interviews Today */}
-                <div className="bg-white border border-slate-200/80 rounded-2xl p-4 space-y-1 shadow-2xs hover:shadow-md transition-all">
-                  <div className="flex items-center justify-between text-slate-500">
-                    <span className="text-[10px] font-black uppercase tracking-wider">Interviews Today</span>
-                    <span className="material-symbols-outlined text-[18px] text-purple-500">event_available</span>
-                  </div>
+                <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-1 shadow-2xs">
+                  <span className="text-[10px] font-black uppercase text-slate-500 block">Interviews Today</span>
                   <p className="text-2xl font-black text-purple-600">12</p>
-                  <span className="text-[10px] font-bold text-slate-500">4 Prep Kits Sent</span>
+                  <span className="text-[10px] font-bold text-slate-500">4 Prep Kits</span>
                 </div>
 
-                {/* Card 4: Offers Pending */}
-                <div className="bg-white border border-slate-200/80 rounded-2xl p-4 space-y-1 shadow-2xs hover:shadow-md transition-all">
-                  <div className="flex items-center justify-between text-slate-500">
-                    <span className="text-[10px] font-black uppercase tracking-wider">Offers Pending</span>
-                    <span className="material-symbols-outlined text-[18px] text-emerald-500">assignment_turned_in</span>
-                  </div>
+                <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-1 shadow-2xs">
+                  <span className="text-[10px] font-black uppercase text-slate-500 block">Offers Pending</span>
                   <p className="text-2xl font-black text-emerald-600">8</p>
                   <span className="text-[10px] font-extrabold text-emerald-600">CTC Audited</span>
                 </div>
 
-                {/* Card 5: Joining This Month */}
-                <div className="bg-white border border-slate-200/80 rounded-2xl p-4 space-y-1 shadow-2xs hover:shadow-md transition-all">
-                  <div className="flex items-center justify-between text-slate-500">
-                    <span className="text-[10px] font-black uppercase tracking-wider">Joining This Month</span>
-                    <span className="material-symbols-outlined text-[18px] text-teal-500">task_alt</span>
-                  </div>
+                <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-1 shadow-2xs">
+                  <span className="text-[10px] font-black uppercase text-slate-500 block">Joining This Month</span>
                   <p className="text-2xl font-black text-slate-900">15</p>
                   <span className="text-[10px] font-extrabold text-teal-600">Day 1 HR Verified</span>
                 </div>
 
-                {/* Card 6: Revenue This Month (Agency Owner Badge) */}
-                <div className="bg-amber-50/50 border border-amber-300 rounded-2xl p-4 space-y-1 shadow-2xs hover:shadow-md transition-all">
-                  <div className="flex items-center justify-between text-amber-700">
-                    <span className="text-[10px] font-black uppercase tracking-wider">Revenue This Month</span>
-                    <span className="material-symbols-outlined text-[18px] text-amber-600">payments</span>
-                  </div>
+                <div className="bg-amber-50/60 border border-amber-300 rounded-2xl p-4 space-y-1 shadow-2xs">
+                  <span className="text-[10px] font-black uppercase text-amber-800 block">Revenue This Month</span>
                   <p className="text-2xl font-black text-slate-900">₹2.5 Lakh</p>
                   <span className="text-[10px] font-black text-amber-700">👑 Agency Owner View</span>
                 </div>
               </div>
 
-              {/* ----------------------------------------------------------------- */}
-              {/* SECTION 4 & 5: TWO COLUMN ROW (MY TASKS & TODAY'S INTERVIEWS) */}
-              {/* ----------------------------------------------------------------- */}
+              {/* Two Column Grid: Tasks & Interviews */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-                {/* SECTION 4: MY TASKS (Interactive Morning Checklist) */}
+                
+                {/* Today's Tasks */}
                 <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4 shadow-2xs">
                   <div className="flex justify-between items-center border-b border-slate-100 pb-3">
                     <div className="flex items-center gap-2">
                       <span className="material-symbols-outlined text-amber-500 text-[20px]">checklist</span>
                       <h3 className="font-extrabold text-sm text-slate-900">Today's Tasks</h3>
                     </div>
-                    <span className="text-[10px] font-extrabold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
+                    <span className="text-[10px] font-extrabold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-full">
                       {myTasks.filter(t => t.done).length} / {myTasks.length} Completed
                     </span>
                   </div>
@@ -434,11 +533,11 @@ export default function CockpitView() {
                         className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
                           task.done 
                             ? "bg-slate-50 border-slate-200 text-slate-400 line-through" 
-                            : "bg-white border-slate-200 text-slate-800 hover:border-amber-400 hover:shadow-2xs"
+                            : "bg-white border-slate-200 text-slate-800 hover:border-amber-400"
                         }`}
                       >
                         <div className="flex items-center gap-3">
-                          <div className={`h-5 w-5 rounded-md border flex items-center justify-center transition-all ${
+                          <div className={`h-5 w-5 rounded-md border flex items-center justify-center ${
                             task.done ? "bg-emerald-500 border-emerald-500 text-white" : "border-slate-300 bg-slate-50"
                           }`}>
                             {task.done && <span className="material-symbols-outlined text-[14px] font-black">check</span>}
@@ -451,7 +550,7 @@ export default function CockpitView() {
                   </div>
                 </div>
 
-                {/* SECTION 5: TODAY'S INTERVIEWS TABLE */}
+                {/* Today's Interviews */}
                 <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4 shadow-2xs">
                   <div className="flex justify-between items-center border-b border-slate-100 pb-3">
                     <div className="flex items-center gap-2">
@@ -463,321 +562,568 @@ export default function CockpitView() {
                     </span>
                   </div>
 
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs text-slate-700">
-                      <thead>
-                        <tr className="border-b border-slate-200 bg-slate-50/70 text-[10px] uppercase font-bold text-slate-500">
-                          <th className="p-2.5 rounded-l-lg">Candidate</th>
-                          <th className="p-2.5">Time</th>
-                          <th className="p-2.5">Client</th>
-                          <th className="p-2.5 text-right rounded-r-lg">Actions</th>
+                  <table className="w-full text-left text-xs text-slate-700">
+                    <thead>
+                      <tr className="border-b border-slate-200 bg-slate-50 text-[10px] uppercase font-bold text-slate-500">
+                        <th className="p-2">Candidate</th>
+                        <th className="p-2">Time</th>
+                        <th className="p-2">Client</th>
+                        <th className="p-2 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {[
+                        { candidate: "Rahul", time: "10 AM", client: "Infosys" },
+                        { candidate: "Priya", time: "2 PM", client: "TCS" },
+                        { candidate: "Aman", time: "4 PM", client: "Wipro" },
+                      ].map((row, idx) => (
+                        <tr key={idx} className="hover:bg-slate-50">
+                          <td className="p-2 font-extrabold text-slate-900">{row.candidate}</td>
+                          <td className="p-2 font-black text-amber-600">{row.time}</td>
+                          <td className="p-2 font-semibold text-slate-700">{row.client}</td>
+                          <td className="p-2 text-right space-x-1">
+                            <button className="bg-[#FFD400] text-[#0F172A] px-2 py-0.5 rounded font-black text-[10px]">Join</button>
+                            <button className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-bold text-[10px]">Reschedule</button>
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {[
-                          { candidate: "Rahul", time: "10 AM", client: "Infosys" },
-                          { candidate: "Priya", time: "2 PM", client: "TCS" },
-                          { candidate: "Aman", time: "4 PM", client: "Wipro" },
-                        ].map((row, idx) => (
-                          <tr key={idx} className="hover:bg-slate-50/80">
-                            <td className="p-2.5 font-extrabold text-slate-900">{row.candidate}</td>
-                            <td className="p-2.5 font-black text-amber-600">{row.time}</td>
-                            <td className="p-2.5 font-semibold text-slate-700">{row.client}</td>
-                            <td className="p-2.5 text-right space-x-1.5">
-                              <button 
-                                onClick={() => alert(`Joining meeting for ${row.candidate}`)}
-                                className="bg-[#FFD400] text-[#0F172A] px-2.5 py-1 rounded-lg font-black text-[10px] hover:brightness-105 active:scale-95 transition-all cursor-pointer shadow-2xs"
-                              >
-                                Join Meeting
-                              </button>
-                              <button 
-                                onClick={() => alert(`Rescheduling ${row.candidate}`)}
-                                className="bg-slate-100 text-slate-700 border border-slate-200 px-2.5 py-1 rounded-lg font-bold text-[10px] hover:bg-slate-200 cursor-pointer"
-                              >
-                                Reschedule
-                              </button>
-                              <button 
-                                onClick={() => alert(`Adding feedback for ${row.candidate}`)}
-                                className="bg-purple-50 text-purple-700 border border-purple-200 px-2.5 py-1 rounded-lg font-bold text-[10px] hover:bg-purple-100 cursor-pointer"
-                              >
-                                Feedback
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
 
-              {/* ----------------------------------------------------------------- */}
-              {/* SECTION 6 & 7: ACTIVE REQUIREMENTS & PIPELINE SNAPSHOT */}
-              {/* ----------------------------------------------------------------- */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-                {/* SECTION 6: ACTIVE REQUIREMENTS TABLE */}
-                <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-5 space-y-4 shadow-2xs">
-                  <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-                    <div className="flex items-center gap-2">
-                      <span className="material-symbols-outlined text-sky-600 text-[20px]">business_center</span>
-                      <h3 className="font-extrabold text-sm text-slate-900">Active Requirements</h3>
-                    </div>
-                    <span className="text-[10px] font-extrabold text-sky-700 bg-sky-50 border border-sky-200 px-2.5 py-0.5 rounded-full">
-                      Live Mandates
-                    </span>
-                  </div>
-
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs text-slate-700">
-                      <thead>
-                        <tr className="border-b border-slate-200 bg-slate-50/70 text-[10px] uppercase font-bold text-slate-500">
-                          <th className="p-2.5 rounded-l-lg">Position</th>
-                          <th className="p-2.5">Client</th>
-                          <th className="p-2.5 text-center">Submitted</th>
-                          <th className="p-2.5 text-center">Interviewed</th>
-                          <th className="p-2.5 text-center rounded-r-lg">Selected</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {[
-                          { position: "React Developer", client: "Infosys", sub: 12, int: 5, sel: 2 },
-                          { position: "Java Developer", client: "TCS", sub: 8, int: 3, sel: 1 },
-                          { position: "HR Manager", client: "Wipro", sub: 5, int: 2, sel: 1 },
-                        ].map((row, idx) => (
-                          <tr key={idx} className="hover:bg-slate-50/80">
-                            <td className="p-2.5 font-extrabold text-slate-900">{row.position}</td>
-                            <td className="p-2.5 font-semibold text-slate-700">{row.client}</td>
-                            <td className="p-2.5 text-center font-bold text-sky-600">{row.sub}</td>
-                            <td className="p-2.5 text-center font-bold text-purple-600">{row.int}</td>
-                            <td className="p-2.5 text-center font-black text-emerald-600">{row.sel}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* SECTION 7: CANDIDATE PIPELINE SNAPSHOT */}
-                <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4 shadow-2xs">
-                  <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-                    <div className="flex items-center gap-2">
-                      <span className="material-symbols-outlined text-emerald-600 text-[20px]">filter_alt</span>
-                      <h3 className="font-extrabold text-sm text-slate-900">Pipeline Snapshot</h3>
-                    </div>
-                    <span className="text-[10px] font-bold text-slate-500">Total: 254</span>
-                  </div>
-
-                  <div className="space-y-2.5">
-                    {[
-                      { stage: "Applied", count: 120, bg: "bg-slate-100", text: "text-slate-700" },
-                      { stage: "Screening", count: 80, bg: "bg-sky-50", text: "text-sky-700" },
-                      { stage: "Interview", count: 35, bg: "bg-purple-50", text: "text-purple-700" },
-                      { stage: "Offer", count: 12, bg: "bg-amber-50", text: "text-amber-700" },
-                      { stage: "Joining", count: 7, bg: "bg-emerald-50", text: "text-emerald-700" },
-                    ].map((step, idx) => (
-                      <div key={idx} className={`flex items-center justify-between p-2.5 ${step.bg} rounded-xl border border-slate-200/60`}>
-                        <span className="text-xs font-bold text-slate-800">{step.stage}</span>
-                        <span className={`text-xs font-black ${step.text}`}>{step.count} Candidates</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* ----------------------------------------------------------------- */}
-              {/* SECTION 8 & 9: HIGH RISK CANDIDATES & PENDING CLIENT FEEDBACK */}
-              {/* ----------------------------------------------------------------- */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-                {/* SECTION 8: HIGH RISK CANDIDATES */}
-                <div className="bg-white border border-red-200 rounded-2xl p-5 space-y-4 shadow-2xs">
-                  <div className="flex justify-between items-center border-b border-red-100 pb-3">
-                    <div className="flex items-center gap-2">
-                      <span className="material-symbols-outlined text-red-500 animate-pulse text-[20px]">warning</span>
-                      <h3 className="font-extrabold text-sm text-slate-900">High Risk Candidates</h3>
-                    </div>
-                    <span className="text-[10px] font-extrabold text-red-700 bg-red-50 border border-red-200 px-2.5 py-0.5 rounded-full">
-                      Drop-off Radar
-                    </span>
-                  </div>
-
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs text-slate-700">
-                      <thead>
-                        <tr className="border-b border-slate-200 bg-red-50/50 text-[10px] uppercase font-bold text-slate-500">
-                          <th className="p-2.5 rounded-l-lg">Candidate</th>
-                          <th className="p-2.5">Notice Remaining</th>
-                          <th className="p-2.5">Risk Level</th>
-                          <th className="p-2.5 text-right rounded-r-lg">Action</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        <tr className="hover:bg-red-50/30">
-                          <td className="p-2.5 font-extrabold text-slate-900">Rahul</td>
-                          <td className="p-2.5 font-semibold text-slate-700">15 Days</td>
-                          <td className="p-2.5">
-                            <span className="bg-red-100 text-red-800 border border-red-300 font-black text-[10px] px-2 py-0.5 rounded-full">
-                              🔴 High Risk
-                            </span>
-                          </td>
-                          <td className="p-2.5 text-right">
-                            <button 
-                              onClick={() => alert("Calling Rahul...")}
-                              className="bg-[#FFD400] text-[#0F172A] px-3 py-1 rounded-lg font-black text-[10px] hover:brightness-105 cursor-pointer shadow-2xs"
-                            >
-                              Call Now
-                            </button>
-                          </td>
-                        </tr>
-                        <tr className="hover:bg-slate-50">
-                          <td className="p-2.5 font-extrabold text-slate-900">Vikram</td>
-                          <td className="p-2.5 font-semibold text-slate-700">30 Days</td>
-                          <td className="p-2.5">
-                            <span className="bg-amber-100 text-amber-800 border border-amber-300 font-black text-[10px] px-2 py-0.5 rounded-full">
-                              🟡 Medium Risk
-                            </span>
-                          </td>
-                          <td className="p-2.5 text-right">
-                            <button 
-                              onClick={() => alert("Pulse check to Vikram...")}
-                              className="bg-slate-100 text-slate-700 border border-slate-200 px-2.5 py-1 rounded-lg font-bold text-[10px] hover:bg-slate-200 cursor-pointer"
-                            >
-                              Pulse Check
-                            </button>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* SECTION 9: PENDING CLIENT FEEDBACK */}
-                <div className="bg-white border border-amber-200 rounded-2xl p-5 space-y-4 shadow-2xs">
-                  <div className="flex justify-between items-center border-b border-amber-100 pb-3">
-                    <div className="flex items-center gap-2">
-                      <span className="material-symbols-outlined text-amber-600 text-[20px]">schedule</span>
-                      <h3 className="font-extrabold text-sm text-slate-900">Pending Client Feedback</h3>
-                    </div>
-                    <span className="text-[10px] font-extrabold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">
-                      Action Required
-                    </span>
-                  </div>
-
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs text-slate-700">
-                      <thead>
-                        <tr className="border-b border-slate-200 bg-amber-50/50 text-[10px] uppercase font-bold text-slate-500">
-                          <th className="p-2.5 rounded-l-lg">Client</th>
-                          <th className="p-2.5">Requirement</th>
-                          <th className="p-2.5">Waiting Since</th>
-                          <th className="p-2.5 text-right rounded-r-lg">Action</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        <tr className="hover:bg-amber-50/30">
-                          <td className="p-2.5 font-extrabold text-slate-900">Infosys</td>
-                          <td className="p-2.5 font-semibold text-slate-700">React Developer</td>
-                          <td className="p-2.5 font-bold text-amber-700">3 Days</td>
-                          <td className="p-2.5 text-right">
-                            <button 
-                              onClick={() => alert("Sending reminder to Infosys...")}
-                              className="bg-amber-100 text-amber-900 border border-amber-300 px-2.5 py-1 rounded-lg font-bold text-[10px] hover:bg-amber-200 cursor-pointer"
-                            >
-                              Reminder
-                            </button>
-                          </td>
-                        </tr>
-                        <tr className="hover:bg-slate-50">
-                          <td className="p-2.5 font-extrabold text-slate-900">Wipro</td>
-                          <td className="p-2.5 font-semibold text-slate-700">HR Manager</td>
-                          <td className="p-2.5 font-bold text-red-600">5 Days (Urgent)</td>
-                          <td className="p-2.5 text-right">
-                            <button 
-                              onClick={() => alert("Escalating Wipro...")}
-                              className="bg-red-100 text-red-800 border border-red-300 px-2.5 py-1 rounded-lg font-bold text-[10px] hover:bg-red-200 cursor-pointer"
-                            >
-                              Escalate
-                            </button>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-
-              {/* ----------------------------------------------------------------- */}
-              {/* SECTION 10: RECENT ACTIVITIES STREAM */}
-              {/* ----------------------------------------------------------------- */}
+              {/* PIPELINE SNAPSHOT WITH DATE SELECTOR */}
               <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4 shadow-2xs">
                 <div className="flex justify-between items-center border-b border-slate-100 pb-3">
                   <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-sky-600 text-[20px]">history</span>
-                    <h3 className="font-extrabold text-sm text-slate-900">Recent Activities</h3>
+                    <span className="material-symbols-outlined text-emerald-600 text-[20px]">filter_alt</span>
+                    <h3 className="font-extrabold text-sm text-slate-900">Candidate Pipeline Snapshot</h3>
                   </div>
-                  <span className="text-[10px] font-bold text-slate-500">Live System Feed</span>
+
+                  {/* Date Selector (Default: Today) */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold text-slate-500">Filter Date:</span>
+                    <select
+                      value={pipelineDateFilter}
+                      onChange={(e) => setPipelineDateFilter(e.target.value)}
+                      className="bg-slate-100 border border-slate-300 text-slate-900 text-xs font-black rounded-lg px-3 py-1 focus:outline-none cursor-pointer"
+                    >
+                      <option value="Today">Today</option>
+                      <option value="Yesterday">Yesterday</option>
+                      <option value="Last 7 Days">Last 7 Days</option>
+                      <option value="This Month">This Month</option>
+                      <option value="Custom Date">Custom Calendar...</option>
+                    </select>
+                  </div>
                 </div>
 
-                <div className="space-y-2.5">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                   {[
-                    { text: "Rahul moved to Interview stage", time: "10 mins ago", icon: "swap_horiz", bg: "bg-purple-50 text-purple-700 border-purple-200" },
-                    { text: "Offer sent to Priya (TCS Mandate)", time: "25 mins ago", icon: "badge", bg: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-                    { text: "ABC Tech created new requirement: Full Stack Lead", time: "1 hour ago", icon: "business_center", bg: "bg-amber-50 text-amber-700 border-amber-200" },
-                    { text: "Candidate Sneha joined Infosys", time: "2 hours ago", icon: "task_alt", bg: "bg-teal-50 text-teal-700 border-teal-200" },
-                  ].map((act, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-3 bg-slate-50/70 rounded-xl border border-slate-200/70">
-                      <div className="flex items-center gap-3">
-                        <div className={`p-1.5 rounded-lg border ${act.bg}`}>
-                          <span className="material-symbols-outlined text-[16px]">{act.icon}</span>
-                        </div>
-                        <span className="text-xs font-bold text-slate-800">{act.text}</span>
-                      </div>
-                      <span className="text-[10px] font-semibold text-slate-400">{act.time}</span>
+                    { stage: "Shortlisted", count: 120, bg: "bg-slate-100", text: "text-slate-700" },
+                    { stage: "Screening", count: 80, bg: "bg-sky-50", text: "text-sky-700" },
+                    { stage: "Interview", count: 35, bg: "bg-purple-50", text: "text-purple-700" },
+                    { stage: "Offer", count: 12, bg: "bg-amber-50", text: "text-amber-700" },
+                    { stage: "Joining", count: 7, bg: "bg-emerald-50", text: "text-emerald-700" },
+                  ].map((step, idx) => (
+                    <div key={idx} className={`p-4 ${step.bg} rounded-2xl border border-slate-200 text-center space-y-1`}>
+                      <span className="text-[11px] font-extrabold text-slate-600 block">{step.stage}</span>
+                      <p className={`text-xl font-black ${step.text}`}>{step.count}</p>
+                      <span className="text-[9px] font-bold text-slate-400">Candidates</span>
                     </div>
                   ))}
                 </div>
               </div>
 
+              {/* HIGH RISK CANDIDATES & PENDING CLIENT FEEDBACK (WITH VIEW MORE ->) */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                {/* High Risk Candidates */}
+                <div className="bg-white border border-red-200 rounded-2xl p-5 space-y-4 shadow-2xs flex flex-col justify-between">
+                  <div>
+                    <div className="flex justify-between items-center border-b border-red-100 pb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-red-500 text-[20px] animate-pulse">warning</span>
+                        <h3 className="font-extrabold text-sm text-slate-900">High Risk Candidates</h3>
+                      </div>
+                      <span className="text-[10px] font-extrabold text-red-700 bg-red-50 px-2 py-0.5 rounded-full border border-red-200">
+                        Drop-off Radar
+                      </span>
+                    </div>
+
+                    {/* Sub-headline explanation requested by user */}
+                    <p className="text-[11px] text-slate-500 font-medium italic mt-2">
+                      Candidates who have accepted the offer letter and are scheduled to join within their notice period.
+                    </p>
+
+                    <div className="mt-3 overflow-x-auto">
+                      <table className="w-full text-left text-xs text-slate-700">
+                        <thead>
+                          <tr className="border-b border-slate-200 bg-red-50/50 text-[10px] uppercase font-bold text-slate-500">
+                            <th className="p-2">Candidate</th>
+                            <th className="p-2">Notice Remaining</th>
+                            <th className="p-2">Risk Level</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          <tr className="hover:bg-red-50/30">
+                            <td className="p-2 font-extrabold text-slate-900">Rahul</td>
+                            <td className="p-2 font-semibold">15 Days</td>
+                            <td className="p-2">
+                              <span className="bg-red-100 text-red-800 font-black text-[10px] px-2 py-0.5 rounded-full">🔴 High Risk</span>
+                            </td>
+                          </tr>
+                          <tr className="hover:bg-slate-50">
+                            <td className="p-2 font-extrabold text-slate-900">Vikram</td>
+                            <td className="p-2 font-semibold">30 Days</td>
+                            <td className="p-2">
+                              <span className="bg-amber-100 text-amber-800 font-black text-[10px] px-2 py-0.5 rounded-full">🟡 Medium Risk</span>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* View More Button */}
+                  <div className="pt-3 border-t border-slate-100 text-right">
+                    <button
+                      onClick={() => setShowAllHighRiskModal(true)}
+                      className="text-xs font-black text-red-600 hover:text-red-800 flex items-center gap-1 ml-auto cursor-pointer"
+                    >
+                      <span>View More</span>
+                      <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Pending Client Feedback */}
+                <div className="bg-white border border-amber-200 rounded-2xl p-5 space-y-4 shadow-2xs flex flex-col justify-between">
+                  <div>
+                    <div className="flex justify-between items-center border-b border-amber-100 pb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-amber-600 text-[20px]">schedule</span>
+                        <h3 className="font-extrabold text-sm text-slate-900">Pending Client Feedback</h3>
+                      </div>
+                      <span className="text-[10px] font-extrabold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                        Action Required
+                      </span>
+                    </div>
+
+                    <div className="mt-3 overflow-x-auto">
+                      <table className="w-full text-left text-xs text-slate-700">
+                        <thead>
+                          <tr className="border-b border-slate-200 bg-amber-50/50 text-[10px] uppercase font-bold text-slate-500">
+                            <th className="p-2">Client</th>
+                            <th className="p-2">Requirement</th>
+                            <th className="p-2">Waiting Since</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          <tr className="hover:bg-amber-50/30">
+                            <td className="p-2 font-extrabold text-slate-900">Infosys</td>
+                            <td className="p-2 font-semibold">React Developer</td>
+                            <td className="p-2 font-bold text-amber-700">3 Days</td>
+                          </tr>
+                          <tr className="hover:bg-slate-50">
+                            <td className="p-2 font-extrabold text-slate-900">Wipro</td>
+                            <td className="p-2 font-semibold">HR Manager</td>
+                            <td className="p-2 font-bold text-red-600">5 Days (Urgent)</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* View More Button */}
+                  <div className="pt-3 border-t border-slate-100 text-right">
+                    <button
+                      onClick={() => setShowAllPendingFeedbackModal(true)}
+                      className="text-xs font-black text-amber-700 hover:text-amber-900 flex items-center gap-1 ml-auto cursor-pointer"
+                    >
+                      <span>View More</span>
+                      <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+
             </div>
           )}
 
           {/* ========================================================================= */}
-          {/* TAB 2: CANDIDATES PAGE SURFACE */}
+          {/* TAB 2: JOBS PAGE SURFACE & CANDIDATES FLOW (Matching Image 1 & 2) */}
           {/* ========================================================================= */}
-          {activeNavTab === "candidates" && (
+          {activeNavTab === "jobs" && !showStorefront && (
             <div className="space-y-6 animate-in fade-in duration-300">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h2 className="text-2xl font-black text-slate-900">Candidates Directory</h2>
-                  <p className="text-xs text-slate-500">Manage candidate profiles & AI CV parsing</p>
+              
+              {/* IF A SPECIFIC JOB IS SELECTED: SHOW JOB'S ASSOCIATED CANDIDATES (IMAGE 1) */}
+              {selectedJob ? (
+                <div className="space-y-4">
+                  {/* Header & Back Breadcrumb */}
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
+                    <div>
+                      <button
+                        onClick={() => setSelectedJob(null)}
+                        className="text-xs font-bold text-slate-500 hover:text-slate-900 flex items-center gap-1 mb-1 cursor-pointer"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+                        <span>Back to Job Openings</span>
+                      </button>
+                      <h2 className="text-2xl font-black text-slate-900">
+                        Candidates — {selectedJob.title} ({selectedJob.client})
+                      </h2>
+                      <p className="text-xs text-slate-500">
+                        Job Opening ID: <span className="font-mono text-slate-700 font-bold">{selectedJob.id}</span> | Status: <span className="text-emerald-700 font-bold">{selectedJob.status}</span>
+                      </p>
+                    </div>
+
+                    {/* + Add New Candidate Button (Located on this page as requested) */}
+                    <button
+                      onClick={() => setAddCandidateModalOpen(true)}
+                      className="bg-[#FFD400] text-[#0F172A] font-black px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-md hover:brightness-105 active:scale-95 transition-all cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">person_add</span>
+                      <span>+ Add New Candidate</span>
+                    </button>
+                  </div>
+
+                  {/* Main Grid: Left Filter Sidebar + Right Candidates Table (Matching Image 1) */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    
+                    {/* Left Filter Sidebar */}
+                    <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-4 shadow-2xs h-fit text-xs">
+                      <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                        <span className="font-black text-slate-900 uppercase text-[10px]">Filter Candidates By</span>
+                        <span className="material-symbols-outlined text-[16px] text-slate-400">search</span>
+                      </div>
+
+                      <div className="space-y-2 text-slate-600">
+                        <label className="flex items-center gap-2 font-semibold cursor-pointer">
+                          <input type="checkbox" defaultChecked className="rounded text-[#0F172A]" />
+                          <span>Associated Job Openings</span>
+                        </label>
+                        <label className="flex items-center gap-2 font-semibold cursor-pointer">
+                          <input type="checkbox" className="rounded text-[#0F172A]" />
+                          <span>Rating ⭐</span>
+                        </label>
+                        <label className="flex items-center gap-2 font-semibold cursor-pointer">
+                          <input type="checkbox" className="rounded text-[#0F172A]" />
+                          <span>Candidate Status</span>
+                        </label>
+                        <label className="flex items-center gap-2 font-semibold cursor-pointer">
+                          <input type="checkbox" className="rounded text-[#0F172A]" />
+                          <span>Located Within</span>
+                        </label>
+                        <label className="flex items-center gap-2 font-semibold cursor-pointer">
+                          <input type="checkbox" className="rounded text-[#0F172A]" />
+                          <span>Skill Set</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Right Candidates Table */}
+                    <div className="md:col-span-3 bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs space-y-3">
+                      <table className="w-full text-left text-xs text-slate-700">
+                        <thead>
+                          <tr className="border-b border-slate-200 bg-slate-50 text-[10px] uppercase font-bold text-slate-500">
+                            <th className="p-3">Rating</th>
+                            <th className="p-3">Candidate Name</th>
+                            <th className="p-3">Email</th>
+                            <th className="p-3">Candidate Status</th>
+                            <th className="p-3">Skill Set</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {[
+                            { name: "Christina Thomas", email: "christina@prmail.com", status: "New", rating: "3.0 ⭐", skills: "Writing, Social Media, Marketing" },
+                            { name: "Will James", email: "willjames@icloud.com", status: "Interview-Scheduled", rating: "5.0 ⭐", skills: "React, Node.js, TypeScript" },
+                            { name: "Cooper", email: "cooper@yymail.com", status: "Associated", rating: "5.0 ⭐", skills: "UI/UX, Figma, Tailwind" },
+                            { name: "Aron Ramsey", email: "aron@icloud.com", status: "Interview-Scheduled", rating: "5.0 ⭐", skills: "Product Strategy, Analytics" },
+                            { name: "Satish Chauhan", email: "satish@gmail.com", status: "Associated", rating: "4.0 ⭐", skills: "Cold Calling, B2B Sales" },
+                          ].map((cand, idx) => (
+                            <tr key={idx} className="hover:bg-slate-50">
+                              <td className="p-3 font-extrabold text-amber-600">{cand.rating}</td>
+                              <td className="p-3 font-extrabold text-slate-900">{cand.name}</td>
+                              <td className="p-3 font-mono text-slate-600">{cand.email}</td>
+                              <td className="p-3 font-bold text-sky-700">
+                                <span className="bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-full">{cand.status}</span>
+                              </td>
+                              <td className="p-3 font-medium text-slate-500">{cand.skills}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                  </div>
                 </div>
-                <button 
-                  onClick={() => setActiveModal("candidate")}
-                  className="bg-[#FFD400] text-[#0F172A] font-black px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-2xs hover:brightness-105"
+              ) : (
+                /* JOB OPENINGS DIRECTORY TABLE (MATCHING IMAGE 2) */
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h2 className="text-2xl font-black text-slate-900">Job Openings</h2>
+                      <p className="text-xs text-slate-500">Click on any job to view associated candidates</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    
+                    {/* Left Filter Sidebar */}
+                    <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-4 shadow-2xs h-fit text-xs">
+                      <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                        <span className="font-black text-slate-900 uppercase text-[10px]">Filter Job Openings By</span>
+                        <span className="material-symbols-outlined text-[16px] text-slate-400">search</span>
+                      </div>
+
+                      <div className="space-y-2 text-slate-600">
+                        <label className="flex items-center gap-2 font-semibold cursor-pointer">
+                          <input type="checkbox" defaultChecked className="rounded text-[#0F172A]" />
+                          <span>Posting Title</span>
+                        </label>
+                        <label className="flex items-center gap-2 font-semibold cursor-pointer">
+                          <input type="checkbox" className="rounded text-[#0F172A]" />
+                          <span>Job Opening ID</span>
+                        </label>
+                        <label className="flex items-center gap-2 font-semibold cursor-pointer">
+                          <input type="checkbox" className="rounded text-[#0F172A]" />
+                          <span>Job Opening Status</span>
+                        </label>
+                        <label className="flex items-center gap-2 font-semibold cursor-pointer">
+                          <input type="checkbox" className="rounded text-[#0F172A]" />
+                          <span>Client Name</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Job Openings Table */}
+                    <div className="md:col-span-3 bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs">
+                      <table className="w-full text-left text-xs text-slate-700">
+                        <thead>
+                          <tr className="border-b border-slate-200 bg-slate-50 text-[10px] uppercase font-bold text-slate-500">
+                            <th className="p-3">Posting Title</th>
+                            <th className="p-3">Job Opening ID</th>
+                            <th className="p-3">Job Opening Status</th>
+                            <th className="p-3 text-center">Associated Candidates</th>
+                            <th className="p-3">Client Name</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {[
+                            { id: "ZR_97_JOB", title: "Software Developer", status: "In-progress", count: 12, client: "Zylker" },
+                            { id: "ZR_95_JOB", title: "Accountant", status: "Lost To Competitor", count: 2, client: "Zylker" },
+                            { id: "ZR_94_JOB", title: "Marketing Manager", status: "In-progress", count: 6, client: "Zylker" },
+                            { id: "ZR_89_JOB", title: "Software Engineer", status: "In-progress", count: 8, client: "Pinnacle" },
+                            { id: "ZR_88_JOB", title: "Sales Executive", status: "Submitted by client", count: 11, client: "Avon Products Inc" },
+                          ].map((job, idx) => (
+                            <tr 
+                              key={idx} 
+                              onClick={() => setSelectedJob(job)}
+                              className="hover:bg-amber-50/60 cursor-pointer transition-colors group"
+                            >
+                              <td className="p-3 font-extrabold text-slate-900 group-hover:text-amber-700">{job.title}</td>
+                              <td className="p-3 font-mono text-slate-600">{job.id}</td>
+                              <td className="p-3 font-bold text-sky-700">{job.status}</td>
+                              <td className="p-3 text-center font-black text-amber-600 bg-amber-50/50 rounded-lg">{job.count} Candidates</td>
+                              <td className="p-3 font-bold text-slate-800">{job.client}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                  </div>
+                </div>
+              )}
+
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* TAB 3: OPEN MANDATES PAGE & STOREFRONT INGESTION */}
+          {/* ========================================================================= */}
+          {activeNavTab === "open_mandates" && !showStorefront && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              
+              {/* Header */}
+              <div className="flex justify-between items-center bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
+                <div>
+                  <h2 className="text-2xl font-black text-slate-900">Open Mandates</h2>
+                  <p className="text-xs text-slate-500">Incoming hiring offers submitted by prospective hiring clients</p>
+                </div>
+
+                {/* Button: Add Company -> Opens Public Website */}
+                <button
+                  onClick={() => setShowStorefront(true)}
+                  className="bg-[#0F172A] text-white hover:bg-slate-800 font-black px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-md cursor-pointer"
                 >
-                  <span className="material-symbols-outlined text-[18px]">person_add</span>
-                  <span>+ Add Candidate</span>
+                  <span className="material-symbols-outlined text-[18px] text-[#FFD400]">add_business</span>
+                  <span>+ Add Company (Storefront)</span>
                 </button>
               </div>
 
-              <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center space-y-4 shadow-2xs">
-                <div className="h-16 w-16 bg-sky-50 text-sky-600 rounded-full flex items-center justify-center mx-auto border border-sky-200">
-                  <span className="material-symbols-outlined text-[32px]">cloud_upload</span>
+              {/* Mandate Details View if Selected */}
+              {selectedMandate ? (
+                <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-md space-y-6">
+                  <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+                    <div>
+                      <button
+                        onClick={() => setSelectedMandate(null)}
+                        className="text-xs font-bold text-slate-500 hover:text-slate-900 flex items-center gap-1 mb-1"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+                        <span>Back to Open Mandates List</span>
+                      </button>
+                      <h3 className="text-2xl font-black text-slate-900">{selectedMandate.companyName}</h3>
+                      <p className="text-xs font-bold text-amber-700">{selectedMandate.industry}</p>
+                    </div>
+
+                    <span className="bg-red-100 text-red-800 font-black text-xs px-3 py-1 rounded-full border border-red-300">
+                      Priority: {selectedMandate.priority}
+                    </span>
+                  </div>
+
+                  {/* 8 Required Mandate Details Fields */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                      <span className="font-extrabold text-slate-500 uppercase text-[10px] block">1. Company Details</span>
+                      <p className="font-black text-slate-900 text-sm">{selectedMandate.companyName}</p>
+                      <p className="text-slate-600">Contact: {selectedMandate.contactPerson}</p>
+                    </div>
+
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                      <span className="font-extrabold text-slate-500 uppercase text-[10px] block">2. Position to be Hired</span>
+                      <p className="font-black text-slate-900 text-sm">{selectedMandate.position}</p>
+                    </div>
+
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                      <span className="font-extrabold text-slate-500 uppercase text-[10px] block">3. Number of Openings</span>
+                      <p className="font-black text-amber-700 text-sm">{selectedMandate.openings} Headcounts</p>
+                    </div>
+
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                      <span className="font-extrabold text-slate-500 uppercase text-[10px] block">4. Required Experience</span>
+                      <p className="font-black text-slate-900 text-sm">{selectedMandate.experience}</p>
+                    </div>
+
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                      <span className="font-extrabold text-slate-500 uppercase text-[10px] block">5. Location</span>
+                      <p className="font-black text-slate-900 text-sm">{selectedMandate.location}</p>
+                    </div>
+
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                      <span className="font-extrabold text-slate-500 uppercase text-[10px] block">6. Compensation Range</span>
+                      <p className="font-black text-emerald-700 text-sm">{selectedMandate.compensation}</p>
+                    </div>
+
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                      <span className="font-extrabold text-slate-500 uppercase text-[10px] block">7. Hiring Priority</span>
+                      <p className="font-black text-red-600 text-sm">{selectedMandate.priority}</p>
+                    </div>
+
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                      <span className="font-extrabold text-slate-500 uppercase text-[10px] block">8. Commercial Engagement Model</span>
+                      <p className="font-black text-purple-700 text-sm">{selectedMandate.commercialModel}</p>
+                    </div>
+                  </div>
                 </div>
-                <h3 className="text-base font-black text-slate-900">Drag & Drop Resumes Here</h3>
-                <p className="text-xs text-slate-500 max-w-md mx-auto">
-                  Supports PDF and TXT formats up to 5MB. Resumes are parsed automatically with Gemini AI.
-                </p>
+              ) : (
+                /* Open Mandates Directory List */
+                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs space-y-3">
+                  <table className="w-full text-left text-xs text-slate-700">
+                    <thead>
+                      <tr className="border-b border-slate-200 bg-slate-50 text-[10px] uppercase font-bold text-slate-500">
+                        <th className="p-3">Company Name</th>
+                        <th className="p-3">Position Title</th>
+                        <th className="p-3 text-center">Openings</th>
+                        <th className="p-3">Location</th>
+                        <th className="p-3">Priority</th>
+                        <th className="p-3">Date Submitted</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {openMandatesList.map((man) => (
+                        <tr 
+                          key={man.id} 
+                          onClick={() => setSelectedMandate(man)}
+                          className="hover:bg-amber-50/60 cursor-pointer transition-colors group"
+                        >
+                          <td className="p-3 font-extrabold text-slate-900 group-hover:text-amber-700">{man.companyName}</td>
+                          <td className="p-3 font-bold text-slate-800">{man.position}</td>
+                          <td className="p-3 text-center font-black text-amber-600">{man.openings}</td>
+                          <td className="p-3 font-semibold text-slate-600">{man.location}</td>
+                          <td className="p-3">
+                            <span className="bg-red-100 text-red-800 font-bold text-[10px] px-2 py-0.5 rounded-full border border-red-200">
+                              {man.priority}
+                            </span>
+                          </td>
+                          <td className="p-3 font-mono text-slate-500">{man.dateSubmitted}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* TAB 4: NEW MANDATES (ADMIN/OWNER EXCLUSIVE FEATURE) */}
+          {/* ========================================================================= */}
+          {activeNavTab === "new_mandates" && !showStorefront && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
+                <h2 className="text-2xl font-black text-slate-900">New Mandates Assignment</h2>
+                <p className="text-xs text-slate-500">👑 Admin / Owner View: Track recruiter assignments for incoming company mandates</p>
+              </div>
+
+              <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs">
+                <table className="w-full text-left text-xs text-slate-700">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50 text-[10px] uppercase font-bold text-slate-500">
+                      <th className="p-3">Company Name</th>
+                      <th className="p-3">Mandate Title</th>
+                      <th className="p-3 text-center">Openings</th>
+                      <th className="p-3">Assigned Recruiter</th>
+                      <th className="p-3">Assigned Date</th>
+                      <th className="p-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {[
+                      { company: "Infosys", title: "Senior React Developer", openings: 5, recruiter: "Ankit Sharma", date: "10 Aug 2026" },
+                      { company: "TCS", title: "Java Backend Lead", openings: 3, recruiter: "Neha Verma", date: "09 Aug 2026" },
+                      { company: "Wipro", title: "HR Manager", openings: 2, recruiter: "Rohan Mehta", date: "08 Aug 2026" },
+                    ].map((row, idx) => (
+                      <tr key={idx} className="hover:bg-slate-50">
+                        <td className="p-3 font-extrabold text-slate-900">{row.company}</td>
+                        <td className="p-3 font-bold text-slate-800">{row.title}</td>
+                        <td className="p-3 text-center font-black text-amber-600">{row.openings}</td>
+                        <td className="p-3 font-extrabold text-sky-700">{row.recruiter}</td>
+                        <td className="p-3 font-mono text-slate-500">{row.date}</td>
+                        <td className="p-3 text-right">
+                          <button 
+                            onClick={() => alert(`Reassigning ${row.title}`)}
+                            className="bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-1 rounded-lg font-bold text-[10px]"
+                          >
+                            Reassign
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
 
-          {/* OTHER TABS */}
-          {activeNavTab !== "dashboard" && activeNavTab !== "candidates" && (
+          {/* OTHER TABS: INTERVIEWS & REPORTS */}
+          {(activeNavTab === "interviews" || activeNavTab === "reports" || activeNavTab === "settings") && !showStorefront && (
             <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center space-y-2 shadow-2xs">
-              <h2 className="text-2xl font-black text-slate-900 capitalize">{activeNavTab} Surface</h2>
-              <p className="text-xs text-slate-500">Manage all {activeNavTab} workflows and data records</p>
+              <h2 className="text-2xl font-black text-slate-900 capitalize">{activeNavTab} Workflows</h2>
+              <p className="text-xs text-slate-500">Manage recruitment operations for {activeNavTab}</p>
             </div>
           )}
 
@@ -785,127 +1131,276 @@ export default function CockpitView() {
       </div>
 
       {/* ========================================================================= */}
-      {/* 3. PROFILE SLIDE-OVER DRAWER */}
+      {/* 3. STOREFRONT REQUIREMENT SUBMISSION FORM MODAL */}
       {/* ========================================================================= */}
+      {showStorefrontForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 w-full max-w-xl shadow-2xl space-y-4 text-slate-900">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <h4 className="font-black text-sm text-[#0F172A] uppercase tracking-wider">
+                Submit Hiring Requirement (Storefront)
+              </h4>
+              <button
+                onClick={() => setShowStorefrontForm(false)}
+                className="text-slate-400 hover:text-slate-700"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitStorefrontRequirement} className="space-y-3 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-extrabold text-slate-700 block mb-1">Company Details *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Apex Tech Solutions"
+                    value={storefrontForm.companyName}
+                    onChange={(e) => setStorefrontForm({ ...storefrontForm, companyName: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="font-extrabold text-slate-700 block mb-1">Contact Person *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Sarah Jenkins (HR VP)"
+                    value={storefrontForm.contactPerson}
+                    onChange={(e) => setStorefrontForm({ ...storefrontForm, contactPerson: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-extrabold text-slate-700 block mb-1">Position to be Hired *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Full Stack Lead"
+                    value={storefrontForm.position}
+                    onChange={(e) => setStorefrontForm({ ...storefrontForm, position: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="font-extrabold text-slate-700 block mb-1">Number of Openings *</label>
+                  <input
+                    type="number"
+                    required
+                    placeholder="e.g. 4"
+                    value={storefrontForm.openings}
+                    onChange={(e) => setStorefrontForm({ ...storefrontForm, openings: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-extrabold text-slate-700 block mb-1">Required Experience *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. 5-8 Years"
+                    value={storefrontForm.experience}
+                    onChange={(e) => setStorefrontForm({ ...storefrontForm, experience: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="font-extrabold text-slate-700 block mb-1">Location *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Dubai, UAE"
+                    value={storefrontForm.location}
+                    onChange={(e) => setStorefrontForm({ ...storefrontForm, location: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-extrabold text-slate-700 block mb-1">Compensation Range *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. $90,000 - $110,000"
+                    value={storefrontForm.compensation}
+                    onChange={(e) => setStorefrontForm({ ...storefrontForm, compensation: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="font-extrabold text-slate-700 block mb-1">Hiring Priority *</label>
+                  <select
+                    value={storefrontForm.priority}
+                    onChange={(e) => setStorefrontForm({ ...storefrontForm, priority: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold focus:outline-none cursor-pointer"
+                  >
+                    <option value="High">High</option>
+                    <option value="Urgent">Urgent</option>
+                    <option value="Normal">Normal</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="font-extrabold text-slate-700 block mb-1">Commercial Engagement Model *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. 15% Annual CTC Contingency Fee"
+                  value={storefrontForm.commercialModel}
+                  onChange={(e) => setStorefrontForm({ ...storefrontForm, commercialModel: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold focus:outline-none"
+                />
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  className="w-full py-3 bg-[#FFD400] text-[#0F172A] font-black text-xs rounded-xl shadow-md hover:brightness-105 active:scale-95 transition-all cursor-pointer"
+                >
+                  Submit Requirement & Send to Open Mandates
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW MORE MODAL 1: HIGH RISK CANDIDATES */}
+      {showAllHighRiskModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 w-full max-w-2xl shadow-2xl space-y-4">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <div>
+                <h4 className="font-black text-sm text-red-600 uppercase tracking-wider flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[20px]">warning</span>
+                  <span>All High Risk Candidates Radar</span>
+                </h4>
+                <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                  Candidates who have accepted the offer letter and are scheduled to join within their notice period.
+                </p>
+              </div>
+              <button onClick={() => setShowAllHighRiskModal(false)} className="text-slate-400 hover:text-slate-700">
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            <table className="w-full text-left text-xs text-slate-700">
+              <thead>
+                <tr className="border-b border-slate-200 bg-red-50 text-[10px] uppercase font-bold text-slate-500">
+                  <th className="p-2.5">Candidate</th>
+                  <th className="p-2.5">Notice Remaining</th>
+                  <th className="p-2.5">Risk Level</th>
+                  <th className="p-2.5 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                <tr className="hover:bg-red-50/40">
+                  <td className="p-2.5 font-extrabold text-slate-900">Rahul Sharma</td>
+                  <td className="p-2.5 font-semibold">15 Days</td>
+                  <td className="p-2.5"><span className="bg-red-100 text-red-800 font-black text-[10px] px-2 py-0.5 rounded-full">🔴 High Risk</span></td>
+                  <td className="p-2.5 text-right">
+                    <button onClick={() => alert("Calling Rahul...")} className="bg-[#FFD400] text-[#0F172A] px-2.5 py-1 rounded font-black text-[10px]">Call Now</button>
+                  </td>
+                </tr>
+                <tr className="hover:bg-slate-50">
+                  <td className="p-2.5 font-extrabold text-slate-900">Vikram Malhotra</td>
+                  <td className="p-2.5 font-semibold">30 Days</td>
+                  <td className="p-2.5"><span className="bg-amber-100 text-amber-800 font-black text-[10px] px-2 py-0.5 rounded-full">🟡 Medium Risk</span></td>
+                  <td className="p-2.5 text-right">
+                    <button onClick={() => alert("Pulse check to Vikram...")} className="bg-slate-100 text-slate-700 px-2.5 py-1 rounded font-bold text-[10px]">Pulse Check</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW MORE MODAL 2: PENDING CLIENT FEEDBACK */}
+      {showAllPendingFeedbackModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 w-full max-w-2xl shadow-2xl space-y-4">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <h4 className="font-black text-sm text-amber-700 uppercase tracking-wider flex items-center gap-2">
+                <span className="material-symbols-outlined text-[20px]">schedule</span>
+                <span>All Pending Client Feedbacks</span>
+              </h4>
+              <button onClick={() => setShowAllPendingFeedbackModal(false)} className="text-slate-400 hover:text-slate-700">
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            <table className="w-full text-left text-xs text-slate-700">
+              <thead>
+                <tr className="border-b border-slate-200 bg-amber-50 text-[10px] uppercase font-bold text-slate-500">
+                  <th className="p-2.5">Client</th>
+                  <th className="p-2.5">Requirement</th>
+                  <th className="p-2.5">Waiting Since</th>
+                  <th className="p-2.5 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                <tr className="hover:bg-amber-50/40">
+                  <td className="p-2.5 font-extrabold text-slate-900">Infosys</td>
+                  <td className="p-2.5 font-semibold">React Developer</td>
+                  <td className="p-2.5 font-bold text-amber-700">3 Days</td>
+                  <td className="p-2.5 text-right">
+                    <button onClick={() => alert("Reminder sent")} className="bg-amber-100 text-amber-900 px-2.5 py-1 rounded font-bold text-[10px]">Reminder</button>
+                  </td>
+                </tr>
+                <tr className="hover:bg-slate-50">
+                  <td className="p-2.5 font-extrabold text-slate-900">Wipro</td>
+                  <td className="p-2.5 font-semibold">HR Manager</td>
+                  <td className="p-2.5 font-bold text-red-600">5 Days (Urgent)</td>
+                  <td className="p-2.5 text-right">
+                    <button onClick={() => alert("Escalated")} className="bg-red-100 text-red-800 px-2.5 py-1 rounded font-bold text-[10px]">Escalate</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* PROFILE SLIDE-OVER DRAWER */}
       {profileDrawerOpen && (
         <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/40 backdrop-blur-xs animate-in fade-in">
           <div className="w-full max-w-md bg-white border-l border-slate-200 h-full p-6 flex flex-col justify-between shadow-2xl animate-in slide-in-from-right duration-300 text-slate-900">
-            
             <div className="space-y-6">
               <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-                <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-amber-600 text-[20px]">account_circle</span>
-                  <h3 className="font-black text-xs uppercase tracking-wider text-slate-900">Owner Profile</h3>
-                </div>
-                <button
-                  onClick={() => setProfileDrawerOpen(false)}
-                  className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100"
-                >
+                <h3 className="font-black text-xs uppercase tracking-wider text-slate-900">Owner Profile</h3>
+                <button onClick={() => setProfileDrawerOpen(false)} className="text-slate-400 hover:text-slate-700">
                   <span className="material-symbols-outlined text-[20px]">close</span>
                 </button>
               </div>
 
-              <div className="bg-slate-50 border border-slate-200 p-5 rounded-2xl space-y-4 text-center">
+              <div className="bg-slate-50 border border-slate-200 p-5 rounded-2xl text-center space-y-3">
                 <div className="h-16 w-16 rounded-2xl bg-[#FFD400] text-[#0F172A] flex items-center justify-center font-black text-2xl mx-auto shadow-md">
                   DS
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-slate-900">Divyanshu Sharma</h3>
-                  <p className="text-xs text-amber-700 font-extrabold uppercase tracking-wider mt-0.5">
-                    Agency Founder & Owner
-                  </p>
-                  <p className="text-xs text-slate-500 mt-1 font-mono">owner@recruitpro.com</p>
-                </div>
-              </div>
-
-              <div className="space-y-3 bg-white border border-slate-200 p-4 rounded-2xl text-xs shadow-2xs">
-                <div className="flex justify-between py-1.5 border-b border-slate-100">
-                  <span className="text-slate-500 font-semibold">Agency Name</span>
-                  <span className="font-extrabold text-slate-900">Apex Talent Partners</span>
-                </div>
-                <div className="flex justify-between py-1.5 border-b border-slate-100">
-                  <span className="text-slate-500 font-semibold">Tenant ID</span>
-                  <span className="font-mono text-[10px] font-bold text-slate-600">11111111-1111-4111-8111...</span>
-                </div>
-                <div className="flex justify-between py-1.5">
-                  <span className="text-slate-500 font-semibold">Subscription</span>
-                  <span className="bg-emerald-100 text-emerald-800 font-black text-[10px] px-2 py-0.5 rounded-full border border-emerald-300">
-                    Enterprise Active
-                  </span>
+                  <h3 className="text-xl font-black text-slate-900">Divyanshu</h3>
+                  <p className="text-xs text-amber-700 font-extrabold uppercase mt-0.5">Agency Founder & Owner</p>
                 </div>
               </div>
             </div>
 
             <div className="pt-6 border-t border-slate-100">
-              <button
-                onClick={handleLogout}
-                className="w-full py-3 bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 font-black text-xs rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs active:scale-95"
-              >
+              <button onClick={handleLogout} className="w-full py-3 bg-red-50 hover:bg-red-100 text-red-700 font-black text-xs rounded-xl flex items-center justify-center gap-2 border border-red-200">
                 <span className="material-symbols-outlined text-[18px]">logout</span>
                 <span>Log Out of RecruitPro</span>
               </button>
             </div>
-
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* 4. QUICK ACTION CREATION MODALS */}
-      {/* ========================================================================= */}
-      {activeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4 text-slate-900">
-            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-              <h4 className="font-black text-xs uppercase tracking-wider text-amber-700">
-                + Create {activeModal.toUpperCase()}
-              </h4>
-              <button
-                onClick={() => setActiveModal(null)}
-                className="text-slate-400 hover:text-slate-700"
-              >
-                <span className="material-symbols-outlined text-[18px]">close</span>
-              </button>
-            </div>
-
-            {modalSuccessMessage ? (
-              <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold p-4 rounded-xl text-center text-xs space-y-1">
-                <span className="material-symbols-outlined text-[24px] text-emerald-600">check_circle</span>
-                <p>{modalSuccessMessage}</p>
-              </div>
-            ) : (
-              <form onSubmit={(e) => handleModalSubmit(e, activeModal)} className="space-y-4 text-xs">
-                <div className="space-y-1">
-                  <label className="font-extrabold text-slate-700 uppercase tracking-wider text-[10px]">Title / Name *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Enter details..."
-                    value={formField1}
-                    onChange={(e) => setFormField1(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:outline-none focus:border-amber-400"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="font-extrabold text-slate-700 uppercase tracking-wider text-[10px]">Client / Sub-Detail</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Infosys / Department"
-                    value={formField2}
-                    onChange={(e) => setFormField2(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:outline-none focus:border-amber-400"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full py-3 bg-[#FFD400] text-[#0F172A] font-black text-xs rounded-xl hover:brightness-105 transition-all cursor-pointer shadow-sm"
-                >
-                  Save & Create
-                </button>
-              </form>
-            )}
           </div>
         </div>
       )}
