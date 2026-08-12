@@ -22,7 +22,17 @@ export default function StorefrontPage() {
     heroSubtitle: "Connecting world-class talent with industry leaders across the UAE, KSA, and beyond. We combine local market intelligence with a global search footprint.",
     whatsapp: "+971 50 123 4567",
     email: "mandates@apexpartners.ae",
+    phone: "+971 4 390 1234",
     hqAddress: "Level 24, ADGM Square, Maryah Island, Abu Dhabi, UAE",
+    aboutBio: "We combine local market intelligence with a global executive search footprint across technology, finance, biotech, and leadership recruitment.",
+    service1: "Executive Search & Leadership Hiring",
+    service2: "Tech & Software Engineering Staffing",
+    service3: "RPO & Volume Talent Sourcing",
+    service4: "Overseas & Offshore Placement",
+    market1: "Information Technology & AI",
+    market2: "Banking, Finance & Fintech",
+    market3: "Biotech & Healthcare",
+    market4: "Supply Chain & Freight Logistics",
   });
 
   // Load custom agency theme config on mount
