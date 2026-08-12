@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
@@ -14,18 +14,28 @@ export default function StorefrontPage() {
   // About Section Contact Info Modal State
   const [showContactModal, setShowContactModal] = useState(false);
 
-  // Form Fields State (8 Required Details)
-  const [formData, setFormData] = useState({
-    companyName: "",
-    contactPerson: "",
-    position: "",
-    openings: "3",
-    experience: "5-8 Years",
-    location: "Dubai, UAE",
-    compensation: "$90,000 - $120,000 / Year",
-    priority: "Urgent",
-    commercialModel: "15% Contingency Success Fee",
+  // Dynamic Agency Theme Config State
+  const [agencyConfig, setAgencyConfig] = useState({
+    agencyName: "Apex Recruitment Partners",
+    tagline: "Premier Executive Search for Gulf & Emerging Markets",
+    heroHeadline: "Premier Executive Search for Gulf & Emerging Markets",
+    heroSubtitle: "Connecting world-class talent with industry leaders across the UAE, KSA, and beyond. We combine local market intelligence with a global search footprint.",
+    whatsapp: "+971 50 123 4567",
+    email: "mandates@apexpartners.ae",
+    hqAddress: "Level 24, ADGM Square, Maryah Island, Abu Dhabi, UAE",
   });
+
+  // Load custom agency theme config on mount
+  useEffect(() => {
+    try {
+      const savedConfig = localStorage.getItem("recruitos_agency_theme_config");
+      if (savedConfig) {
+        setAgencyConfig(JSON.parse(savedConfig));
+      }
+    } catch (e) {
+      console.error("Failed to load website config in storefront", e);
+    }
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,6 +52,8 @@ export default function StorefrontPage() {
       compensation: formData.compensation,
       priority: formData.priority,
       commercialModel: formData.commercialModel,
+      source: "Company Website (Online Storefront)",
+      status: "Pending Review",
       dateSubmitted: "Just Now",
     };
 
