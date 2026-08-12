@@ -19,13 +19,123 @@ export default function CockpitView() {
 
   // Job & Candidate Selection State
   const [selectedJob, setSelectedJob] = useState<any>(null);
+  const [viewingCandidate, setViewingCandidate] = useState<any>(null); // For Candidate Detailed Profile View
+  const [activeProfileTab, setActiveProfileTab] = useState("resume"); // resume, skills, experience, notes, timeline
+
+  // Candidates List State for Jobs
+  const [jobCandidates, setJobCandidates] = useState<any[]>([
+    {
+      id: "CAND-1001",
+      jobId: "ZR_97_JOB",
+      name: "Christina Thomas",
+      email: "christina@prmail.com",
+      phone: "+91 98111 22334",
+      designation: "Frontend Developer",
+      currentCompany: "Media Pulse Tech",
+      experience: "3.5 Years",
+      noticePeriod: "15 Days",
+      expectedCtc: "$75,000 / Year",
+      status: "Applied",
+      rating: "3.0 ⭐",
+      skills: "Writing, Social Media, Marketing, React Basics",
+      photoUrl: "/images/executive_leader_woman.png",
+      resumeFileName: "Christina_Thomas_Resume_2026.pdf",
+      notes: "Strong communication skills. Portfolio attached in resume.",
+    },
+    {
+      id: "CAND-1002",
+      jobId: "ZR_97_JOB",
+      name: "Will James",
+      email: "willjames@icloud.com",
+      phone: "+1 415 892 1092",
+      designation: "Senior Full Stack Engineer",
+      currentCompany: "Vercel Inc",
+      experience: "6.0 Years",
+      noticePeriod: "Immediate",
+      expectedCtc: "$110,000 / Year",
+      status: "Interview",
+      rating: "5.0 ⭐",
+      skills: "React, Node.js, TypeScript, Next.js, GraphQL, AWS",
+      photoUrl: null,
+      resumeFileName: "Will_James_FullStack_CV.pdf",
+      notes: "Passed technical round 1 with 95% score. Highly recommended for final round.",
+    },
+    {
+      id: "CAND-1003",
+      jobId: "ZR_97_JOB",
+      name: "Cooper",
+      email: "cooper@yymail.com",
+      phone: "+971 50 882 1199",
+      designation: "UI/UX Designer",
+      currentCompany: "Design Studio Dubai",
+      experience: "4.5 Years",
+      noticePeriod: "30 Days",
+      expectedCtc: "$85,000 / Year",
+      status: "Screening",
+      rating: "5.0 ⭐",
+      skills: "UI/UX, Figma, Tailwind, CSS3, Wireframing",
+      photoUrl: null,
+      resumeFileName: "Cooper_Design_Portfolio_CV.pdf",
+      notes: "Figma design system portfolio verified. Screening scheduled for Thursday.",
+    },
+    {
+      id: "CAND-1004",
+      jobId: "ZR_97_JOB",
+      name: "Aron Ramsey",
+      email: "aron@icloud.com",
+      phone: "+44 20 7946 0912",
+      designation: "Product Analyst",
+      currentCompany: "Fintech UK",
+      experience: "7.0 Years",
+      noticePeriod: "60 Days",
+      expectedCtc: "$120,000 / Year",
+      status: "Offer",
+      rating: "5.0 ⭐",
+      skills: "Product Strategy, Analytics, SQL, Python",
+      photoUrl: null,
+      resumeFileName: "Aron_Ramsey_CV.pdf",
+      notes: "Offer letter issued. Notice period buy-out under discussion.",
+    },
+    {
+      id: "CAND-1005",
+      jobId: "ZR_97_JOB",
+      name: "Satish Chauhan",
+      email: "satish@gmail.com",
+      phone: "+91 99887 76655",
+      designation: "Technical Sales Specialist",
+      currentCompany: "Salesforce APAC",
+      experience: "5.0 Years",
+      noticePeriod: "30 Days",
+      expectedCtc: "$90,000 / Year",
+      status: "Joining",
+      rating: "4.0 ⭐",
+      skills: "Cold Calling, B2B Sales, CRM, Enterprise Accounts",
+      photoUrl: null,
+      resumeFileName: "Satish_Chauhan_Resume.pdf",
+      notes: "Joining confirmed for next Monday.",
+    },
+  ]);
+
+  // + Add New Candidate Resume Upload & Auto-Parse Modal State
   const [addCandidateModalOpen, setAddCandidateModalOpen] = useState(false);
+  const [isParsingResume, setIsParsingResume] = useState(false);
+  const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
+
   const [newCandidateForm, setNewCandidateForm] = useState({
     name: "",
     email: "",
-    status: "New",
-    rating: "4.0 ⭐",
+    phone: "",
+    designation: "",
+    currentCompany: "",
+    experience: "5 Years",
+    noticePeriod: "30 Days",
+    expectedCtc: "$95,000 / Year",
+    status: "Applied",
+    rating: "4.5 ⭐",
     skills: "",
+    photoUrl: "",
+    resumeFileName: "",
+    notes: "",
   });
 
   // Open Mandates Selection State & Modals
@@ -46,7 +156,7 @@ export default function CockpitView() {
     { id: 5, text: "Notice Period Review", done: false },
   ]);
 
-  // Initial Mandates List State (with Source, Status, and Negotiation Comments)
+  // Initial Mandates List State
   const [openMandatesList, setOpenMandatesList] = useState([
     {
       id: "MAND-001",
@@ -122,7 +232,7 @@ export default function CockpitView() {
     agencyName: "Apex Recruitment Partners",
     tagline: "Premier Executive Search for Gulf & Emerging Markets",
     heroHeadline: "Premier Executive Search for Gulf & Emerging Markets",
-    heroSubtitle: "Connecting world-class talent with industry leaders across the UAE, KSA, and beyond. We combine local market intelligence with a global search footprint.",
+    heroSubtitle: "Connecting world-class talent with industry leaders across the UAE, KSA, and beyond.",
     whatsapp: "+971 50 123 4567",
     email: "mandates@apexpartners.ae",
     hqAddress: "Level 24, ADGM Square, Maryah Island, Abu Dhabi, UAE",
@@ -134,7 +244,6 @@ export default function CockpitView() {
   });
   const [configSaveNotice, setConfigSaveNotice] = useState(false);
 
-  // Load agency website config from localStorage on mount
   useEffect(() => {
     try {
       const savedConfig = localStorage.getItem("recruitos_agency_theme_config");
@@ -157,23 +266,127 @@ export default function CockpitView() {
     }
   };
 
-  const toggleTask = (id: number) => {
-    setMyTasks(myTasks.map((t) => (t.id === id ? { ...t, done: !t.done } : t)));
+  // Live Duplicate Detection Function (Checks Name & Email)
+  const checkForDuplicates = (emailVal: string, nameVal: string) => {
+    if (!emailVal && !nameVal) {
+      setDuplicateWarning(null);
+      return false;
+    }
+
+    const match = jobCandidates.find((c) => {
+      const emailMatch = emailVal && c.email.toLowerCase() === emailVal.toLowerCase().trim();
+      const nameMatch = nameVal && c.name.toLowerCase() === nameVal.toLowerCase().trim();
+      return emailMatch || nameMatch;
+    });
+
+    if (match) {
+      setDuplicateWarning(
+        `⚠️ DUPLICATE CANDIDATE DETECTED! A candidate with name '${match.name}' (${match.email}) already exists in this mandate (Status: ${match.status}).`
+      );
+      return true;
+    } else {
+      setDuplicateWarning(null);
+      return false;
+    }
   };
 
+  // Trigger Sample Resume Auto-Parse
+  const handleTriggerAutoParseSample = () => {
+    setIsParsingResume(true);
+    setTimeout(() => {
+      const parsedSample = {
+        name: "Rohan Sharma",
+        email: "rohan.sharma@techcorp.com",
+        phone: "+91 98765 43210",
+        designation: "Lead React & Node Architect",
+        currentCompany: "Cognizant Technology Solutions",
+        experience: "6.5 Years",
+        noticePeriod: "30 Days",
+        expectedCtc: "$105,000 / Year",
+        status: "Applied",
+        rating: "4.8 ⭐",
+        skills: "React.js, Node.js, TypeScript, Next.js, PostgreSQL, Docker, AWS",
+        photoUrl: "/images/executive_leader_woman.png",
+        resumeFileName: "Rohan_Sharma_Parsed_CV_2026.pdf",
+        notes: "Automated CV Parsing: Extracted 6.5 yrs exp in Full-Stack web apps. Immediate fit for Senior Developer role.",
+      };
+      setNewCandidateForm(parsedSample);
+      checkForDuplicates(parsedSample.email, parsedSample.name);
+      setIsParsingResume(false);
+    }, 1200);
+  };
+
+  // Add Candidate Submit Handler
+  const handleAddCandidateSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCandidateForm.name || !newCandidateForm.email) {
+      alert("Please provide at least Candidate Name and Email.");
+      return;
+    }
+
+    const isDup = checkForDuplicates(newCandidateForm.email, newCandidateForm.name);
+    if (isDup) {
+      alert("Cannot add candidate: Duplicate candidate already exists in this job mandate pipeline!");
+      return;
+    }
+
+    const createdCand = {
+      id: `CAND-${Date.now().toString().slice(-4)}`,
+      jobId: selectedJob?.id || "ZR_97_JOB",
+      ...newCandidateForm,
+      resumeFileName: newCandidateForm.resumeFileName || `${newCandidateForm.name.replace(/\s+/g, "_")}_Resume.pdf`,
+    };
+
+    setJobCandidates([createdCand, ...jobCandidates]);
+    setAddCandidateModalOpen(false);
+    alert(`🎉 Candidate ${createdCand.name} successfully ingested & parsed into ${selectedJob?.title || "Job Mandate"}!`);
+    
+    // Reset Form
+    setNewCandidateForm({
+      name: "",
+      email: "",
+      phone: "",
+      designation: "",
+      currentCompany: "",
+      experience: "5 Years",
+      noticePeriod: "30 Days",
+      expectedCtc: "$95,000 / Year",
+      status: "Applied",
+      rating: "4.5 ⭐",
+      skills: "",
+      photoUrl: "",
+      resumeFileName: "",
+      notes: "",
+    });
+    setDuplicateWarning(null);
+  };
+
+  // Candidate Status Change Handler inside Detailed Profile View
+  const handleUpdateCandidateStatus = (newStatus: string) => {
+    if (!viewingCandidate) return;
+    const updatedList = jobCandidates.map((c) => (c.id === viewingCandidate.id ? { ...c, status: newStatus } : c));
+    setJobCandidates(updatedList);
+    setViewingCandidate({ ...viewingCandidate, status: newStatus });
+  };
+
+  // Candidate Photo Change Handler inside Detailed Profile View
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0] && viewingCandidate) {
+      const file = e.target.files[0];
+      const fakeUrl = URL.createObjectURL(file);
+      const updatedList = jobCandidates.map((c) => (c.id === viewingCandidate.id ? { ...c, photoUrl: fakeUrl } : c));
+      setJobCandidates(updatedList);
+      setViewingCandidate({ ...viewingCandidate, photoUrl: fakeUrl });
+    }
+  };
+
+  // Logout Handler
   const handleLogout = () => {
     document.cookie = "auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
     router.push("/login");
   };
 
-  const handleAddCandidateSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    alert(`Candidate ${newCandidateForm.name} added to ${selectedJob?.title || "Job Mandate"}!`);
-    setAddCandidateModalOpen(false);
-    setNewCandidateForm({ name: "", email: "", status: "New", rating: "4.0 ⭐", skills: "" });
-  };
-
-  // Accept Mandate Handler (Assigns Recruiter + BD, sends email notification)
+  // Accept Mandate Handler
   const handleAcceptMandateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedMandate) return;
@@ -200,7 +413,6 @@ export default function CockpitView() {
 
     setShowAcceptModal(false);
 
-    // Trigger Automated Email Dispatch Notification Banner
     const isOnline = selectedMandate.source?.includes("Website");
     const noticeText = isOnline
       ? `✉️ Automated Email Dispatched: Recruiter (${assignedRecruiter}) assigned for sourcing & BD Officer (${assignedBD}) assigned for client onboarding!`
@@ -210,7 +422,7 @@ export default function CockpitView() {
     setTimeout(() => setEmailNoticeBanner(null), 5000);
   };
 
-  // Reject / Negotiate Mandate Handler (Routes back to BD team with Admin comments)
+  // Reject Mandate Handler
   const handleRejectMandateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedMandate) return;
@@ -274,7 +486,7 @@ export default function CockpitView() {
             )}
           </div>
 
-          {/* Navigation Options (Interviews & Reports removed as requested) */}
+          {/* Navigation Options */}
           <nav className="p-3 space-y-1.5 mt-3">
             {[
               { id: "dashboard", label: "Dashboard", icon: "grid_view" },
@@ -291,6 +503,7 @@ export default function CockpitView() {
                     setShowStorefront(false);
                     setSelectedJob(null);
                     setSelectedMandate(null);
+                    setViewingCandidate(null);
                     setActiveNavTab(tab.id);
                   }}
                   className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
@@ -364,7 +577,6 @@ export default function CockpitView() {
 
         {/* Top Header */}
         <header className="sticky top-0 z-20 bg-white border-b border-slate-200 px-6 py-3.5 flex items-center justify-between shadow-2xs">
-          {/* Search Bar */}
           <div className="flex items-center gap-3 bg-slate-100/80 border border-slate-200 rounded-xl px-4 py-2 w-full max-w-md focus-within:ring-2 focus-within:ring-amber-400 focus-within:bg-white transition-all">
             <span className="material-symbols-outlined text-[20px] text-slate-400">search</span>
             <input
@@ -374,7 +586,6 @@ export default function CockpitView() {
             />
           </div>
 
-          {/* Right Actions & Profile */}
           <div className="flex items-center gap-5">
             <button className="relative p-2 text-slate-500 hover:text-slate-900 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer">
               <span className="material-symbols-outlined text-[22px]">notifications</span>
@@ -388,13 +599,12 @@ export default function CockpitView() {
 
             <div className="h-6 w-[1px] bg-slate-200"></div>
 
-            {/* Profile Drawer Trigger (Shows ONLY First Name 'Divyanshu') */}
             <div
               onClick={() => setShowProfileDrawer(true)}
               className="flex items-center gap-3 cursor-pointer p-1 rounded-xl hover:bg-slate-100 transition-all"
             >
               <div className="h-9 w-9 rounded-xl bg-[#0F172A] text-[#FFD400] flex items-center justify-center font-black text-xs shadow-sm">
-                DS
+                D
               </div>
               <div className="hidden sm:block text-left">
                 <p className="text-xs font-black text-slate-900 leading-tight">Divyanshu</p>
@@ -414,7 +624,6 @@ export default function CockpitView() {
           {activeNavTab === "dashboard" && !showStorefront && (
             <div className="space-y-6 animate-in fade-in duration-300">
               
-              {/* Welcome Section */}
               <div className="bg-gradient-to-r from-[#0F172A] via-slate-900 to-[#1E293B] text-white p-6 rounded-3xl shadow-xl relative overflow-hidden">
                 <div className="relative z-10 space-y-2">
                   <div className="inline-flex items-center gap-2 bg-amber-400/20 border border-amber-400/30 px-3 py-1 rounded-full text-[11px] font-bold text-[#FFD400]">
@@ -443,7 +652,7 @@ export default function CockpitView() {
                 </div>
               </div>
 
-              {/* Recruitment Pipeline Snapshot (Stage 1 is Shortlisted with Date Selector) */}
+              {/* Pipeline Snapshot */}
               <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-2xs space-y-4">
                 <div className="flex justify-between items-center border-b border-slate-100 pb-3">
                   <div>
@@ -451,7 +660,6 @@ export default function CockpitView() {
                     <p className="text-xs text-slate-500">Live SLA aging breakdown across hiring stages</p>
                   </div>
 
-                  {/* Date Selector Dropdown */}
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold text-slate-500">View Date:</span>
                     <select
@@ -462,41 +670,37 @@ export default function CockpitView() {
                       <option value="Today">Today (12 Aug 2026)</option>
                       <option value="This Week">This Week</option>
                       <option value="This Month">This Month</option>
-                      <option value="Custom">Custom Range</option>
                     </select>
                   </div>
                 </div>
 
-                {/* Pipeline Flow Stages */}
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                   {[
-                    { stage: "Shortlisted", count: 120, color: "border-purple-300 bg-purple-50 text-purple-900" },
-                    { stage: "Screening", count: 80, color: "border-sky-300 bg-sky-50 text-sky-900" },
-                    { stage: "Interview", count: 35, color: "border-amber-300 bg-amber-50 text-amber-900" },
-                    { stage: "Offer", count: 12, color: "border-indigo-300 bg-indigo-50 text-indigo-900" },
-                    { stage: "Joining", count: 7, color: "border-emerald-300 bg-emerald-50 text-emerald-900" },
+                    { stage: "Applied / Shortlisted", count: jobCandidates.filter(c => c.status === "Applied").length + 120, color: "border-purple-300 bg-purple-50 text-purple-900" },
+                    { stage: "Screening", count: jobCandidates.filter(c => c.status === "Screening").length + 80, color: "border-sky-300 bg-sky-50 text-sky-900" },
+                    { stage: "Interview", count: jobCandidates.filter(c => c.status === "Interview").length + 35, color: "border-amber-300 bg-amber-50 text-amber-900" },
+                    { stage: "Offer", count: jobCandidates.filter(c => c.status === "Offer").length + 12, color: "border-indigo-300 bg-indigo-50 text-indigo-900" },
+                    { stage: "Joining", count: jobCandidates.filter(c => c.status === "Joining").length + 7, color: "border-emerald-300 bg-emerald-50 text-emerald-900" },
                   ].map((item, idx) => (
                     <div key={idx} className={`p-4 rounded-2xl border ${item.color} space-y-1 shadow-2xs`}>
                       <span className="text-[10px] font-black uppercase tracking-widest block opacity-75">{item.stage}</span>
                       <p className="text-2xl font-black">{item.count}</p>
-                      <p className="text-[10px] font-bold opacity-80">Candidates active</p>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Grid Layout: High Risk Candidates & Pending Client Feedback */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                
-                {/* High Risk Candidates Section */}
+              {/* 3-Column Grid for Dashboard Action Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                {/* 1. High Risk Candidates / Counter-Offer Radar Card */}
                 <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-2xs space-y-4 flex flex-col justify-between">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-red-600">
                       <span className="material-symbols-outlined text-[22px]">warning</span>
-                      <h3 className="text-base font-black text-slate-900">High Risk Candidates</h3>
+                      <h3 className="text-base font-black text-slate-900">High Risk Candidates Radar</h3>
                     </div>
-                    {/* Sub-text explanation as requested */}
-                    <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                    <p className="text-xs text-slate-500">
                       Candidates who have accepted the offer letter and are scheduled to join within their notice period.
                     </p>
                   </div>
@@ -527,7 +731,7 @@ export default function CockpitView() {
                   </div>
                 </div>
 
-                {/* Pending Client Feedback Section */}
+                {/* 2. Pending Client Feedback Card */}
                 <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-2xs space-y-4 flex flex-col justify-between">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-amber-600">
@@ -563,22 +767,299 @@ export default function CockpitView() {
                   </div>
                 </div>
 
+                {/* 3. My Action Items Checklist Widget */}
+                <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-2xs space-y-4 flex flex-col justify-between">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-slate-800">
+                      <span className="material-symbols-outlined text-[22px]">checklist</span>
+                      <h3 className="text-base font-black text-slate-900">My Action Items</h3>
+                    </div>
+                    <p className="text-xs text-slate-500">Personal recruiter task checklist & follow-ups</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    {myTasks.map((t) => (
+                      <label key={t.id} className="flex items-center gap-3 p-2 bg-slate-50 rounded-xl cursor-pointer hover:bg-slate-100 text-xs font-semibold">
+                        <input
+                          type="checkbox"
+                          checked={t.done}
+                          onChange={() => {
+                            setMyTasks(myTasks.map((item) => (item.id === t.id ? { ...item, done: !item.done } : item)));
+                          }}
+                          className="h-4 w-4 accent-amber-500 rounded cursor-pointer"
+                        />
+                        <span className={t.done ? "line-through text-slate-400 font-normal" : "text-slate-800"}>
+                          {t.text}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-100 flex justify-between items-center text-xs">
+                    <span className="text-slate-400 font-bold">{myTasks.filter(t => t.done).length} / {myTasks.length} Completed</span>
+                    <button
+                      onClick={() => alert("Task added to your personal action list!")}
+                      className="text-amber-700 font-extrabold hover:underline"
+                    >
+                      + Add Task
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* 4. Today's Interview Schedule List Card */}
+              <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-2xs space-y-4">
+                <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                  <div>
+                    <h3 className="text-base font-black text-slate-900 tracking-tight">Today's Scheduled Interviews (8)</h3>
+                    <p className="text-xs text-slate-500 font-medium">Real-time candidate interview roster & panel feedback status</p>
+                  </div>
+                  <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 font-extrabold text-xs px-3 py-1 rounded-full">
+                    Live Panel Sync Active
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[
+                    { candidate: "Christina Thomas", role: "Frontend Dev", client: "Zylker", time: "10:30 AM", type: "Technical L1 (Google Meet)", status: "Completed" },
+                    { candidate: "Will James", role: "Sr Full Stack Lead", client: "Apex Tech", time: "02:00 PM", type: "System Design (Zoom)", status: "Scheduled" },
+                    { candidate: "Cooper", role: "UI/UX Designer", client: "Design Studio", time: "04:15 PM", type: "Portfolio Review", status: "Scheduled" },
+                    { candidate: "Aron Ramsey", role: "Product Manager", client: "Fintech UK", time: "05:30 PM", type: "Bar Raiser Round", status: "Feedback Pending" },
+                  ].map((int, idx) => (
+                    <div key={idx} className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between text-xs">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-extrabold text-slate-900">{int.candidate}</p>
+                          <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">{int.role}</span>
+                        </div>
+                        <p className="text-slate-500 font-medium">{int.type} • {int.client}</p>
+                        <p className="text-[11px] font-black text-slate-700">⏰ {int.time}</p>
+                      </div>
+
+                      <span className={`px-2.5 py-1 rounded-lg font-black text-[10px] ${
+                        int.status === "Completed"
+                          ? "bg-emerald-100 text-emerald-800"
+                          : int.status === "Scheduled"
+                          ? "bg-sky-100 text-sky-800"
+                          : "bg-amber-100 text-amber-900"
+                      }`}>
+                        {int.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
 
             </div>
           )}
 
           {/* ========================================================================= */}
-          {/* TAB 2: JOBS PAGE (Parent-child flow: Job Openings -> Candidate Directory) */}
+          {/* TAB 2: JOBS PAGE (PARENT-CHILD FLOW + DETAILED CANDIDATE PROFILE) */}
           {/* ========================================================================= */}
           {activeNavTab === "jobs" && !showStorefront && (
             <div className="space-y-6 animate-in fade-in duration-300">
               
-              {selectedJob ? (
-                /* Candidate List View for Specific Job (Matching Image 1) */
+              {/* IF VIEWING FULL CANDIDATE PROFILE SCREEN */}
+              {viewingCandidate ? (
+                <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-md space-y-6 animate-in fade-in">
+                  
+                  {/* Top Bar with Back Button */}
+                  <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+                    <div>
+                      <button
+                        onClick={() => setViewingCandidate(null)}
+                        className="text-xs font-bold text-slate-500 hover:text-slate-900 flex items-center gap-1 mb-2"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+                        <span>Back to Candidate Directory ({selectedJob?.title || "Job Mandate"})</span>
+                      </button>
+                      <h3 className="text-2xl font-black text-slate-900">Candidate Full Profile</h3>
+                      <p className="text-xs text-slate-500">Candidate ID: {viewingCandidate.id} • Applied for {selectedJob?.title || "Software Developer"}</p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      {/* Pipeline Stage Selector */}
+                      <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+                        <span className="text-xs font-black text-slate-700 pl-2">Pipeline Stage:</span>
+                        <select
+                          value={viewingCandidate.status}
+                          onChange={(e) => handleUpdateCandidateStatus(e.target.value)}
+                          className="bg-white border border-slate-200 text-slate-900 font-extrabold text-xs px-3 py-1.5 rounded-lg focus:outline-none focus:border-amber-400 cursor-pointer shadow-xs"
+                        >
+                          <option value="Applied">Applied</option>
+                          <option value="Screening">Screening</option>
+                          <option value="Interview">Interview</option>
+                          <option value="Offer">Offer</option>
+                          <option value="Joining">Joining</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Candidate Header Profile Card */}
+                  <div className="bg-gradient-to-r from-[#0F172A] to-slate-900 text-white rounded-2xl p-6 flex flex-col md:flex-row items-center gap-6 shadow-lg">
+                    
+                    {/* Photo with Change Photo Upload Feature */}
+                    <div className="relative group flex-shrink-0">
+                      <div className="h-24 w-24 rounded-2xl bg-amber-400 text-[#0F172A] flex items-center justify-center font-black text-3xl overflow-hidden border-2 border-white shadow-md">
+                        {viewingCandidate.photoUrl ? (
+                          <img src={viewingCandidate.photoUrl} alt={viewingCandidate.name} className="h-full w-full object-cover" />
+                        ) : (
+                          <span>{viewingCandidate.name.slice(0, 2).toUpperCase()}</span>
+                        )}
+                      </div>
+                      
+                      {/* Upload/Change Photo Button Overlay */}
+                      <label className="absolute inset-0 bg-black/60 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white cursor-pointer">
+                        <span className="material-symbols-outlined text-[20px]">photo_camera</span>
+                        <span className="text-[9px] font-bold">Change</span>
+                        <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+                      </label>
+                    </div>
+
+                    {/* Basic Info */}
+                    <div className="space-y-1 text-center md:text-left flex-1">
+                      <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
+                        <h4 className="text-2xl font-black">{viewingCandidate.name}</h4>
+                        <span className="bg-[#FFD400] text-[#0F172A] font-extrabold text-[10px] px-2.5 py-0.5 rounded-full">
+                          {viewingCandidate.rating}
+                        </span>
+                      </div>
+                      <p className="text-xs font-bold text-amber-400">{viewingCandidate.designation} • {viewingCandidate.currentCompany}</p>
+                      <p className="text-xs text-slate-300 font-mono">📧 {viewingCandidate.email} | 📞 {viewingCandidate.phone}</p>
+                    </div>
+
+                    {/* Quick Specs */}
+                    <div className="grid grid-cols-2 gap-3 text-xs border-t md:border-t-0 md:border-l border-slate-800 pt-4 md:pt-0 md:pl-6 text-slate-300">
+                      <div>
+                        <span className="text-[10px] text-slate-400 uppercase font-bold block">Total Experience</span>
+                        <span className="font-black text-white">{viewingCandidate.experience}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 uppercase font-bold block">Notice Period</span>
+                        <span className="font-black text-amber-400">{viewingCandidate.noticePeriod}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 uppercase font-bold block">Expected CTC</span>
+                        <span className="font-black text-emerald-400">{viewingCandidate.expectedCtc}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 uppercase font-bold block">Pipeline Stage</span>
+                        <span className="font-black text-purple-300">{viewingCandidate.status}</span>
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* Profile Detail Navigation Tabs */}
+                  <div className="flex border-b border-slate-200 gap-6 text-xs font-black">
+                    {[
+                      { id: "resume", label: "Resume & Documents", icon: "description" },
+                      { id: "skills", label: "Skill Set & Competencies", icon: "psychology" },
+                      { id: "experience", label: "Work Experience & History", icon: "history" },
+                      { id: "notes", label: "Recruiter Assessment Notes", icon: "notes" },
+                      { id: "timeline", label: "Recruitment Pipeline Timeline", icon: "account_tree" },
+                    ].map((t) => (
+                      <button
+                        key={t.id}
+                        onClick={() => setActiveProfileTab(t.id)}
+                        className={`pb-3 flex items-center gap-1.5 transition-all cursor-pointer ${
+                          activeProfileTab === t.id
+                            ? "border-b-2 border-amber-500 text-amber-800"
+                            : "text-slate-500 hover:text-slate-900"
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-[18px]">{t.icon}</span>
+                        <span>{t.label}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Profile Tab Contents */}
+                  {activeProfileTab === "resume" && (
+                    <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl space-y-4 text-xs">
+                      <div className="flex justify-between items-center border-b border-slate-200 pb-3">
+                        <div className="flex items-center gap-3">
+                          <span className="material-symbols-outlined text-red-600 text-[28px]">picture_as_pdf</span>
+                          <div>
+                            <p className="font-black text-slate-900 text-sm">{viewingCandidate.resumeFileName}</p>
+                            <p className="text-slate-500 text-[11px]">PDF Document • Verified Parsing</p>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => alert(`Downloading CV file: ${viewingCandidate.resumeFileName}`)}
+                            className="bg-[#0F172A] text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1 hover:bg-slate-800 cursor-pointer"
+                          >
+                            <span className="material-symbols-outlined text-[16px]">download</span>
+                            <span>Download CV</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="p-8 bg-white border border-slate-200 rounded-xl text-center space-y-3 shadow-2xs">
+                        <span className="material-symbols-outlined text-[48px] text-slate-400">description</span>
+                        <p className="font-black text-slate-800 text-sm">Resume Preview Window Active</p>
+                        <p className="text-slate-500 text-xs max-w-md mx-auto">
+                          Candidate resume parsed and stored cleanly. Contains verified experience, tech skills, and employment timeline.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {activeProfileTab === "skills" && (
+                    <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl space-y-3 text-xs">
+                      <h4 className="font-black text-slate-900 text-sm">Extracted Technical Competencies</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {viewingCandidate.skills.split(",").map((sk: string, idx: number) => (
+                          <span key={idx} className="bg-amber-100 text-amber-900 border border-amber-300 font-extrabold px-3 py-1.5 rounded-xl shadow-2xs">
+                            ⚡ {sk.trim()}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {activeProfileTab === "notes" && (
+                    <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl space-y-4 text-xs">
+                      <h4 className="font-black text-slate-900 text-sm">Recruiter Notes & Feedback History</h4>
+                      <div className="p-4 bg-white border border-slate-200 rounded-xl space-y-1">
+                        <p className="font-extrabold text-slate-900">Initial Assessment by Divyanshu (Recruiter Lead)</p>
+                        <p className="text-slate-600">{viewingCandidate.notes || "Candidate profile verified. Communication and technical skills match mandate specifications."}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {activeProfileTab === "timeline" && (
+                    <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl space-y-4 text-xs">
+                      <h4 className="font-black text-slate-900 text-sm">Recruitment Stage Progress</h4>
+                      <div className="flex items-center justify-between border-t border-slate-200 pt-6">
+                        {["Applied", "Screening", "Interview", "Offer", "Joining"].map((stg, i) => {
+                          const stages = ["Applied", "Screening", "Interview", "Offer", "Joining"];
+                          const currentIdx = stages.indexOf(viewingCandidate.status);
+                          const isDone = i <= currentIdx;
+                          return (
+                            <div key={i} className="flex flex-col items-center space-y-1">
+                              <div className={`h-8 w-8 rounded-full flex items-center justify-center font-black text-xs ${
+                                isDone ? "bg-emerald-600 text-white" : "bg-slate-200 text-slate-500"
+                              }`}>
+                                {i + 1}
+                              </div>
+                              <span className={`font-bold ${isDone ? "text-emerald-800" : "text-slate-400"}`}>{stg}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                </div>
+              ) : selectedJob ? (
+                /* Candidate List View for Specific Job */
                 <div className="space-y-6">
                   
-                  {/* Top Bar with Job Title and + Add New Candidate Button */}
                   <div className="flex justify-between items-center bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
                     <div>
                       <button
@@ -592,9 +1073,12 @@ export default function CockpitView() {
                       <p className="text-xs text-slate-500">Job ID: {selectedJob.id} • Client: {selectedJob.client}</p>
                     </div>
 
-                    {/* + Add New Candidate Button (Located on candidate view page) */}
+                    {/* + Add New Candidate Button */}
                     <button
-                      onClick={() => setAddCandidateModalOpen(true)}
+                      onClick={() => {
+                        setDuplicateWarning(null);
+                        setAddCandidateModalOpen(true);
+                      }}
                       className="bg-[#FFD400] text-[#0F172A] font-black px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-md hover:brightness-105 active:scale-95 transition-all cursor-pointer"
                     >
                       <span className="material-symbols-outlined text-[18px]">person_add</span>
@@ -637,16 +1121,23 @@ export default function CockpitView() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                          {[
-                            { name: "Christina Thomas", email: "christina@prmail.com", status: "New", rating: "3.0 ⭐", skills: "Writing, Social Media, Marketing" },
-                            { name: "Will James", email: "willjames@icloud.com", status: "Interview-Scheduled", rating: "5.0 ⭐", skills: "React, Node.js, TypeScript" },
-                            { name: "Cooper", email: "cooper@yymail.com", status: "Associated", rating: "5.0 ⭐", skills: "UI/UX, Figma, Tailwind" },
-                            { name: "Aron Ramsey", email: "aron@icloud.com", status: "Interview-Scheduled", rating: "5.0 ⭐", skills: "Product Strategy, Analytics" },
-                            { name: "Satish Chauhan", email: "satish@gmail.com", status: "Associated", rating: "4.0 ⭐", skills: "Cold Calling, B2B Sales" },
-                          ].map((cand, idx) => (
-                            <tr key={idx} className="hover:bg-slate-50">
+                          {jobCandidates.map((cand, idx) => (
+                            <tr
+                              key={cand.id || idx}
+                              onClick={() => setViewingCandidate(cand)}
+                              className="hover:bg-amber-50/60 cursor-pointer transition-colors group"
+                            >
                               <td className="p-3 font-extrabold text-amber-600">{cand.rating}</td>
-                              <td className="p-3 font-extrabold text-slate-900">{cand.name}</td>
+                              <td className="p-3 font-extrabold text-slate-900 group-hover:text-amber-700 flex items-center gap-2">
+                                <div className="h-6 w-6 rounded-full bg-[#0F172A] text-[#FFD400] flex items-center justify-center text-[10px] font-black overflow-hidden">
+                                  {cand.photoUrl ? (
+                                    <img src={cand.photoUrl} alt={cand.name} className="h-full w-full object-cover" />
+                                  ) : (
+                                    cand.name.slice(0, 2).toUpperCase()
+                                  )}
+                                </div>
+                                <span>{cand.name}</span>
+                              </td>
                               <td className="p-3 font-mono text-slate-600">{cand.email}</td>
                               <td className="p-3 font-bold text-sky-700">
                                 <span className="bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-full">{cand.status}</span>
@@ -660,7 +1151,7 @@ export default function CockpitView() {
                   </div>
                 </div>
               ) : (
-                /* Job Openings Directory View (Matching Image 2) */
+                /* Job Openings Directory View */
                 <div className="space-y-6">
                   <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs flex justify-between items-center">
                     <div>
@@ -684,14 +1175,6 @@ export default function CockpitView() {
                           <input type="checkbox" className="rounded text-[#0F172A]" />
                           <span>Job ID</span>
                         </label>
-                        <label className="flex items-center gap-2 font-semibold cursor-pointer">
-                          <input type="checkbox" className="rounded text-[#0F172A]" />
-                          <span>Job Opening Status</span>
-                        </label>
-                        <label className="flex items-center gap-2 font-semibold cursor-pointer">
-                          <input type="checkbox" className="rounded text-[#0F172A]" />
-                          <span>Client Name</span>
-                        </label>
                       </div>
                     </div>
 
@@ -708,11 +1191,10 @@ export default function CockpitView() {
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                           {[
-                            { id: "ZR_97_JOB", title: "Software Developer", status: "In-progress", count: 12, client: "Zylker" },
+                            { id: "ZR_97_JOB", title: "Software Developer", status: "In-progress", count: jobCandidates.length, client: "Zylker" },
                             { id: "ZR_95_JOB", title: "Accountant", status: "Lost To Competitor", count: 2, client: "Zylker" },
                             { id: "ZR_94_JOB", title: "Marketing Manager", status: "In-progress", count: 6, client: "Zylker" },
                             { id: "ZR_89_JOB", title: "Software Engineer", status: "In-progress", count: 8, client: "Pinnacle" },
-                            { id: "ZR_88_JOB", title: "Sales Executive", status: "Submitted by client", count: 11, client: "Avon Products Inc" },
                           ].map((job, idx) => (
                             <tr
                               key={idx}
@@ -742,7 +1224,6 @@ export default function CockpitView() {
           {activeNavTab === "open_mandates" && !showStorefront && (
             <div className="space-y-6 animate-in fade-in duration-300">
               
-              {/* Header */}
               <div className="flex justify-between items-center bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
                 <div>
                   <h2 className="text-2xl font-black text-slate-900">Open Mandates</h2>
@@ -758,7 +1239,6 @@ export default function CockpitView() {
                 </button>
               </div>
 
-              {/* Mandate Details View if Selected */}
               {selectedMandate ? (
                 <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-md space-y-6">
                   <div className="flex justify-between items-center border-b border-slate-100 pb-4">
@@ -774,7 +1254,6 @@ export default function CockpitView() {
                       <p className="text-xs font-bold text-amber-700">{selectedMandate.industry}</p>
                     </div>
 
-                    {/* Status & Priority Badges */}
                     <div className="flex items-center gap-2">
                       <span className={`font-black text-xs px-3 py-1 rounded-full border ${
                         selectedMandate.status === "Active Sourcing"
@@ -791,7 +1270,6 @@ export default function CockpitView() {
                     </div>
                   </div>
 
-                  {/* Mandate Request Source Banner */}
                   <div className="p-4 bg-slate-900 text-white rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <div>
                       <span className="text-[10px] font-black text-[#FFD400] uppercase tracking-wider block">
@@ -813,7 +1291,6 @@ export default function CockpitView() {
                     )}
                   </div>
 
-                  {/* Admin Negotiation Comment Warning Banner if Present */}
                   {selectedMandate.negotiationComment && (
                     <div className="p-4 bg-amber-50 border border-amber-300 text-amber-900 rounded-2xl space-y-1">
                       <p className="font-black text-xs flex items-center gap-1.5">
@@ -824,7 +1301,6 @@ export default function CockpitView() {
                     </div>
                   )}
 
-                  {/* 8 Required Mandate Details Fields */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                     <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
                       <span className="font-extrabold text-slate-500 uppercase text-[10px] block">1. Company Details</span>
@@ -868,7 +1344,6 @@ export default function CockpitView() {
                     </div>
                   </div>
 
-                  {/* Actions: Accept & Assign Recruiter / Reject & Send to BD */}
                   <div className="pt-4 border-t border-slate-200 flex flex-wrap justify-end gap-3">
                     <button
                       onClick={() => setShowRejectModal(true)}
@@ -889,7 +1364,6 @@ export default function CockpitView() {
 
                 </div>
               ) : (
-                /* Open Mandates Directory List */
                 <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs space-y-3">
                   <table className="w-full text-left text-xs text-slate-700">
                     <thead>
@@ -912,8 +1386,6 @@ export default function CockpitView() {
                         >
                           <td className="p-3 font-extrabold text-slate-900 group-hover:text-amber-700">{man.companyName}</td>
                           <td className="p-3 font-bold text-slate-800">{man.position}</td>
-
-                          {/* Source Column */}
                           <td className="p-3">
                             <span className={`font-bold text-[10px] px-2.5 py-1 rounded-full border flex items-center gap-1 w-fit ${
                               man.source?.includes("Website")
@@ -926,10 +1398,7 @@ export default function CockpitView() {
                               <span>{man.source?.includes("Website") ? "Storefront Website" : "BD Sales Team"}</span>
                             </span>
                           </td>
-
                           <td className="p-3 text-center font-black text-amber-600">{man.openings}</td>
-
-                          {/* Status Column */}
                           <td className="p-3">
                             <span className={`font-bold text-[10px] px-2.5 py-0.5 rounded-full border ${
                               man.status === "Active Sourcing"
@@ -941,7 +1410,6 @@ export default function CockpitView() {
                               {man.status || "Pending Review"}
                             </span>
                           </td>
-
                           <td className="p-3">
                             <span className="bg-red-100 text-red-800 font-bold text-[10px] px-2 py-0.5 rounded-full border border-red-200">
                               {man.priority}
@@ -959,7 +1427,7 @@ export default function CockpitView() {
           )}
 
           {/* ========================================================================= */}
-          {/* TAB 4: ACTIVE MANDATES (RENAMED FROM NEW MANDATES) */}
+          {/* TAB 4: ACTIVE MANDATES */}
           {/* ========================================================================= */}
           {activeNavTab === "active_mandates" && !showStorefront && (
             <div className="space-y-6 animate-in fade-in duration-300">
@@ -1015,7 +1483,7 @@ export default function CockpitView() {
           )}
 
           {/* ========================================================================= */}
-          {/* TAB 5: CUSTOMIZED WEBSITE (AGENCY STOREFRONT BUILDER FEATURE) */}
+          {/* TAB 5: CUSTOMIZED WEBSITE */}
           {/* ========================================================================= */}
           {activeNavTab === "customized_website" && !showStorefront && (
             <div className="space-y-6 animate-in fade-in duration-300">
@@ -1042,10 +1510,8 @@ export default function CockpitView() {
                 </div>
               )}
 
-              {/* Customizer Form */}
               <form onSubmit={handleSaveWebsiteConfig} className="bg-white border border-slate-200 rounded-3xl p-6 shadow-2xs space-y-6 text-xs">
                 
-                {/* 1. Branding Header */}
                 <div className="space-y-3 border-b border-slate-100 pb-5">
                   <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                     <span className="material-symbols-outlined text-amber-600">badge</span>
@@ -1072,19 +1538,8 @@ export default function CockpitView() {
                       />
                     </div>
                   </div>
-
-                  <div>
-                    <label className="font-extrabold text-slate-700 block mb-1">Hero Subtitle Paragraph *</label>
-                    <textarea
-                      rows={2}
-                      value={websiteConfig.heroSubtitle}
-                      onChange={(e) => setWebsiteConfig({ ...websiteConfig, heroSubtitle: e.target.value })}
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:outline-none focus:border-amber-400"
-                    />
-                  </div>
                 </div>
 
-                {/* 2. Contact Information Specs */}
                 <div className="space-y-3 border-b border-slate-100 pb-5">
                   <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                     <span className="material-symbols-outlined text-amber-600">call</span>
@@ -1111,66 +1566,6 @@ export default function CockpitView() {
                       />
                     </div>
                   </div>
-
-                  <div>
-                    <label className="font-extrabold text-slate-700 block mb-1">Headquarters Address *</label>
-                    <input
-                      type="text"
-                      value={websiteConfig.hqAddress}
-                      onChange={(e) => setWebsiteConfig({ ...websiteConfig, hqAddress: e.target.value })}
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:outline-none focus:border-amber-400"
-                    />
-                  </div>
-                </div>
-
-                {/* 3. Practice Sectors Toggles */}
-                <div className="space-y-3">
-                  <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                    <span className="material-symbols-outlined text-amber-600">category</span>
-                    <span>3. Enable/Disable Practice Sector Cards</span>
-                  </h3>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-slate-700 font-bold">
-                    <label className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={websiteConfig.enableFinancial}
-                        onChange={(e) => setWebsiteConfig({ ...websiteConfig, enableFinancial: e.target.checked })}
-                        className="rounded text-[#0F172A]"
-                      />
-                      <span>Financial Services</span>
-                    </label>
-
-                    <label className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={websiteConfig.enableTech}
-                        onChange={(e) => setWebsiteConfig({ ...websiteConfig, enableTech: e.target.checked })}
-                        className="rounded text-[#0F172A]"
-                      />
-                      <span>Technology & AI</span>
-                    </label>
-
-                    <label className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={websiteConfig.enableStrategy}
-                        onChange={(e) => setWebsiteConfig({ ...websiteConfig, enableStrategy: e.target.checked })}
-                        className="rounded text-[#0F172A]"
-                      />
-                      <span>Strategy & Infra</span>
-                    </label>
-
-                    <label className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={websiteConfig.enableLifeSciences}
-                        onChange={(e) => setWebsiteConfig({ ...websiteConfig, enableLifeSciences: e.target.checked })}
-                        className="rounded text-[#0F172A]"
-                      />
-                      <span>Life Sciences</span>
-                    </label>
-                  </div>
                 </div>
 
                 <div className="pt-3">
@@ -1191,8 +1586,186 @@ export default function CockpitView() {
       </main>
 
       {/* ========================================================================= */}
-      {/* 3. ACCEPT MANDATE MODAL (ASSIGN RECRUITER & BD + EMAIL NOTICE) */}
+      {/* 3. MODAL: + ADD NEW CANDIDATE WITH RESUME PARSING & DUPLICATE CHECK */}
       {/* ========================================================================= */}
+      {addCandidateModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 w-full max-w-xl shadow-2xl space-y-5 text-slate-900 max-h-[90vh] overflow-y-auto">
+            
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <div>
+                <h4 className="font-black text-base text-[#0F172A] tracking-tight flex items-center gap-2">
+                  <span className="material-symbols-outlined text-amber-500">person_add</span>
+                  <span>Add Candidate to {selectedJob?.title || "Job Mandate"}</span>
+                </h4>
+                <p className="text-[11px] text-slate-500">Upload resume for automated parsing & duplicate verification</p>
+              </div>
+              <button
+                onClick={() => setAddCandidateModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-700"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            {/* Resume Upload & Sample Auto-Parse Dropzone */}
+            <div className="p-4 bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl space-y-3 text-center">
+              <div className="flex justify-center items-center gap-2">
+                <span className="material-symbols-outlined text-[32px] text-amber-600">upload_file</span>
+              </div>
+              <div>
+                <p className="font-black text-slate-900 text-xs">Drag & drop candidate CV (PDF / DOCX)</p>
+                <p className="text-[10px] text-slate-500">Automated AI Resume Parser extracts skills, experience & specs</p>
+              </div>
+
+              {/* Quick Sample Resume Parse Action */}
+              <button
+                type="button"
+                onClick={handleTriggerAutoParseSample}
+                disabled={isParsingResume}
+                className="bg-amber-400 text-[#0F172A] font-black px-4 py-2 rounded-xl text-xs shadow-xs hover:brightness-105 transition-all cursor-pointer inline-flex items-center gap-1.5"
+              >
+                <span className="material-symbols-outlined text-[16px]">bolt</span>
+                <span>{isParsingResume ? "Parsing Resume..." : "⚡ Auto-Parse Sample CV (Rohan Sharma)"}</span>
+              </button>
+            </div>
+
+            {/* Duplicate Candidate Warning Banner if Match Found */}
+            {duplicateWarning && (
+              <div className="p-3.5 bg-red-50 border-2 border-red-300 text-red-900 rounded-2xl text-xs space-y-1 animate-in fade-in">
+                <div className="flex items-center gap-2 font-black">
+                  <span className="material-symbols-outlined text-red-600 text-[20px]">warning</span>
+                  <span>DUPLICATE CANDIDATE DETECTED</span>
+                </div>
+                <p className="text-[11px] font-semibold pl-7">{duplicateWarning}</p>
+              </div>
+            )}
+
+            {/* Candidate Intake Form */}
+            <form onSubmit={handleAddCandidateSubmit} className="space-y-4 text-xs">
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-extrabold text-slate-700 block mb-1">Full Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Rohan Sharma"
+                    value={newCandidateForm.name}
+                    onChange={(e) => {
+                      setNewCandidateForm({ ...newCandidateForm, name: e.target.value });
+                      checkForDuplicates(newCandidateForm.email, e.target.value);
+                    }}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-extrabold text-slate-700 block mb-1">Email Address *</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="e.g. rohan@techcorp.com"
+                    value={newCandidateForm.email}
+                    onChange={(e) => {
+                      setNewCandidateForm({ ...newCandidateForm, email: e.target.value });
+                      checkForDuplicates(e.target.value, newCandidateForm.name);
+                    }}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-extrabold text-slate-700 block mb-1">Mobile Number *</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. +91 98765 43210"
+                    value={newCandidateForm.phone}
+                    onChange={(e) => setNewCandidateForm({ ...newCandidateForm, phone: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-extrabold text-slate-700 block mb-1">Current Company & Role</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Cognizant (Senior Developer)"
+                    value={newCandidateForm.currentCompany}
+                    onChange={(e) => setNewCandidateForm({ ...newCandidateForm, currentCompany: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="font-extrabold text-slate-700 block mb-1">Total Experience</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 5.5 Years"
+                    value={newCandidateForm.experience}
+                    onChange={(e) => setNewCandidateForm({ ...newCandidateForm, experience: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-extrabold text-slate-700 block mb-1">Notice Period</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 30 Days"
+                    value={newCandidateForm.noticePeriod}
+                    onChange={(e) => setNewCandidateForm({ ...newCandidateForm, noticePeriod: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-extrabold text-slate-700 block mb-1">Expected Salary</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. $95,000 / Year"
+                    value={newCandidateForm.expectedCtc}
+                    onChange={(e) => setNewCandidateForm({ ...newCandidateForm, expectedCtc: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="font-extrabold text-slate-700 block mb-1">Skill Set Competencies</label>
+                <input
+                  type="text"
+                  placeholder="e.g. React, Node.js, TypeScript, Next.js, AWS"
+                  value={newCandidateForm.skills}
+                  onChange={(e) => setNewCandidateForm({ ...newCandidateForm, skills: e.target.value })}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:outline-none focus:border-amber-400"
+                />
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={!!duplicateWarning}
+                  className={`w-full py-3 font-black text-xs rounded-xl shadow-md transition-all cursor-pointer ${
+                    duplicateWarning
+                      ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                      : "bg-[#0F172A] text-white hover:bg-slate-800"
+                  }`}
+                >
+                  {duplicateWarning ? "⚠️ Cannot Submit Duplicate Candidate" : "Confirm Candidate Intake"}
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Accept Mandate Modal */}
       {showAcceptModal && selectedMandate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white border border-slate-200 rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4 text-slate-900">
@@ -1211,8 +1784,6 @@ export default function CockpitView() {
             </div>
 
             <form onSubmit={handleAcceptMandateSubmit} className="space-y-4 text-xs">
-              
-              {/* Recruiter Selector */}
               <div>
                 <label className="font-extrabold text-slate-700 block mb-1">Assign Recruiter *</label>
                 <select
@@ -1226,7 +1797,6 @@ export default function CockpitView() {
                 </select>
               </div>
 
-              {/* BD Selector if Online Storefront */}
               {selectedMandate.source?.includes("Website") && (
                 <div>
                   <label className="font-extrabold text-slate-700 block mb-1">
@@ -1243,16 +1813,6 @@ export default function CockpitView() {
                 </div>
               )}
 
-              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 text-[11px]">
-                <p className="font-bold flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[16px] text-emerald-700">mark_email_read</span>
-                  <span>Automated Notification Trigger</span>
-                </p>
-                <p className="text-emerald-700 mt-0.5">
-                  Submitting will automatically send an assignment email to BD Team & Recruiter.
-                </p>
-              </div>
-
               <div className="pt-2">
                 <button
                   type="submit"
@@ -1261,19 +1821,15 @@ export default function CockpitView() {
                   Confirm Acceptance & Dispatch Email
                 </button>
               </div>
-
             </form>
           </div>
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* 4. REJECT / NEGOTIATE MANDATE MODAL (ADMIN COMMENTS TO BD TEAM) */}
-      {/* ========================================================================= */}
+      {/* Reject Mandate Modal */}
       {showRejectModal && selectedMandate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white border border-slate-200 rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4 text-slate-900">
-            
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
               <div>
                 <h4 className="font-black text-base text-amber-900 tracking-tight flex items-center gap-1.5">
@@ -1288,7 +1844,6 @@ export default function CockpitView() {
             </div>
 
             <form onSubmit={handleRejectMandateSubmit} className="space-y-4 text-xs">
-              
               <div>
                 <label className="font-extrabold text-slate-700 block mb-1">
                   Admin Feedback & Negotiation Instructions for BD Team *
@@ -1303,16 +1858,6 @@ export default function CockpitView() {
                 />
               </div>
 
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-[11px]">
-                <p className="font-bold flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[16px] text-amber-700">swap_horizontal_circle</span>
-                  <span>Route Back to BD Sales Queue</span>
-                </p>
-                <p className="text-amber-800 mt-0.5">
-                  This mandate will be marked as Needs Negotiation and sent back to the BD Sales Representative.
-                </p>
-              </div>
-
               <div className="pt-2">
                 <button
                   type="submit"
@@ -1321,7 +1866,6 @@ export default function CockpitView() {
                   Send Back to BD Team
                 </button>
               </div>
-
             </form>
           </div>
         </div>
@@ -1341,7 +1885,7 @@ export default function CockpitView() {
 
               <div className="text-center space-y-2">
                 <div className="h-16 w-16 mx-auto rounded-2xl bg-[#0F172A] text-[#FFD400] flex items-center justify-center font-black text-xl shadow-md">
-                  DS
+                  D
                 </div>
                 <div>
                   <h4 className="font-black text-base text-slate-900">Divyanshu</h4>
@@ -1364,36 +1908,41 @@ export default function CockpitView() {
       {/* High Risk Candidates Modal */}
       {showHighRiskModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 w-full max-w-2xl shadow-2xl space-y-4 text-slate-900">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 w-full max-w-lg shadow-2xl space-y-4 text-slate-900">
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-              <div>
-                <h4 className="font-black text-base text-red-900 flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-red-600">warning</span>
-                  <span>High Risk Candidates Radar</span>
-                </h4>
-                <p className="text-[11px] text-slate-500">Candidates with accepted offers currently serving notice periods</p>
+              <div className="flex items-center gap-2 text-red-600">
+                <span className="material-symbols-outlined text-[24px]">warning</span>
+                <h4 className="font-black text-base tracking-tight">High Risk Candidates Radar (Detail View)</h4>
               </div>
               <button onClick={() => setShowHighRiskModal(false)} className="text-slate-400 hover:text-slate-700">
                 <span className="material-symbols-outlined text-[20px]">close</span>
               </button>
             </div>
 
-            <div className="space-y-3 text-xs">
+            <div className="space-y-3 text-xs max-h-[60vh] overflow-y-auto">
               {[
-                { name: "Rahul Verma", role: "DevOps Engineer", client: "Apex Tech", notice: "45 Days Notice", status: "High Risk (Counter-offer)" },
-                { name: "Ananya Sen", role: "UI/UX Lead", client: "Global Freight", notice: "30 Days Notice", status: "Stagnant (No Update)" },
-                { name: "Siddharth Rao", role: "Full Stack Lead", client: "Horizon Labs", notice: "60 Days Notice", status: "Offer Buyout Delay" },
-              ].map((c, idx) => (
-                <div key={idx} className="p-3.5 bg-red-50/70 border border-red-200 rounded-2xl flex items-center justify-between">
-                  <div>
-                    <p className="font-extrabold text-slate-900">{c.name} - <span className="text-slate-600">{c.role}</span></p>
-                    <p className="text-[10px] text-red-800 font-bold">{c.client} • {c.notice} • {c.status}</p>
+                { name: "Rahul Verma", role: "DevOps Engineer", notice: "45 Days Notice", client: "Apex Tech", risk: "High Counter-offer Risk from current employer" },
+                { name: "Ananya Sen", role: "UI/UX Lead", notice: "30 Days Notice", client: "Zylker", risk: "Notice Period Stagnation - SLA Follow-up required" },
+                { name: "Siddharth Rao", role: "Backend Developer", notice: "60 Days Notice", client: "Global Freight", risk: "Relocation delay risk" },
+              ].map((cand, i) => (
+                <div key={i} className="p-4 bg-red-50/60 border border-red-200 rounded-2xl space-y-1">
+                  <div className="flex justify-between items-center">
+                    <p className="font-extrabold text-slate-900 text-sm">{cand.name} ({cand.role})</p>
+                    <span className="bg-red-600 text-white font-black text-[10px] px-2 py-0.5 rounded-full">{cand.notice}</span>
                   </div>
-                  <button onClick={() => alert(`Triggering check-in call with ${c.name}`)} className="bg-red-600 text-white font-black text-[10px] px-3 py-1.5 rounded-xl cursor-pointer">
-                    Check-in
-                  </button>
+                  <p className="text-slate-600 font-bold">Mandate Client: {cand.client}</p>
+                  <p className="text-red-700 font-semibold">Risk Factor: {cand.risk}</p>
                 </div>
               ))}
+            </div>
+
+            <div className="pt-2 border-t border-slate-100 flex justify-end">
+              <button
+                onClick={() => setShowHighRiskModal(false)}
+                className="px-4 py-2 bg-[#0F172A] text-white font-bold text-xs rounded-xl hover:bg-slate-800 cursor-pointer"
+              >
+                Close Radar
+              </button>
             </div>
           </div>
         </div>
@@ -1402,36 +1951,46 @@ export default function CockpitView() {
       {/* Pending Client Feedback Modal */}
       {showFeedbackModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 w-full max-w-2xl shadow-2xl space-y-4 text-slate-900">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 w-full max-w-lg shadow-2xl space-y-4 text-slate-900">
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-              <div>
-                <h4 className="font-black text-base text-amber-900 flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-amber-600">schedule</span>
-                  <span>Pending Client Feedback Tracker</span>
-                </h4>
-                <p className="text-[11px] text-slate-500">Submissions pending review past 48h SLA</p>
+              <div className="flex items-center gap-2 text-amber-600">
+                <span className="material-symbols-outlined text-[24px]">schedule</span>
+                <h4 className="font-black text-base tracking-tight">Pending Client Feedback (SLA Radar)</h4>
               </div>
               <button onClick={() => setShowFeedbackModal(false)} className="text-slate-400 hover:text-slate-700">
                 <span className="material-symbols-outlined text-[20px]">close</span>
               </button>
             </div>
 
-            <div className="space-y-3 text-xs">
+            <div className="space-y-3 text-xs max-h-[60vh] overflow-y-auto">
               {[
-                { client: "Apex Tech Corp", candidate: "Vikram Malhotra", role: "Lead Architect", overdue: "54 Hours Overdue" },
-                { client: "Global Freight Ltd", candidate: "Neha Sharma", role: "DevOps Engineer", overdue: "49 Hours Overdue" },
-                { client: "Pinnacle Systems", candidate: "Karan Johar", role: "Product Manager", overdue: "72 Hours Overdue" },
-              ].map((fb, idx) => (
-                <div key={idx} className="p-3.5 bg-amber-50/70 border border-amber-200 rounded-2xl flex items-center justify-between">
+                { client: "Apex Tech Corp", candidate: "Vikram Malhotra", hours: "54h SLA Overdue", contact: "Sarah VP HR" },
+                { client: "Global Freight Ltd", candidate: "Neha Sharma", hours: "49h SLA Overdue", contact: "Mohammed Al-Rashid" },
+                { client: "Horizon Labs", candidate: "Karan Patel", hours: "51h SLA Overdue", contact: "Dr. Elena Rostova" },
+              ].map((fb, i) => (
+                <div key={i} className="p-4 bg-amber-50/60 border border-amber-200 rounded-2xl space-y-1 flex justify-between items-center">
                   <div>
-                    <p className="font-extrabold text-slate-900">{fb.client} - <span className="text-[#0F172A] font-black">{fb.candidate}</span></p>
-                    <p className="text-[10px] text-amber-800 font-bold">Role: {fb.role} • {fb.overdue}</p>
+                    <p className="font-extrabold text-slate-900 text-sm">{fb.client}</p>
+                    <p className="text-slate-600 font-bold">Submitted Candidate: {fb.candidate}</p>
+                    <p className="text-amber-800 font-black">SLA Aging: {fb.hours}</p>
                   </div>
-                  <button onClick={() => alert(`Automated reminder email dispatched to HR at ${fb.client}`)} className="bg-amber-500 text-slate-950 font-black text-[10px] px-3 py-1.5 rounded-xl cursor-pointer">
-                    Ping HR
+                  <button
+                    onClick={() => alert(`Automated SLA Ping Email Sent to Client contact: ${fb.client}`)}
+                    className="bg-amber-500 text-slate-950 font-black text-xs px-3 py-2 rounded-xl shadow-xs hover:brightness-105 cursor-pointer"
+                  >
+                    Ping Client
                   </button>
                 </div>
               ))}
+            </div>
+
+            <div className="pt-2 border-t border-slate-100 flex justify-end">
+              <button
+                onClick={() => setShowFeedbackModal(false)}
+                className="px-4 py-2 bg-[#0F172A] text-white font-bold text-xs rounded-xl hover:bg-slate-800 cursor-pointer"
+              >
+                Close Feedback Radar
+              </button>
             </div>
           </div>
         </div>
