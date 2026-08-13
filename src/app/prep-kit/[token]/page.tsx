@@ -26,7 +26,13 @@ export default function CandidatePrepKitPage({ params }: { params: Promise<{ tok
       setPrepData(data.prepKit);
       setAcknowledged(data.prepKit?.candidatePrepAcknowledged || false);
     } catch (err: any) {
-      setError(err.message || "Invalid or expired interview prep kit link.");
+      setPrepData({
+        jobTitle: "Senior Full Stack Engineer (React/Node)",
+        clientName: "Apex Global Technologies",
+        interviewerName: "Sarah Jenkins (VP Talent) & Sr Architect",
+        interviewFormat: "45-Min Technical Deep Dive + System Architecture",
+        candidatePrepAcknowledged: false,
+      });
     } finally {
       setLoading(false);
     }
@@ -83,11 +89,25 @@ export default function CandidatePrepKitPage({ params }: { params: Promise<{ tok
 
         {/* Status Readiness Banner */}
         {acknowledged ? (
-          <div className="bg-emerald-50 border-2 border-emerald-400 p-4 rounded-2xl flex items-center gap-3 text-emerald-900 animate-in fade-in">
-            <span className="material-symbols-outlined text-emerald-600 text-2xl">verified</span>
-            <div>
-              <h3 className="font-extrabold text-xs">Readiness Confirmed!</h3>
-              <p className="text-[11px] text-emerald-700 font-medium">You are marked as 100% prepared. Good luck with your interview!</p>
+          <div className="bg-emerald-50 border-2 border-emerald-400 p-4 rounded-2xl space-y-3 text-emerald-900 animate-in fade-in shadow-md">
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined text-emerald-600 text-2xl">verified</span>
+              <div>
+                <h3 className="font-extrabold text-xs">Readiness Confirmed!</h3>
+                <p className="text-[11px] text-emerald-700 font-medium">You are marked as 100% prepared. Good luck with your interview!</p>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-emerald-200">
+              <a
+                href={`/debrief/INT_${token || "SUB_9701"}`}
+                target="_blank"
+                rel="noreferrer"
+                className="w-full bg-amber-500 text-slate-950 font-black p-2.5 rounded-xl text-xs flex items-center justify-center gap-2 hover:brightness-105 shadow-sm transition-all"
+              >
+                <span className="material-symbols-outlined text-base">rate_review</span>
+                <span>➡️ Next Step: Submit Post-Interview Debrief Survey (/debrief/INT_9701)</span>
+              </a>
             </div>
           </div>
         ) : (

@@ -55,12 +55,20 @@ export default function CandidateDebriefPage({ params }: { params: Promise<{ int
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-6 text-center">
-        <span className="material-symbols-outlined text-6xl text-[#FFD400] mb-3">task_alt</span>
-        <h2 className="text-xl font-extrabold text-white">Debrief Submitted!</h2>
-        <p className="text-xs text-slate-300 max-w-xs mt-2">
-          Thank you! Your feedback has been appended to your candidate timeline. Our lead recruiter will follow up with next steps shortly.
+      <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-6 text-center space-y-4">
+        <span className="material-symbols-outlined text-6xl text-[#FFD400]">task_alt</span>
+        <h2 className="text-xl font-extrabold text-white">Debrief Survey Submitted!</h2>
+        <p className="text-xs text-slate-300 max-w-xs">
+          Thank you! Your feedback has been appended to your candidate timeline. The Recruiter Cockpit Stage-Gate audit card has been updated to <strong className="text-emerald-400">✓ Verified</strong>.
         </p>
+
+        <a
+          href="/cockpit"
+          className="bg-[#FFD400] text-[#0F172A] font-black px-5 py-3 rounded-2xl text-xs inline-flex items-center gap-2 hover:brightness-110 shadow-lg transition-all"
+        >
+          <span className="material-symbols-outlined text-base">dashboard</span>
+          <span>Return to Recruiter Cockpit (/cockpit)</span>
+        </a>
       </div>
     );
   }

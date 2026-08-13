@@ -142,12 +142,44 @@ export default function CandidateInterviewConfirmPage({ params }: { params: Prom
 
         {/* Success Confirmation State */}
         {successStatus === "CONFIRMED" && (
-          <div className="bg-emerald-50 border-2 border-emerald-400 p-6 rounded-3xl text-center space-y-3 shadow-lg">
+          <div className="bg-emerald-50 border-2 border-emerald-400 p-6 rounded-3xl text-center space-y-4 shadow-lg">
             <span className="material-symbols-outlined text-5xl text-emerald-600">check_circle</span>
             <h2 className="text-lg font-black text-emerald-900">Interview Slot Locked!</h2>
             <p className="text-xs text-emerald-800 font-medium">
               Your interview time has been locked and calendar invitations have been sent to your email & mobile.
             </p>
+
+            <div className="pt-3 border-t border-emerald-200 space-y-2 text-left">
+              <span className="text-[10px] font-black text-emerald-900 uppercase tracking-wider block text-center">
+                Next Steps in Candidate Journey:
+              </span>
+
+              <a
+                href={`/prep-kit/PREP_KIT_${submissionId || "SUB_9701"}`}
+                target="_blank"
+                rel="noreferrer"
+                className="w-full bg-[#0F172A] text-white font-bold p-3 rounded-xl text-xs flex items-center justify-between hover:bg-slate-800 shadow-sm"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-amber-400">school</span>
+                  <span>1. Open Candidate Prep Kit (T-24h)</span>
+                </div>
+                <span className="material-symbols-outlined text-sm text-slate-400">open_in_new</span>
+              </a>
+
+              <a
+                href={`/debrief/INT_${submissionId || "SUB_9701"}`}
+                target="_blank"
+                rel="noreferrer"
+                className="w-full bg-amber-500 text-slate-950 font-black p-3 rounded-xl text-xs flex items-center justify-between hover:brightness-105 shadow-sm"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined">rate_review</span>
+                  <span>2. Submit Post-Interview Debrief (T+15m)</span>
+                </div>
+                <span className="material-symbols-outlined text-sm text-slate-900">open_in_new</span>
+              </a>
+            </div>
           </div>
         )}
 
