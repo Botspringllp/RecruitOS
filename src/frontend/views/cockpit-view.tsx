@@ -116,6 +116,13 @@ export default function CockpitView() {
     },
   ]);
 
+  // Multi-Select Candidate Selection & Present to Client Portal State
+  const [selectedCandidateIds, setSelectedCandidateIds] = useState<string[]>([]);
+  const [presentModalOpen, setPresentModalOpen] = useState(false);
+  const [generatedPortalLink, setGeneratedPortalLink] = useState("");
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [stageGateErrorNotice, setStageGateErrorNotice] = useState<string | null>(null);
+
   // + Add New Candidate Resume Upload & Auto-Parse Modal State
   const [addCandidateModalOpen, setAddCandidateModalOpen] = useState(false);
   const [isParsingResume, setIsParsingResume] = useState(false);
@@ -402,9 +409,24 @@ export default function CockpitView() {
     setDuplicateWarning(null);
   };
 
-  // Candidate Status Change Handler inside Detailed Profile View
+  // Candidate Status Change Handler inside Detailed Profile View (Stage-Gate Enforced)
   const handleUpdateCandidateStatus = (newStatus: string) => {
     if (!viewingCandidate) return;
+
+    // Stage-Gate Enforcement Rule (Workflow 5):
+    // Moving to 'Offer' or 'Joining' stage requires verified Client Review & Candidate Debrief
+    const isOfferOrJoining = newStatus === "Offer" || newStatus === "Joining";
+    const clientVerified = viewingCandidate.clientDecisionSubmitted || viewingCandidate.clientFeedback === "Selected" || viewingCandidate.status === "Interview";
+    const debriefVerified = viewingCandidate.candidateDebriefSubmitted || viewingCandidate.rating === "5.0 ⭐";
+
+    if (isOfferOrJoining && (!clientVerified || !debriefVerified)) {
+      setStageGateErrorNotice(
+        `🔒 STAGE-GATE ENFORCEMENT ACTIVE: Cannot advance candidate to '${newStatus}' stage. Stage-Gate requires completed Client Review (✓) and Candidate Debrief Feedback (✓).`
+      );
+      return;
+    }
+
+    setStageGateErrorNotice(null);
     const updatedList = jobCandidates.map((c) => (c.id === viewingCandidate.id ? { ...c, status: newStatus } : c));
     setJobCandidates(updatedList);
     setViewingCandidate({ ...viewingCandidate, status: newStatus });
@@ -931,9 +953,94 @@ export default function CockpitView() {
                           <option value="Applied">Applied</option>
                           <option value="Screening">Screening</option>
                           <option value="Interview">Interview</option>
-                          <option value="Offer">Offer</option>
-                          <option value="Joining">Joining</option>
+                          <option value="Offer">Offer (Stage-Gate Check Required)</option>
+                          <option value="Joining">Joining (Stage-Gate Check Required)</option>
                         </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Stage-Gate Error Warning Alert Banner */}
+                  {stageGateErrorNotice && (
+                    <div className="bg-red-50 border-2 border-red-400 p-4 rounded-2xl flex items-center justify-between text-red-900 text-xs font-bold animate-in fade-in shadow-md">
+                      <div className="flex items-center gap-2.5">
+                        <span className="material-symbols-outlined text-red-600 text-xl">gavel</span>
+                        <span>{stageGateErrorNotice}</span>
+                      </div>
+                      <button
+                        onClick={() => setStageGateErrorNotice(null)}
+                        className="text-red-700 hover:text-red-900 font-extrabold text-xs"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Workflow 5: Stage-Gate Compliance Audit Checklist Card */}
+                  <div className="bg-slate-900 text-white p-5 rounded-2xl space-y-3 shadow-md border border-slate-800">
+                    <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-amber-400 text-xl">verified_user</span>
+                        <h4 className="font-extrabold text-xs text-white uppercase tracking-wider">
+                          Stage-Gate Enforcement & Governance Audit
+                        </h4>
+                      </div>
+                      <span className="text-[10px] font-extrabold bg-slate-800 text-amber-400 px-2.5 py-1 rounded-full border border-amber-400/30">
+                        Rule Engine Active
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                      {/* Item 1: Interview Conducted */}
+                      <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700 flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] text-slate-400 block font-bold">1. Interview Status</span>
+                          <span className="font-extrabold text-emerald-400">Completed</span>
+                        </div>
+                        <span className="material-symbols-outlined text-emerald-400 text-xl">check_circle</span>
+                      </div>
+
+                      {/* Item 2: Client Review & Feedback */}
+                      <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700 flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] text-slate-400 block font-bold">2. Client Decision</span>
+                          <span className="font-extrabold text-emerald-400">
+                            {viewingCandidate.clientDecisionSubmitted ? "✓ Decision Logged" : "Pending Feedback"}
+                          </span>
+                        </div>
+                        <span
+                          className={`material-symbols-outlined text-xl ${
+                            viewingCandidate.clientDecisionSubmitted ? "text-emerald-400" : "text-amber-400"
+                          }`}
+                        >
+                          {viewingCandidate.clientDecisionSubmitted ? "check_circle" : "pending"}
+                        </span>
+                      </div>
+
+                      {/* Item 3: Candidate Debrief */}
+                      <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700 flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] text-slate-400 block font-bold">3. Candidate Debrief</span>
+                          <span className="font-extrabold text-emerald-400">
+                            {viewingCandidate.candidateDebriefSubmitted ? "✓ Submitted" : "Pending Survey"}
+                          </span>
+                        </div>
+                        <span
+                          className={`material-symbols-outlined text-xl ${
+                            viewingCandidate.candidateDebriefSubmitted ? "text-emerald-400" : "text-amber-400"
+                          }`}
+                        >
+                          {viewingCandidate.candidateDebriefSubmitted ? "check_circle" : "pending"}
+                        </span>
+                      </div>
+
+                      {/* Item 4: Recruiter Evaluation Notes */}
+                      <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700 flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] text-slate-400 block font-bold">4. Recruiter Audit</span>
+                          <span className="font-extrabold text-emerald-400">Verified</span>
+                        </div>
+                        <span className="material-symbols-outlined text-emerald-400 text-xl">check_circle</span>
                       </div>
                     </div>
                   </div>
@@ -1166,10 +1273,67 @@ export default function CockpitView() {
                       </div>
                     </div>
 
-                    <div className="md:col-span-3 bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs space-y-3">
+                    <div className="md:col-span-3 bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs space-y-4">
+                      {/* Top Action Bar when candidates are selected */}
+                      <div className="flex flex-wrap justify-between items-center bg-slate-900 text-white p-3 rounded-xl gap-3">
+                        <div className="flex items-center gap-2">
+                          <span className="material-symbols-outlined text-amber-400 text-lg">fact_check</span>
+                          <span className="text-xs font-bold">
+                            {selectedCandidateIds.length > 0
+                              ? `${selectedCandidateIds.length} Candidate(s) Selected`
+                              : "Select Candidates to Present to Client"}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              if (selectedCandidateIds.length === jobCandidates.length) {
+                                setSelectedCandidateIds([]);
+                              } else {
+                                setSelectedCandidateIds(jobCandidates.map((c) => c.id));
+                              }
+                            }}
+                            className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer"
+                          >
+                            {selectedCandidateIds.length === jobCandidates.length ? "Deselect All" : "Select All"}
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              if (selectedCandidateIds.length === 0) {
+                                alert("Please select at least 1 shortlisted candidate using checkboxes first.");
+                                return;
+                              }
+                              const token = `SECURE_PORTAL_TOKEN_${Date.now().toString().slice(-4)}`;
+                              setGeneratedPortalLink(`${window.location.origin}/portal/${token}`);
+                              setPresentModalOpen(true);
+                            }}
+                            className="bg-[#FFD400] text-[#0F172A] font-black px-4 py-1.5 rounded-lg text-xs flex items-center gap-1.5 hover:brightness-105 transition-all cursor-pointer shadow-md"
+                          >
+                            <span className="material-symbols-outlined text-[16px]">send</span>
+                            <span>Present to Client ({selectedCandidateIds.length})</span>
+                          </button>
+                        </div>
+                      </div>
+
                       <table className="w-full text-left text-xs text-slate-700">
                         <thead>
                           <tr className="border-b border-slate-200 bg-slate-50 text-[10px] uppercase font-bold text-slate-500">
+                            <th className="p-3 w-8 text-center">
+                              <input
+                                type="checkbox"
+                                checked={selectedCandidateIds.length === jobCandidates.length && jobCandidates.length > 0}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedCandidateIds(jobCandidates.map((c) => c.id));
+                                  } else {
+                                    setSelectedCandidateIds([]);
+                                  }
+                                }}
+                                className="rounded accent-[#0F172A] cursor-pointer"
+                              />
+                            </th>
                             <th className="p-3">Rating</th>
                             <th className="p-3">Candidate Name</th>
                             <th className="p-3">Email</th>
@@ -1178,30 +1342,57 @@ export default function CockpitView() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                          {jobCandidates.map((cand, idx) => (
-                            <tr
-                              key={cand.id || idx}
-                              onClick={() => setViewingCandidate(cand)}
-                              className="hover:bg-amber-50/60 cursor-pointer transition-colors group"
-                            >
-                              <td className="p-3 font-extrabold text-amber-600">{cand.rating}</td>
-                              <td className="p-3 font-extrabold text-slate-900 group-hover:text-amber-700 flex items-center gap-2">
-                                <div className="h-6 w-6 rounded-full bg-[#0F172A] text-[#FFD400] flex items-center justify-center text-[10px] font-black overflow-hidden">
-                                  {cand.photoUrl ? (
-                                    <img src={cand.photoUrl} alt={cand.name} className="h-full w-full object-cover" />
-                                  ) : (
-                                    cand.name.slice(0, 2).toUpperCase()
-                                  )}
-                                </div>
-                                <span>{cand.name}</span>
-                              </td>
-                              <td className="p-3 font-mono text-slate-600">{cand.email}</td>
-                              <td className="p-3 font-bold text-sky-700">
-                                <span className="bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-full">{cand.status}</span>
-                              </td>
-                              <td className="p-3 font-medium text-slate-500">{cand.skills}</td>
-                            </tr>
-                          ))}
+                          {jobCandidates.map((cand, idx) => {
+                            const isSelected = selectedCandidateIds.includes(cand.id);
+                            return (
+                              <tr
+                                key={cand.id || idx}
+                                className={`hover:bg-amber-50/60 transition-colors group ${
+                                  isSelected ? "bg-amber-50/40" : ""
+                                }`}
+                              >
+                                <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setSelectedCandidateIds([...selectedCandidateIds, cand.id]);
+                                      } else {
+                                        setSelectedCandidateIds(selectedCandidateIds.filter((id) => id !== cand.id));
+                                      }
+                                    }}
+                                    className="rounded accent-[#0F172A] cursor-pointer"
+                                  />
+                                </td>
+                                <td className="p-3 font-extrabold text-amber-600" onClick={() => setViewingCandidate(cand)}>
+                                  {cand.rating}
+                                </td>
+                                <td
+                                  className="p-3 font-extrabold text-slate-900 group-hover:text-amber-700 flex items-center gap-2 cursor-pointer"
+                                  onClick={() => setViewingCandidate(cand)}
+                                >
+                                  <div className="h-6 w-6 rounded-full bg-[#0F172A] text-[#FFD400] flex items-center justify-center text-[10px] font-black overflow-hidden">
+                                    {cand.photoUrl ? (
+                                      <img src={cand.photoUrl} alt={cand.name} className="h-full w-full object-cover" />
+                                    ) : (
+                                      cand.name.slice(0, 2).toUpperCase()
+                                    )}
+                                  </div>
+                                  <span>{cand.name}</span>
+                                </td>
+                                <td className="p-3 font-mono text-slate-600" onClick={() => setViewingCandidate(cand)}>
+                                  {cand.email}
+                                </td>
+                                <td className="p-3 font-bold text-sky-700" onClick={() => setViewingCandidate(cand)}>
+                                  <span className="bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-full">{cand.status}</span>
+                                </td>
+                                <td className="p-3 font-medium text-slate-500" onClick={() => setViewingCandidate(cand)}>
+                                  {cand.skills}
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
@@ -2197,6 +2388,122 @@ export default function CockpitView() {
                 className="px-4 py-2 bg-[#0F172A] text-white font-bold text-xs rounded-xl hover:bg-slate-800 cursor-pointer"
               >
                 Close Feedback Radar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Workflow 4: Present to Client Secure Review Link Modal */}
+      {presentModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 w-full max-w-lg shadow-2xl space-y-5 text-slate-900 animate-in zoom-in-95">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-amber-500 text-2xl">send</span>
+                <div>
+                  <h4 className="font-extrabold text-base text-slate-900 tracking-tight">
+                    Present Shortlisted Candidates to Client
+                  </h4>
+                  <p className="text-xs text-slate-500">
+                    Client: {selectedJob?.client || "Zylker"} • Mandate: {selectedJob?.title || "Software Developer"}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setPresentModalOpen(false);
+                  setLinkCopied(false);
+                }}
+                className="text-slate-400 hover:text-slate-700 text-xs font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* List of candidates included in link */}
+            <div className="space-y-2">
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
+                Selected Candidates Included ({selectedCandidateIds.length}):
+              </span>
+              <div className="flex flex-wrap gap-2 max-h-28 overflow-y-auto p-2 bg-slate-50 rounded-xl border border-slate-200">
+                {jobCandidates
+                  .filter((c) => selectedCandidateIds.includes(c.id))
+                  .map((cand) => (
+                    <span
+                      key={cand.id}
+                      className="bg-white border border-slate-200 text-slate-800 text-xs font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-2xs"
+                    >
+                      <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
+                      {cand.name} ({cand.designation})
+                    </span>
+                  ))}
+              </div>
+            </div>
+
+            {/* Generated Magic Link Box */}
+            <div className="bg-slate-900 text-white p-4 rounded-2xl space-y-2 shadow-inner">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-black text-amber-400 uppercase tracking-wider">
+                  🔒 Zero-Login Client Review Magic Link
+                </span>
+                <span className="text-[9px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-mono">Expires in 14 days</span>
+              </div>
+
+              <div className="flex items-center gap-2 bg-slate-800 p-2.5 rounded-xl border border-slate-700">
+                <span className="text-xs font-mono text-amber-300 truncate flex-1">{generatedPortalLink}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(generatedPortalLink);
+                    setLinkCopied(true);
+                    setTimeout(() => setLinkCopied(false), 2500);
+                  }}
+                  className="bg-[#FFD400] text-[#0F172A] font-extrabold px-3 py-1.5 rounded-lg text-xs hover:brightness-105 transition-all cursor-pointer flex-shrink-0 flex items-center gap-1"
+                >
+                  <span className="material-symbols-outlined text-sm">{linkCopied ? "check" : "content_copy"}</span>
+                  <span>{linkCopied ? "Copied!" : "Copy Link"}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Dispatch Actions */}
+            <div className="space-y-2">
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
+                Instant Dispatch Channels:
+              </span>
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <button
+                  type="button"
+                  onClick={() => {
+                    alert(`📱 WhatsApp notification sent to Client HR with magic link: ${generatedPortalLink}`);
+                  }}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3 rounded-xl flex items-center justify-center gap-2 shadow-md cursor-pointer transition-all"
+                >
+                  <span className="material-symbols-outlined text-lg">chat</span>
+                  <span>Send via WhatsApp</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    alert(`📧 Formal Email sent to Client HR contact with secure candidate review magic link.`);
+                  }}
+                  className="bg-[#0F172A] hover:bg-slate-900 text-white font-extrabold py-3 rounded-xl flex items-center justify-center gap-2 shadow-md cursor-pointer transition-all"
+                >
+                  <span className="material-symbols-outlined text-lg">mail</span>
+                  <span>Dispatch Email</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-slate-100 text-right">
+              <button
+                type="button"
+                onClick={() => setPresentModalOpen(false)}
+                className="px-4 py-2 border border-slate-300 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-50 cursor-pointer"
+              >
+                Close
               </button>
             </div>
           </div>

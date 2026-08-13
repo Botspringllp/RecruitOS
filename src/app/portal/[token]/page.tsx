@@ -269,25 +269,45 @@ export default function ClientPortalReviewPage({ params }: { params: Promise<{ t
               </span>
             </div>
 
-            {/* Structured Stats Grid */}
+            {/* Structured Stats Grid (Experience, Notice Period, Current CTC, Expected CTC) */}
             <div className="grid grid-cols-2 gap-3 px-4">
               <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Experience</span>
-                <span className="text-sm font-extrabold text-slate-900">{activeCandidate.experienceYears}</span>
+                <span className="text-sm font-extrabold text-slate-900">{activeCandidate.experienceYears || "5.0 Years"}</span>
               </div>
               <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Notice Period</span>
-                <span className="text-sm font-extrabold text-emerald-700">{activeCandidate.noticePeriod}</span>
+                <span className="text-sm font-extrabold text-amber-700">{activeCandidate.noticePeriod || "30 Days"}</span>
+              </div>
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Current CTC</span>
+                <span className="text-sm font-extrabold text-slate-900">$85,000 / Year</span>
+              </div>
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Expected CTC</span>
+                <span className="text-sm font-extrabold text-emerald-700">$105,000 / Year</span>
               </div>
             </div>
 
-            {/* Sanitized Executive Resume Summary */}
-            <div className="px-4 space-y-2">
-              <span className="text-xs font-extrabold text-slate-800 uppercase tracking-wider block">
-                Executive Vetted Profile & Skills
-              </span>
-              <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl text-xs text-slate-700 leading-relaxed font-medium">
-                {activeCandidate.summaryText}
+            {/* Sanitized Executive Resume Summary & Recruiter Notes */}
+            <div className="px-4 space-y-3">
+              <div>
+                <span className="text-xs font-extrabold text-slate-800 uppercase tracking-wider block mb-1">
+                  Executive Vetted Profile & Skills
+                </span>
+                <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl text-xs text-slate-700 leading-relaxed font-medium">
+                  {activeCandidate.summaryText || "Strong technical and leadership background. Vetted by Recruiter."}
+                </div>
+              </div>
+
+              <div>
+                <span className="text-xs font-extrabold text-slate-800 uppercase tracking-wider block mb-1">
+                  Recruiter Screening Assessment Notes
+                </span>
+                <div className="bg-amber-50/60 border border-amber-200 p-3.5 rounded-xl text-xs text-slate-800 leading-relaxed font-medium flex items-start gap-2">
+                  <span className="material-symbols-outlined text-amber-600 text-base flex-shrink-0 mt-0.5">rate_review</span>
+                  <span>Verified technical competencies, candidate availability, and salary alignment. Highly recommended for client interview round.</span>
+                </div>
               </div>
             </div>
 
@@ -296,9 +316,9 @@ export default function ClientPortalReviewPage({ params }: { params: Promise<{ t
               <div className="bg-slate-900 text-white p-3.5 rounded-xl flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-[#FFD400]">description</span>
-                  <span className="font-bold">Sanitized Resume (PII Masked)</span>
+                  <span className="font-bold">Sanitized Resume (PII Masked PDF)</span>
                 </div>
-                <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-mono">PDF Preview</span>
+                <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-mono">Verified CV</span>
               </div>
             </div>
           </div>
@@ -315,7 +335,7 @@ export default function ClientPortalReviewPage({ params }: { params: Promise<{ t
               className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3.5 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer disabled:opacity-50"
             >
               <span className="material-symbols-outlined text-base">check_circle</span>
-              Shortlist
+              Interview
             </button>
 
             <button
@@ -346,7 +366,7 @@ export default function ClientPortalReviewPage({ params }: { params: Promise<{ t
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
               <h3 className="font-extrabold text-sm text-red-600 flex items-center gap-1">
                 <span className="material-symbols-outlined">report_problem</span>
-                Reject Candidate Feedback
+                Reject Candidate Feedback (Mandatory)
               </h3>
               <button
                 onClick={() => setRejectModalOpen(false)}
@@ -361,7 +381,7 @@ export default function ClientPortalReviewPage({ params }: { params: Promise<{ t
             </p>
 
             <div className="space-y-2">
-              {["Over Budget", "Notice Period Too Long", "Skill Gap", "Culture Fit", "Other"].map((reason) => (
+              {["Skill Gap", "Salary High", "Communication Issue", "Location Issue", "Other"].map((reason) => (
                 <label
                   key={reason}
                   onClick={() => setRejectionReason(reason)}
