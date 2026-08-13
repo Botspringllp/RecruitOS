@@ -2476,7 +2476,12 @@ export default function CockpitView() {
                 <button
                   type="button"
                   onClick={() => {
-                    alert(`📱 WhatsApp notification sent to Client HR with magic link: ${generatedPortalLink}`);
+                    const candNames = jobCandidates
+                      .filter((c) => selectedCandidateIds.includes(c.id))
+                      .map((c) => c.name)
+                      .join(", ");
+                    const waMessage = `Hello ${selectedJob?.client || "Client HR"},\n\nRecruiter Priya Sharma from RecruitOS Agency has presented ${selectedCandidateIds.length} candidate(s) (${candNames}) for your mandate: ${selectedJob?.title || "Role"}.\n\nPlease review profiles, experience, CTC breakdown, and resumes using your secure review portal:\n${generatedPortalLink}\n\nRegards,\nRecruitOS Agency`;
+                    window.open(`https://wa.me/?text=${encodeURIComponent(waMessage)}`, "_blank");
                   }}
                   className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3 rounded-xl flex items-center justify-center gap-2 shadow-md cursor-pointer transition-all"
                 >
@@ -2487,7 +2492,13 @@ export default function CockpitView() {
                 <button
                   type="button"
                   onClick={() => {
-                    alert(`📧 Formal Email sent to Client HR contact with secure candidate review magic link.`);
+                    const candNames = jobCandidates
+                      .filter((c) => selectedCandidateIds.includes(c.id))
+                      .map((c) => c.name)
+                      .join(", ");
+                    const emailSubject = `Candidate Shortlist Presentation: ${selectedJob?.title || "Mandate"} - RecruitOS`;
+                    const emailBody = `Dear ${selectedJob?.client || "Client HR"},\n\nWe have presented ${selectedCandidateIds.length} candidate(s) (${candNames}) for your requirement: ${selectedJob?.title || "Role"}.\n\nReview complete profiles & download resumes via your secure link:\n${generatedPortalLink}\n\nBest regards,\nRecruitOS Agency`;
+                    window.open(`mailto:?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`, "_blank");
                   }}
                   className="bg-[#0F172A] hover:bg-slate-900 text-white font-extrabold py-3 rounded-xl flex items-center justify-center gap-2 shadow-md cursor-pointer transition-all"
                 >

@@ -19,9 +19,16 @@ export default function CandidateInterviewConfirmPage({ params }: { params: Prom
   const [submitting, setSubmitting] = useState(false);
 
   const [successStatus, setSuccessStatus] = useState<"CONFIRMED" | "ALTERNATIVE_REQUESTED" | null>(null);
+  const [selectedSlotDetails, setSelectedSlotDetails] = useState<string>("");
+
+  // Custom Slot Modal
   const [altModalOpen, setAltModalOpen] = useState(false);
-  const [prefTime1, setPrefTime1] = useState("");
-  const [prefTime2, setPrefTime2] = useState("");
+  const [customDateTime, setCustomDateTime] = useState("");
+  const [customReason, setCustomReason] = useState("");
+
+  const candidateName = "Aarav Sharma";
+  const jobTitle = "Senior Full Stack Engineer";
+  const clientName = "Apex Global Technologies";
 
   useEffect(() => {
     fetchSubmissionSlots();
@@ -30,29 +37,37 @@ export default function CandidateInterviewConfirmPage({ params }: { params: Prom
   const fetchSubmissionSlots = async () => {
     try {
       setLoading(true);
-      // Fetch slots using public portal lookup or test response
       const res = await fetch(`/api/v1/public/candidate/confirm-slot?submissionId=${submissionId}`);
-      // Fallback fallback slots array if endpoint requires POST
+      
+      const tomorrow = new Date(Date.now() + 24 * 3600 * 1000);
+      tomorrow.setHours(14, 0, 0, 0);
+
+      const dayAfter = new Date(Date.now() + 48 * 3600 * 1000);
+      dayAfter.setHours(11, 0, 0, 0);
+
+      const day3 = new Date(Date.now() + 72 * 3600 * 1000);
+      day3.setHours(16, 0, 0, 0);
+
       setSlots([
         {
-          slotId: "slot-01-demo",
-          startTime: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
-          endTime: new Date(Date.now() + 25 * 3600 * 1000).toISOString(),
-          interviewerEmail: "interviewer@techcorp.com",
+          slotId: "slot-01",
+          startTime: tomorrow.toISOString(),
+          endTime: new Date(tomorrow.getTime() + 45 * 60000).toISOString(),
+          interviewerEmail: "sarah.jenkins@apexglobal.com",
           status: "Proposed",
         },
         {
-          slotId: "slot-02-demo",
-          startTime: new Date(Date.now() + 28 * 3600 * 1000).toISOString(),
-          endTime: new Date(Date.now() + 29 * 3600 * 1000).toISOString(),
-          interviewerEmail: "interviewer@techcorp.com",
+          slotId: "slot-02",
+          startTime: dayAfter.toISOString(),
+          endTime: new Date(dayAfter.getTime() + 45 * 60000).toISOString(),
+          interviewerEmail: "sarah.jenkins@apexglobal.com",
           status: "Proposed",
         },
         {
-          slotId: "slot-03-demo",
-          startTime: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
-          endTime: new Date(Date.now() + 49 * 3600 * 1000).toISOString(),
-          interviewerEmail: "interviewer@techcorp.com",
+          slotId: "slot-03",
+          startTime: day3.toISOString(),
+          endTime: new Date(day3.getTime() + 45 * 60000).toISOString(),
+          interviewerEmail: "sarah.jenkins@apexglobal.com",
           status: "Proposed",
         },
       ]);
@@ -63,58 +78,32 @@ export default function CandidateInterviewConfirmPage({ params }: { params: Prom
     }
   };
 
-  const handleConfirmSlot = async (slotId: string) => {
-    try {
-      setSubmitting(true);
-      const res = await fetch("/api/v1/public/candidate/confirm-slot", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          submissionId,
-          slotId,
-          action: "CONFIRM_SLOT",
-        }),
-      });
+  const handleConfirmSlot = (slot: Slot, idx: number) => {
+    const slotTimeFormatted = new Date(slot.startTime).toLocaleString();
+    setSelectedSlotDetails(slotTimeFormatted);
+    setSuccessStatus("CONFIRMED");
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to lock slot");
+    const clientScheduleLockUrl = `http://localhost:3000/client-schedule-confirm/${submissionId || "SUB_9701"}`;
+    const message = `Hi Recruiter Priya Sharma,\n\nCandidate *${candidateName}* has CONFIRMED Slot #${idx + 1} (${slotTimeFormatted}) for interview with ${clientName} (${jobTitle}).\n\nPlease click link to trigger Client Meeting Link Generator & Calendar Invite:\n${clientScheduleLockUrl}`;
 
-      setSuccessStatus("CONFIRMED");
-    } catch (err: any) {
-      alert(`Error: ${err.message}`);
-    } finally {
-      setSubmitting(false);
-    }
+    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
   };
 
-  const handleRequestAlternatives = async () => {
-    if (!prefTime1 && !prefTime2) {
-      alert("Please provide at least 1 preferred date and time.");
+  const handleRequestAlternatives = () => {
+    if (!customDateTime) {
+      alert("Please select your preferred Date & Time.");
       return;
     }
 
-    try {
-      setSubmitting(true);
-      const res = await fetch("/api/v1/public/candidate/confirm-slot", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          submissionId,
-          action: "REQUEST_ALTERNATIVE_SLOTS",
-          preferredTimes: [prefTime1, prefTime2].filter(Boolean),
-        }),
-      });
+    const customFormatted = new Date(customDateTime).toLocaleString();
+    setSelectedSlotDetails(customFormatted);
+    setSuccessStatus("ALTERNATIVE_REQUESTED");
+    setAltModalOpen(false);
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to submit alternative times");
+    const clientScheduleLockUrl = `http://localhost:3000/client-schedule-confirm/${submissionId || "SUB_9701"}`;
+    const message = `Hi Recruiter Priya Sharma,\n\nCandidate *${candidateName}* is unavailable for the 3 proposed client slots.\n\nCandidate Requested Custom Date & Time:\n*${customFormatted}*\nReason: "${customReason || "Schedule conflict"}"\n\nPlease forward custom availability to Client HR for reschedule confirmation:\n${clientScheduleLockUrl}`;
 
-      setSuccessStatus("ALTERNATIVE_REQUESTED");
-      setAltModalOpen(false);
-    } catch (err: any) {
-      alert(`Error: ${err.message}`);
-    } finally {
-      setSubmitting(false);
-    }
+    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
   };
 
   if (loading) {
@@ -132,52 +121,39 @@ export default function CandidateInterviewConfirmPage({ params }: { params: Prom
         {/* Top Header Card */}
         <div className="bg-[#0F172A] text-white p-6 rounded-3xl shadow-xl text-center space-y-2">
           <span className="bg-[#FFD400] text-[#0F172A] font-black text-[10px] px-3 py-1 rounded-full uppercase tracking-wider">
-            Shortlist Confirmed!
+            Client Shortlist Confirmed!
           </span>
           <h1 className="text-xl font-black text-white">Select Your Interview Slot</h1>
-          <p className="text-xs text-slate-300">
-            Client HR dropped 3 preferred interview time blocks. Tap 1 slot to lock in your interview instantly!
+          <p className="text-xs text-slate-300 font-medium">
+            Client <strong className="text-amber-300">{clientName}</strong> has shortlisted you for <strong>{jobTitle}</strong>. Tap 1 slot to lock your interview!
           </p>
         </div>
 
         {/* Success Confirmation State */}
         {successStatus === "CONFIRMED" && (
-          <div className="bg-emerald-50 border-2 border-emerald-400 p-6 rounded-3xl text-center space-y-4 shadow-lg">
+          <div className="bg-emerald-50 border-2 border-emerald-400 p-6 rounded-3xl text-center space-y-4 shadow-lg animate-in zoom-in-95">
             <span className="material-symbols-outlined text-5xl text-emerald-600">check_circle</span>
             <h2 className="text-lg font-black text-emerald-900">Interview Slot Locked!</h2>
-            <p className="text-xs text-emerald-800 font-medium">
-              Your interview time has been locked and calendar invitations have been sent to your email & mobile.
+            <p className="text-xs text-emerald-800 font-bold">
+              Confirmed Slot: {selectedSlotDetails}
+            </p>
+            <p className="text-xs text-emerald-700">
+              Notification dispatched to lead recruiter. Final calendar invitation & meeting link will be sent shortly.
             </p>
 
             <div className="pt-3 border-t border-emerald-200 space-y-2 text-left">
               <span className="text-[10px] font-black text-emerald-900 uppercase tracking-wider block text-center">
-                Next Steps in Candidate Journey:
+                Next Steps in Recruiter/Client Pipeline:
               </span>
 
               <a
-                href={`/prep-kit/PREP_KIT_${submissionId || "SUB_9701"}`}
+                href={`/client-schedule-confirm/${submissionId || "SUB_9701"}`}
                 target="_blank"
                 rel="noreferrer"
-                className="w-full bg-[#0F172A] text-white font-bold p-3 rounded-xl text-xs flex items-center justify-between hover:bg-slate-800 shadow-sm"
+                className="w-full bg-[#0F172A] text-[#FFD400] font-black p-3.5 rounded-2xl text-xs flex items-center justify-between hover:brightness-110 shadow-md transition-all"
               >
-                <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-amber-400">school</span>
-                  <span>1. Open Candidate Prep Kit (T-24h)</span>
-                </div>
-                <span className="material-symbols-outlined text-sm text-slate-400">open_in_new</span>
-              </a>
-
-              <a
-                href={`/debrief/INT_${submissionId || "SUB_9701"}`}
-                target="_blank"
-                rel="noreferrer"
-                className="w-full bg-amber-500 text-slate-950 font-black p-3 rounded-xl text-xs flex items-center justify-between hover:brightness-105 shadow-sm"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined">rate_review</span>
-                  <span>2. Submit Post-Interview Debrief (T+15m)</span>
-                </div>
-                <span className="material-symbols-outlined text-sm text-slate-900">open_in_new</span>
+                <span>➡️ Open Client Final Schedule & Meeting Link Generator</span>
+                <span className="material-symbols-outlined text-sm">open_in_new</span>
               </a>
             </div>
           </div>
@@ -185,12 +161,27 @@ export default function CandidateInterviewConfirmPage({ params }: { params: Prom
 
         {/* Alternative Requested State */}
         {successStatus === "ALTERNATIVE_REQUESTED" && (
-          <div className="bg-blue-50 border-2 border-blue-400 p-6 rounded-3xl text-center space-y-3 shadow-lg">
+          <div className="bg-blue-50 border-2 border-blue-400 p-6 rounded-3xl text-center space-y-4 shadow-lg animate-in zoom-in-95">
             <span className="material-symbols-outlined text-5xl text-blue-600">schedule_send</span>
-            <h2 className="text-lg font-black text-blue-900">Alternative Times Submitted!</h2>
-            <p className="text-xs text-blue-800 font-medium">
-              Your preferred times have been sent directly to your assigned Recruiter Cockpit. Our lead recruiter will coordinate with Client HR to confirm your meeting!
+            <h2 className="text-lg font-black text-blue-900">Custom Date & Time Requested!</h2>
+            <p className="text-xs text-blue-800 font-bold">
+              Requested Slot: {selectedSlotDetails}
             </p>
+            <p className="text-xs text-blue-700">
+              Your requested slot has been sent to recruiter Priya Sharma to coordinate with Client HR.
+            </p>
+
+            <div className="pt-3 border-t border-blue-200 text-left">
+              <a
+                href={`/client-schedule-confirm/${submissionId || "SUB_9701"}`}
+                target="_blank"
+                rel="noreferrer"
+                className="w-full bg-[#0F172A] text-[#FFD400] font-black p-3 rounded-2xl text-xs flex items-center justify-between hover:brightness-110 shadow-md"
+              >
+                <span>➡️ Open Client Schedule Confirmation Page</span>
+                <span className="material-symbols-outlined text-sm">open_in_new</span>
+              </a>
+            </div>
           </div>
         )}
 
@@ -206,13 +197,13 @@ export default function CandidateInterviewConfirmPage({ params }: { params: Prom
               return (
                 <div
                   key={slot.slotId}
-                  className="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm flex items-center justify-between hover:border-emerald-500 transition-all"
+                  className="bg-white border-2 border-slate-200 p-4 rounded-2xl shadow-sm flex items-center justify-between hover:border-emerald-500 transition-all"
                 >
                   <div>
                     <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded uppercase">
                       Option #{idx + 1}
                     </span>
-                    <h3 className="text-sm font-extrabold text-slate-900 mt-1">
+                    <h3 className="text-sm font-black text-slate-900 mt-1">
                       {start.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
                     </h3>
                     <p className="text-xs font-bold text-slate-600">
@@ -221,65 +212,67 @@ export default function CandidateInterviewConfirmPage({ params }: { params: Prom
                   </div>
 
                   <button
-                    onClick={() => handleConfirmSlot(slot.slotId)}
+                    onClick={() => handleConfirmSlot(slot, idx)}
                     disabled={submitting}
-                    className="bg-emerald-600 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl hover:bg-emerald-700 active:scale-95 transition-all shadow cursor-pointer disabled:opacity-50"
+                    className="bg-emerald-600 text-white font-black text-xs px-4 py-3 rounded-xl hover:bg-emerald-700 active:scale-95 transition-all shadow cursor-pointer disabled:opacity-50 flex items-center gap-1"
                   >
-                    Confirm Slot
+                    <span>Confirm Slot</span>
+                    <span className="material-symbols-outlined text-sm">arrow_forward</span>
                   </button>
                 </div>
               );
             })}
 
-            {/* Alternative Slot Request Trigger (LOCKED RULE) */}
+            {/* Alternative Slot Request Trigger */}
             <div className="pt-3 border-t border-slate-200">
               <button
                 onClick={() => setAltModalOpen(true)}
                 className="w-full bg-slate-200 hover:bg-slate-300 text-slate-800 font-extrabold py-3.5 rounded-2xl text-xs flex items-center justify-center gap-2 cursor-pointer transition-all"
               >
                 <span className="material-symbols-outlined text-sm">edit_calendar</span>
-                None of these work? Request Alternative Slots
+                None of these work? Request Other Date & Time
               </button>
             </div>
           </div>
         )}
       </div>
 
-      {/* Alternative Slot Submission Modal */}
+      {/* Custom Date & Time Modal */}
       {altModalOpen && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-sm w-full p-5 space-y-4 shadow-2xl animate-in zoom-in-95">
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
               <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-1">
                 <span className="material-symbols-outlined text-emerald-600">schedule</span>
-                Provide Preferred Interview Times
+                Request Custom Date & Time
               </h3>
               <button onClick={() => setAltModalOpen(false)} className="text-slate-400 font-bold text-xs">
                 ✕
               </button>
             </div>
 
-            <p className="text-xs text-slate-600">
-              Submit 2 preferred times. Your assigned recruiter will coordinate directly with the Hiring Manager to lock in a custom slot!
+            <p className="text-xs text-slate-600 font-medium">
+              Specify your available Date & Time. Lead recruiter Priya Sharma will coordinate directly with Client HR:
             </p>
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Preferred Time #1</label>
+                <label className="font-bold text-slate-700 block mb-1">Preferred Date & Time *</label>
                 <input
                   type="datetime-local"
-                  value={prefTime1}
-                  onChange={(e) => setPrefTime1(e.target.value)}
+                  value={customDateTime}
+                  onChange={(e) => setCustomDateTime(e.target.value)}
                   className="w-full p-2.5 border border-slate-300 rounded-xl"
                 />
               </div>
 
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Preferred Time #2</label>
+                <label className="font-bold text-slate-700 block mb-1">Reason / Note</label>
                 <input
-                  type="datetime-local"
-                  value={prefTime2}
-                  onChange={(e) => setPrefTime2(e.target.value)}
+                  type="text"
+                  value={customReason}
+                  onChange={(e) => setCustomReason(e.target.value)}
+                  placeholder="e.g. Existing project deadline / Prior commitment..."
                   className="w-full p-2.5 border border-slate-300 rounded-xl"
                 />
               </div>
@@ -294,10 +287,9 @@ export default function CandidateInterviewConfirmPage({ params }: { params: Prom
               </button>
               <button
                 onClick={handleRequestAlternatives}
-                disabled={submitting}
-                className="flex-1 py-2.5 bg-[#0F172A] text-[#FFD400] text-xs font-black rounded-xl hover:brightness-110 transition-all"
+                className="flex-1 py-2.5 bg-[#0F172A] text-[#FFD400] text-xs font-black rounded-xl hover:brightness-110 transition-all shadow-md"
               >
-                {submitting ? "Submitting..." : "Send to Recruiter"}
+                Send via WhatsApp
               </button>
             </div>
           </div>
