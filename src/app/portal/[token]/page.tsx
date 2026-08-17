@@ -16,10 +16,6 @@ interface Candidate {
   expectedCtc?: string;
   skills?: string[];
   photoUrl?: string;
-  email?: string;
-  phone?: string;
-  location?: string;
-  designation?: string;
 }
 
 interface Job {
@@ -59,9 +55,6 @@ export default function ClientPortalReviewPage({ params }: { params: Promise<{ t
   const [submitting, setSubmitting] = useState(false);
   const [actionSuccessText, setActionSuccessText] = useState<string | null>(null);
   const [nextStepUrl, setNextStepUrl] = useState<string | null>(null);
-
-  // Toggle between Profile View and 20-Column Candidate Tracker Table
-  const [viewMode, setViewMode] = useState<"profile" | "tracker">("profile");
 
   useEffect(() => {
     fetchPortalData();
@@ -294,58 +287,31 @@ export default function ClientPortalReviewPage({ params }: { params: Promise<{ t
           </div>
         </div>
 
-        {/* View Mode & Candidate Tabs Bar */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-200 pb-3">
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setViewMode("profile")}
-              className={`px-4 py-2 rounded-2xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
-                viewMode === "profile"
-                  ? "bg-[#0F172A] text-[#FFD400] shadow-md"
-                  : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"
-              }`}
-            >
-              <span className="material-symbols-outlined text-sm">person</span>
-              <span>👤 Candidate Profile View</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setViewMode("tracker")}
-              className={`px-4 py-2 rounded-2xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
-                viewMode === "tracker"
-                  ? "bg-[#0F172A] text-[#FFD400] shadow-md"
-                  : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"
-              }`}
-            >
-              <span className="material-symbols-outlined text-sm">table_chart</span>
-              <span>📊 20-Column Candidate Summary Matrix</span>
-            </button>
+        {/* Candidate Tabs Bar */}
+        {candidates.length > 1 && (
+          <div className="flex gap-2 border-b border-slate-200 pb-2">
+            {candidates.map((c, idx) => (
+              <button
+                key={c.submissionId}
+                onClick={() => {
+                  setActiveCandidateIndex(idx);
+                  setActionSuccessText(null);
+                }}
+                className={`px-4 py-2.5 rounded-2xl text-xs font-extrabold flex items-center gap-2 transition-all cursor-pointer ${
+                  idx === activeCandidateIndex
+                    ? "bg-[#0F172A] text-[#FFD400] shadow-md scale-102"
+                    : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"
+                }`}
+              >
+                <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
+                Candidate #{idx + 1}: {c.fullName}
+                {c.stage === "Interviewing" && <span className="text-emerald-400 font-bold">✓ Interview Requested</span>}
+                {c.stage === "Hold" && <span className="text-amber-400 font-bold">⏸ On Hold</span>}
+                {c.stage === "Rejected" && <span className="text-red-400 font-bold">✕ Rejected</span>}
+              </button>
+            ))}
           </div>
-
-          {candidates.length > 1 && viewMode === "profile" && (
-            <div className="flex gap-2 overflow-x-auto max-w-full pb-1">
-              {candidates.map((c, idx) => (
-                <button
-                  key={c.submissionId}
-                  onClick={() => {
-                    setActiveCandidateIndex(idx);
-                    setActionSuccessText(null);
-                  }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
-                    idx === activeCandidateIndex
-                      ? "bg-emerald-600 text-white shadow-sm"
-                      : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                  }`}
-                >
-                  <span className="h-1.5 w-1.5 rounded-full bg-amber-400"></span>
-                  #{idx + 1}: {c.fullName}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        )}
 
         {/* Success Action Notification Card */}
         {actionSuccessText && (
@@ -373,86 +339,7 @@ export default function ClientPortalReviewPage({ params }: { params: Promise<{ t
           </div>
         )}
 
-        {/* 20-COLUMN CANDIDATE SUMMARY MATRIX VIEW */}
-        {viewMode === "tracker" ? (
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-xl p-6 space-y-4">
-            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-              <div>
-                <h2 className="text-base font-black text-slate-900">📊 20-Column Candidate Executive Summary Tracker</h2>
-                <p className="text-xs text-slate-500 font-medium">Review all presented candidates side-by-side. Click 20th column to view/download resumes.</p>
-              </div>
-              <span className="bg-emerald-100 text-emerald-900 font-black text-xs px-3 py-1 rounded-full uppercase">
-                {candidates.length} Candidates
-              </span>
-            </div>
-
-            <div className="overflow-x-auto border border-slate-300 rounded-2xl bg-white shadow-xs">
-              <table className="w-full text-left border-collapse text-xs font-sans">
-                <thead className="bg-[#0F172A] text-white font-bold text-[11px] uppercase tracking-wider sticky top-0">
-                  <tr>
-                    <th className="p-3 border-r border-slate-700 whitespace-nowrap">#</th>
-                    <th className="p-3 border-r border-slate-700 whitespace-nowrap">Date</th>
-                    <th className="p-3 border-r border-slate-700 whitespace-nowrap">Source</th>
-                    <th className="p-3 border-r border-slate-700 whitespace-nowrap">Client Name</th>
-                    <th className="p-3 border-r border-slate-700 whitespace-nowrap">Applied Position</th>
-                    <th className="p-3 border-r border-slate-700 whitespace-nowrap">Candidate Name</th>
-                    <th className="p-3 border-r border-slate-700 whitespace-nowrap">Email ID</th>
-                    <th className="p-3 border-r border-slate-700 whitespace-nowrap">Number</th>
-                    <th className="p-3 border-r border-slate-700 whitespace-nowrap">Location</th>
-                    <th className="p-3 border-r border-slate-700 whitespace-nowrap">Ready Relocate</th>
-                    <th className="p-3 border-r border-slate-700 whitespace-nowrap">Tot Exp</th>
-                    <th className="p-3 border-r border-slate-700 whitespace-nowrap">Rel Exp</th>
-                    <th className="p-3 border-r border-slate-700 whitespace-nowrap">Designation</th>
-                    <th className="p-3 border-r border-slate-700 whitespace-nowrap">Qualification</th>
-                    <th className="p-3 border-r border-slate-700 whitespace-nowrap">Current Company</th>
-                    <th className="p-3 border-r border-slate-700 whitespace-nowrap">Current CTC</th>
-                    <th className="p-3 border-r border-slate-700 whitespace-nowrap">Expectation</th>
-                    <th className="p-3 border-r border-slate-700 whitespace-nowrap">Notice Period</th>
-                    <th className="p-3 border-r border-slate-700 whitespace-nowrap">Reason of Leaving</th>
-                    <th className="p-3 border-r border-slate-700 whitespace-nowrap">Offer in Hand</th>
-                    <th className="p-3 bg-emerald-700 text-white font-black whitespace-nowrap">20. Resume Download</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200">
-                  {candidates.map((c, idx) => (
-                    <tr key={c.submissionId} className="hover:bg-slate-50 font-medium text-slate-800">
-                      <td className="p-3 border-r border-slate-200 font-bold text-slate-500">{idx + 1}</td>
-                      <td className="p-3 border-r border-slate-200 whitespace-nowrap">17-Aug-26</td>
-                      <td className="p-3 border-r border-slate-200 whitespace-nowrap font-bold text-amber-700">Naukri</td>
-                      <td className="p-3 border-r border-slate-200 whitespace-nowrap">{job?.clientName || "Apex Tech"}</td>
-                      <td className="p-3 border-r border-slate-200 whitespace-nowrap font-bold">{job?.title || "Role"}</td>
-                      <td className="p-3 border-r border-slate-200 whitespace-nowrap font-extrabold text-slate-900">{c.fullName}</td>
-                      <td className="p-3 border-r border-slate-200 whitespace-nowrap text-blue-600 font-mono">{c.email || `${c.fullName.toLowerCase().replace(/\s+/g, '')}@gmail.com`}</td>
-                      <td className="p-3 border-r border-slate-200 whitespace-nowrap font-mono">{c.phone || "+91 9876543210"}</td>
-                      <td className="p-3 border-r border-slate-200 whitespace-nowrap">{c.location || "Bengaluru"}</td>
-                      <td className="p-3 border-r border-slate-200 whitespace-nowrap text-emerald-700 font-bold">Yes</td>
-                      <td className="p-3 border-r border-slate-200 whitespace-nowrap font-bold">{c.experienceYears} Yrs</td>
-                      <td className="p-3 border-r border-slate-200 whitespace-nowrap">4.0 Yrs</td>
-                      <td className="p-3 border-r border-slate-200 whitespace-nowrap">{c.designation || "Senior Engineer"}</td>
-                      <td className="p-3 border-r border-slate-200 whitespace-nowrap">B.Tech CS</td>
-                      <td className="p-3 border-r border-slate-200 whitespace-nowrap">{c.currentCompany}</td>
-                      <td className="p-3 border-r border-slate-200 whitespace-nowrap font-mono font-bold">₹{c.currentCtc} LPA</td>
-                      <td className="p-3 border-r border-slate-200 whitespace-nowrap font-mono font-bold text-emerald-700">₹{c.expectedCtc} LPA</td>
-                      <td className="p-3 border-r border-slate-200 whitespace-nowrap">{c.noticePeriod}</td>
-                      <td className="p-3 border-r border-slate-200 whitespace-nowrap">Career Growth & Tech Stack</td>
-                      <td className="p-3 border-r border-slate-200 whitespace-nowrap text-amber-700 font-bold">No Offer</td>
-                      <td className="p-3 bg-emerald-50 whitespace-nowrap">
-                        <button
-                          type="button"
-                          onClick={handleDownloadResume}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs px-3 py-1.5 rounded-xl flex items-center gap-1 shadow-sm transition-all cursor-pointer"
-                        >
-                          <span className="material-symbols-outlined text-sm">download</span>
-                          <span>View & Download PDF</span>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        ) : !activeCandidate ? (
+        {!activeCandidate ? (
           <div className="bg-white rounded-3xl p-12 text-center text-slate-500 border border-slate-200">
             No active candidates found.
           </div>

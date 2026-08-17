@@ -2421,84 +2421,23 @@ export default function CockpitView() {
               </button>
             </div>
 
-            {/* 20-Column Candidate Tracker Matrix Preview */}
+            {/* List of candidates included in link */}
             <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-[10px] font-black text-slate-700 uppercase tracking-wider block">
-                  📊 20-Column Candidate Summary Tracker Matrix ({selectedCandidateIds.length} Candidates Selected):
-                </span>
-                <span className="text-[9px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded">
-                  20th Column: Clickable Resume View & Download
-                </span>
-              </div>
-
-              <div className="overflow-x-auto border border-slate-300 rounded-2xl max-h-60 bg-white shadow-xs">
-                <table className="w-full text-left border-collapse text-[11px] font-sans">
-                  <thead className="bg-[#0F172A] text-white sticky top-0 font-bold text-[10px] uppercase tracking-wider">
-                    <tr>
-                      <th className="p-2 border-r border-slate-700 whitespace-nowrap">#</th>
-                      <th className="p-2 border-r border-slate-700 whitespace-nowrap">Date</th>
-                      <th className="p-2 border-r border-slate-700 whitespace-nowrap">Source</th>
-                      <th className="p-2 border-r border-slate-700 whitespace-nowrap">Client Name</th>
-                      <th className="p-2 border-r border-slate-700 whitespace-nowrap">Applied Position</th>
-                      <th className="p-2 border-r border-slate-700 whitespace-nowrap">Candidate Name</th>
-                      <th className="p-2 border-r border-slate-700 whitespace-nowrap">Email ID</th>
-                      <th className="p-2 border-r border-slate-700 whitespace-nowrap">Number</th>
-                      <th className="p-2 border-r border-slate-700 whitespace-nowrap">Location</th>
-                      <th className="p-2 border-r border-slate-700 whitespace-nowrap">Relocate</th>
-                      <th className="p-2 border-r border-slate-700 whitespace-nowrap">Tot Exp</th>
-                      <th className="p-2 border-r border-slate-700 whitespace-nowrap">Rel Exp</th>
-                      <th className="p-2 border-r border-slate-700 whitespace-nowrap">Designation</th>
-                      <th className="p-2 border-r border-slate-700 whitespace-nowrap">Qualification</th>
-                      <th className="p-2 border-r border-slate-700 whitespace-nowrap">Current Company</th>
-                      <th className="p-2 border-r border-slate-700 whitespace-nowrap">Current CTC</th>
-                      <th className="p-2 border-r border-slate-700 whitespace-nowrap">Expectation</th>
-                      <th className="p-2 border-r border-slate-700 whitespace-nowrap">Notice Period</th>
-                      <th className="p-2 border-r border-slate-700 whitespace-nowrap">Reason of Leaving</th>
-                      <th className="p-2 border-r border-slate-700 whitespace-nowrap">Offer in Hand</th>
-                      <th className="p-2 bg-emerald-700 text-white whitespace-nowrap font-black">20. Resume Link</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200">
-                    {jobCandidates
-                      .filter((c) => selectedCandidateIds.includes(c.id))
-                      .map((cand, idx) => (
-                        <tr key={cand.id} className="hover:bg-slate-50 transition-all font-medium text-slate-800">
-                          <td className="p-2 border-r border-slate-200 text-slate-500 font-bold">{idx + 1}</td>
-                          <td className="p-2 border-r border-slate-200 whitespace-nowrap">17-Aug-26</td>
-                          <td className="p-2 border-r border-slate-200 whitespace-nowrap font-bold text-amber-700">Naukri</td>
-                          <td className="p-2 border-r border-slate-200 whitespace-nowrap">{selectedJob?.client || "Apex Tech"}</td>
-                          <td className="p-2 border-r border-slate-200 whitespace-nowrap font-bold">{selectedJob?.title || "Role"}</td>
-                          <td className="p-2 border-r border-slate-200 whitespace-nowrap font-bold text-slate-900">{cand.name}</td>
-                          <td className="p-2 border-r border-slate-200 whitespace-nowrap text-blue-600">{cand.email || `${cand.name.toLowerCase().replace(/\s+/g, '')}@gmail.com`}</td>
-                          <td className="p-2 border-r border-slate-200 whitespace-nowrap font-mono">{cand.phone || "+91 9876543210"}</td>
-                          <td className="p-2 border-r border-slate-200 whitespace-nowrap">{cand.location || "Bengaluru"}</td>
-                          <td className="p-2 border-r border-slate-200 whitespace-nowrap text-emerald-700 font-bold">Yes</td>
-                          <td className="p-2 border-r border-slate-200 whitespace-nowrap font-bold">{cand.experience}</td>
-                          <td className="p-2 border-r border-slate-200 whitespace-nowrap">4.0 Yrs</td>
-                          <td className="p-2 border-r border-slate-200 whitespace-nowrap">{cand.designation}</td>
-                          <td className="p-2 border-r border-slate-200 whitespace-nowrap">B.Tech CS</td>
-                          <td className="p-2 border-r border-slate-200 whitespace-nowrap">{cand.currentCompany || "TCS / Tech Corp"}</td>
-                          <td className="p-2 border-r border-slate-200 whitespace-nowrap font-mono">₹{cand.ctc} LPA</td>
-                          <td className="p-2 border-r border-slate-200 whitespace-nowrap font-mono font-bold text-emerald-700">₹{cand.expectedCtc} LPA</td>
-                          <td className="p-2 border-r border-slate-200 whitespace-nowrap">{cand.noticePeriod}</td>
-                          <td className="p-2 border-r border-slate-200 whitespace-nowrap">Career Growth & Tech Stack</td>
-                          <td className="p-2 border-r border-slate-200 whitespace-nowrap text-amber-700 font-bold">No Offer</td>
-                          <td className="p-2 bg-emerald-50 whitespace-nowrap">
-                            <a
-                              href={generatedPortalLink}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-2xs w-fit"
-                            >
-                              <span className="material-symbols-outlined text-xs">download</span>
-                              <span>View & Download PDF</span>
-                            </a>
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
+                Selected Candidates Included ({selectedCandidateIds.length}):
+              </span>
+              <div className="flex flex-wrap gap-2 max-h-28 overflow-y-auto p-2 bg-slate-50 rounded-xl border border-slate-200">
+                {jobCandidates
+                  .filter((c) => selectedCandidateIds.includes(c.id))
+                  .map((cand) => (
+                    <span
+                      key={cand.id}
+                      className="bg-white border border-slate-200 text-slate-800 text-xs font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-2xs"
+                    >
+                      <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
+                      {cand.name} ({cand.designation})
+                    </span>
+                  ))}
               </div>
             </div>
 
@@ -2506,7 +2445,7 @@ export default function CockpitView() {
             <div className="bg-slate-900 text-white p-4 rounded-2xl space-y-2 shadow-inner">
               <div className="flex justify-between items-center">
                 <span className="text-[10px] font-black text-amber-400 uppercase tracking-wider">
-                  🔒 Zero-Login Client Review Portal Link
+                  🔒 Zero-Login Client Review Magic Link
                 </span>
                 <span className="text-[9px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-mono">Expires in 14 days</span>
               </div>
@@ -2537,18 +2476,15 @@ export default function CockpitView() {
                 <button
                   type="button"
                   onClick={() => {
-                    const selectedCands = jobCandidates.filter((c) => selectedCandidateIds.includes(c.id));
-                    const candNames = selectedCands.map((c) => c.name).join(", ");
+                    const candNames = jobCandidates
+                      .filter((c) => selectedCandidateIds.includes(c.id))
+                      .map((c) => c.name)
+                      .join(", ");
 
-                    // Generate full 20-Column Candidate Tracker Text Table for Email
-                    const trackerRowsText = selectedCands.map((c, i) => 
-                      `${i + 1}. [Date: 17-Aug-26] | [Source: Naukri] | [Client: ${selectedJob?.client}] | [Position: ${selectedJob?.title}]\n   Candidate: ${c.name} | Email: ${c.email || c.name.toLowerCase().replace(/\s+/g, '') + '@gmail.com'} | Phone: ${c.phone || '+91 9876543210'}\n   Loc: ${c.location || 'Bengaluru'} | Relocate: Yes | Exp: ${c.experience} (Rel: 4 Yrs) | Design: ${c.designation}\n   Qual: B.Tech CS | Current Co: ${c.currentCompany || 'Tech Corp'} | CTC: ₹${c.ctc} LPA | Exp CTC: ₹${c.expectedCtc} LPA\n   Notice: ${c.noticePeriod} | Reason: Career Growth | Offer in Hand: No\n   📄 RESUME DOWNLOAD LINK: ${generatedPortalLink}`
-                    ).join("\n--------------------------------------------------\n");
+                    const waMessage = `Hello ${selectedJob?.client || "Client HR"},\n\nRecruiter Priya Sharma from RecruitOS Agency has presented ${selectedCandidateIds.length} candidate(s) (${candNames}) for your mandate: ${selectedJob?.title || "Role"}.\n\nPlease review profiles, experience, CTC breakdown, and resumes using your secure review portal:\n${generatedPortalLink}\n\nRegards,\nRecruitOS Agency`;
 
-                    const waMessage = `Hello ${selectedJob?.client || "Client HR"},\n\nRecruiter Priya Sharma from RecruitOS Agency has presented ${selectedCandidateIds.length} candidate(s) (${candNames}) for your mandate: ${selectedJob?.title || "Role"}.\n\n=========================================\n20-COLUMN CANDIDATE TRACKER SUMMARY & RESUME LINKS\n=========================================\n${trackerRowsText}\n\nClient Interactive Review Portal:\n${generatedPortalLink}\n\nRegards,\nRecruitOS Agency`;
-
-                    const emailSubject = `Candidate Shortlist & 20-Column Tracker Matrix: ${selectedJob?.title || "Mandate"} - RecruitOS`;
-                    const emailBody = `Dear ${selectedJob?.client || "Client HR"},\n\nPlease find below the complete 20-column candidate tracker summary and direct resume download links for ${selectedCandidateIds.length} presented candidate(s) for requirement: ${selectedJob?.title || "Role"}.\n\n==================================================\nCANDIDATE TRACKER MATRIX (20 STANDARD COLUMNS)\n==================================================\nColumns Included:\n1. Date | 2. Source | 3. Client Name | 4. Applied Position Name | 5. Candidate Name | 6. Email ID | 7. Number | 8. Location | 9. Ready to Relocate | 10. Experience | 11. Relevant Exp | 12. Designation | 13. Qualification | 14. Current/Last Company | 15. Current Salary | 16. Expectation | 17. Notice Period | 18. Reason of Leaving | 19. Offer in Hand | 20. Resume Link\n\n${trackerRowsText}\n\n==================================================\nDIRECT RESUME VIEW & DOWNLOAD PORTAL:\n${generatedPortalLink}\n\nBest regards,\nRecruitOS Agency`;
+                    const emailSubject = `Candidate Shortlist Presentation: ${selectedJob?.title || "Mandate"} - RecruitOS`;
+                    const emailBody = `Dear ${selectedJob?.client || "Client HR"},\n\nWe have presented ${selectedCandidateIds.length} candidate(s) (${candNames}) for your requirement: ${selectedJob?.title || "Role"}.\n\nReview complete profiles & download resumes via your secure link:\n${generatedPortalLink}\n\nBest regards,\nRecruitOS Agency`;
 
                     // Trigger 1: Open WhatsApp in new tab
                     window.open(`https://wa.me/?text=${encodeURIComponent(waMessage)}`, "_blank");
@@ -2561,7 +2497,7 @@ export default function CockpitView() {
                   className="w-full bg-gradient-to-r from-emerald-600 to-slate-900 hover:from-emerald-700 hover:to-slate-950 text-white font-black py-3.5 rounded-2xl flex items-center justify-center gap-2 shadow-lg cursor-pointer transition-all active:scale-95"
                 >
                   <span className="material-symbols-outlined text-lg text-amber-400">send</span>
-                  <span>🚀 Dispatch 20-Column Tracker & Resumes (WhatsApp + Email)</span>
+                  <span>🚀 Dispatch Notification (WhatsApp + Email)</span>
                 </button>
               </div>
             </div>
