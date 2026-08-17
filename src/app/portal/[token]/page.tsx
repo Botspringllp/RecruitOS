@@ -141,7 +141,7 @@ export default function ClientPortalReviewPage({ params }: { params: Promise<{ t
     URL.revokeObjectURL(url);
   };
 
-  const handleConfirmShortlistWhatsApp = () => {
+  const handleConfirmShortlistDual = () => {
     if (!slot1) {
       alert("Please provide at least Slot 1 Date & Time.");
       return;
@@ -153,32 +153,18 @@ export default function ClientPortalReviewPage({ params }: { params: Promise<{ t
 
     const message = `Hi Recruiter Priya Sharma,\n\nClient HR ${clientNameInput || "Apex Tech"} has SHORTLISTED candidate *${activeCandidate.fullName}* for mandate: ${job?.title || "Role"}.\n\nProposed Interview Slots:\n${slotsFormatted}\n\nCandidate Slot Selection Link:\n${confirmUrl}\n\nClient Contact: ${clientNameInput} (${clientEmailInput} / ${clientPhoneInput})`;
 
-    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
-
-    setActionSuccessText(`🎉 Interview requested! Proposed 3 time slots dispatched via WhatsApp.`);
-    setNextStepUrl(`/interview-confirm/${activeCandidate.submissionId || "SUB_9701"}`);
-    setCandidates((prev) =>
-      prev.map((c, idx) => (idx === activeCandidateIndex ? { ...c, stage: "Interviewing" } : c))
-    );
-    setShortlistModalOpen(false);
-  };
-
-  const handleConfirmShortlistEmail = () => {
-    if (!slot1) {
-      alert("Please provide at least Slot 1 Date & Time.");
-      return;
-    }
-
-    const proposedSlots = [slot1, slot2, slot3].filter(Boolean);
-    const confirmUrl = `http://localhost:3000/interview-confirm/${activeCandidate.submissionId || "SUB_9701"}`;
-    const slotsFormatted = proposedSlots.map((s, idx) => `Slot #${idx + 1}: ${new Date(s).toLocaleString()}`).join("\n");
-
     const subject = `Shortlist & Interview Slots: ${activeCandidate.fullName} - ${job?.title}`;
     const body = `Dear Recruiter Priya Sharma,\n\nClient HR ${clientNameInput} has shortlisted candidate ${activeCandidate.fullName} for mandate: ${job?.title}.\n\nProposed Interview Slots:\n${slotsFormatted}\n\nCandidate Confirmation URL:\n${confirmUrl}\n\nBest regards,\n${clientNameInput}`;
 
-    window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, "_blank");
+    // Trigger 1: WhatsApp
+    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
 
-    setActionSuccessText(`🎉 Shortlist notice sent via Email!`);
+    // Trigger 2: Email
+    setTimeout(() => {
+      window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    }, 400);
+
+    setActionSuccessText(`🎉 Interview requested! Proposed slots dispatched via WhatsApp & Email.`);
     setNextStepUrl(`/interview-confirm/${activeCandidate.submissionId || "SUB_9701"}`);
     setCandidates((prev) =>
       prev.map((c, idx) => (idx === activeCandidateIndex ? { ...c, stage: "Interviewing" } : c))
@@ -193,10 +179,17 @@ export default function ClientPortalReviewPage({ params }: { params: Promise<{ t
     }
 
     const message = `Hi Recruiter Priya Sharma,\n\nClient HR ${job?.clientName} has placed candidate *${activeCandidate.fullName}* on HOLD for role: ${job?.title}.\n\nHold Feedback Reason:\n"${holdReasonText}"`;
+    const subject = `Candidate Hold Notice: ${activeCandidate.fullName} - ${job?.title}`;
 
+    // Trigger 1: WhatsApp
     window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
 
-    setActionSuccessText(`⏸ Candidate ${activeCandidate.fullName} placed on Hold. Feedback sent to recruiter.`);
+    // Trigger 2: Email
+    setTimeout(() => {
+      window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
+    }, 400);
+
+    setActionSuccessText(`⏸ Candidate ${activeCandidate.fullName} placed on Hold. Feedback sent via WhatsApp & Email.`);
     setCandidates((prev) =>
       prev.map((c, idx) => (idx === activeCandidateIndex ? { ...c, stage: "Hold" } : c))
     );
@@ -211,10 +204,17 @@ export default function ClientPortalReviewPage({ params }: { params: Promise<{ t
     }
 
     const message = `Hi Recruiter Priya Sharma,\n\nClient HR ${job?.clientName} has REJECTED candidate *${activeCandidate.fullName}* for role: ${job?.title}.\n\nPrimary Rejection Category: ${rejectionReason}\nDetailed Feedback: "${finalReason}"`;
+    const subject = `Candidate Rejection Feedback: ${activeCandidate.fullName} - ${job?.title}`;
 
+    // Trigger 1: WhatsApp
     window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
 
-    setActionSuccessText(`✕ Candidate ${activeCandidate.fullName} rejected with feedback logged.`);
+    // Trigger 2: Email
+    setTimeout(() => {
+      window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
+    }, 400);
+
+    setActionSuccessText(`✕ Candidate ${activeCandidate.fullName} rejected with feedback logged (WhatsApp + Email).`);
     setCandidates((prev) =>
       prev.map((c, idx) => (idx === activeCandidateIndex ? { ...c, stage: "Rejected" } : c))
     );
@@ -740,23 +740,16 @@ export default function ClientPortalReviewPage({ params }: { params: Promise<{ t
             <div className="pt-2 flex flex-col sm:flex-row gap-2">
               <button
                 onClick={() => setShortlistModalOpen(false)}
-                className="py-2.5 px-4 border border-slate-300 text-slate-700 text-xs font-bold rounded-xl"
+                className="py-3 px-4 border border-slate-300 text-slate-700 text-xs font-bold rounded-xl"
               >
                 Cancel
               </button>
               <button
-                onClick={handleConfirmShortlistWhatsApp}
-                className="flex-1 py-2.5 bg-emerald-600 text-white text-xs font-black rounded-xl hover:bg-emerald-700 transition-all shadow-md flex items-center justify-center gap-1.5"
+                onClick={handleConfirmShortlistDual}
+                className="flex-1 py-3 bg-gradient-to-r from-emerald-600 to-slate-900 hover:from-emerald-700 hover:to-slate-950 text-white text-xs font-black rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 active:scale-95"
               >
-                <span className="material-symbols-outlined text-base">chat</span>
-                <span>Send via WhatsApp</span>
-              </button>
-              <button
-                onClick={handleConfirmShortlistEmail}
-                className="flex-1 py-2.5 bg-[#0F172A] text-white text-xs font-black rounded-xl hover:bg-slate-900 transition-all shadow-md flex items-center justify-center gap-1.5"
-              >
-                <span className="material-symbols-outlined text-base">mail</span>
-                <span>Send via Email</span>
+                <span className="material-symbols-outlined text-base text-amber-400">send</span>
+                <span>🚀 Dispatch Notification (WhatsApp + Email)</span>
               </button>
             </div>
           </div>

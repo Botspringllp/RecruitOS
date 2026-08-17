@@ -2472,7 +2472,7 @@ export default function CockpitView() {
               <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
                 Instant Dispatch Channels:
               </span>
-              <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="text-xs">
                 <button
                   type="button"
                   onClick={() => {
@@ -2480,30 +2480,24 @@ export default function CockpitView() {
                       .filter((c) => selectedCandidateIds.includes(c.id))
                       .map((c) => c.name)
                       .join(", ");
-                    const waMessage = `Hello ${selectedJob?.client || "Client HR"},\n\nRecruiter Priya Sharma from RecruitOS Agency has presented ${selectedCandidateIds.length} candidate(s) (${candNames}) for your mandate: ${selectedJob?.title || "Role"}.\n\nPlease review profiles, experience, CTC breakdown, and resumes using your secure review portal:\n${generatedPortalLink}\n\nRegards,\nRecruitOS Agency`;
-                    window.open(`https://wa.me/?text=${encodeURIComponent(waMessage)}`, "_blank");
-                  }}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3 rounded-xl flex items-center justify-center gap-2 shadow-md cursor-pointer transition-all"
-                >
-                  <span className="material-symbols-outlined text-lg">chat</span>
-                  <span>Send via WhatsApp</span>
-                </button>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    const candNames = jobCandidates
-                      .filter((c) => selectedCandidateIds.includes(c.id))
-                      .map((c) => c.name)
-                      .join(", ");
+                    const waMessage = `Hello ${selectedJob?.client || "Client HR"},\n\nRecruiter Priya Sharma from RecruitOS Agency has presented ${selectedCandidateIds.length} candidate(s) (${candNames}) for your mandate: ${selectedJob?.title || "Role"}.\n\nPlease review profiles, experience, CTC breakdown, and resumes using your secure review portal:\n${generatedPortalLink}\n\nRegards,\nRecruitOS Agency`;
+
                     const emailSubject = `Candidate Shortlist Presentation: ${selectedJob?.title || "Mandate"} - RecruitOS`;
                     const emailBody = `Dear ${selectedJob?.client || "Client HR"},\n\nWe have presented ${selectedCandidateIds.length} candidate(s) (${candNames}) for your requirement: ${selectedJob?.title || "Role"}.\n\nReview complete profiles & download resumes via your secure link:\n${generatedPortalLink}\n\nBest regards,\nRecruitOS Agency`;
-                    window.open(`mailto:?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`, "_blank");
+
+                    // Trigger 1: Open WhatsApp in new tab
+                    window.open(`https://wa.me/?text=${encodeURIComponent(waMessage)}`, "_blank");
+
+                    // Trigger 2: Trigger Mailto for default Email client
+                    setTimeout(() => {
+                      window.location.href = `mailto:?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+                    }, 400);
                   }}
-                  className="bg-[#0F172A] hover:bg-slate-900 text-white font-extrabold py-3 rounded-xl flex items-center justify-center gap-2 shadow-md cursor-pointer transition-all"
+                  className="w-full bg-gradient-to-r from-emerald-600 to-slate-900 hover:from-emerald-700 hover:to-slate-950 text-white font-black py-3.5 rounded-2xl flex items-center justify-center gap-2 shadow-lg cursor-pointer transition-all active:scale-95"
                 >
-                  <span className="material-symbols-outlined text-lg">mail</span>
-                  <span>Dispatch Email</span>
+                  <span className="material-symbols-outlined text-lg text-amber-400">send</span>
+                  <span>🚀 Dispatch Notification (WhatsApp + Email)</span>
                 </button>
               </div>
             </div>

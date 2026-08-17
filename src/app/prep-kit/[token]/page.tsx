@@ -47,7 +47,15 @@ export default function CandidatePrepKitPage({ params }: { params: Promise<{ tok
       setAcknowledged(true);
 
       const message = `Hi Recruiter Priya Sharma,\n\nCandidate *Aarav Sharma* has reviewed the Placement Prep Kit and confirmed 100% READINESS for interview with Apex Global Technologies tomorrow!`;
+      const subject = `Placement Prep Confirmed: Aarav Sharma - Ready`;
+
+      // Trigger 1: WhatsApp
       window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
+
+      // Trigger 2: Email
+      setTimeout(() => {
+        window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
+      }, 400);
     } catch (err: any) {
       alert(`Error: ${err.message}`);
     } finally {
@@ -65,7 +73,15 @@ export default function CandidatePrepKitPage({ params }: { params: Promise<{ tok
     setDeclineModalOpen(false);
 
     const message = `Hi Recruiter Priya Sharma,\n\nCandidate *Aarav Sharma* has DECLINED / CANCELLED the scheduled interview for Senior Full Stack Engineer with Apex Global Technologies.\n\nReason: "${declineReason}"`;
+    const subject = `Interview Declined by Candidate: Aarav Sharma`;
+
+    // Trigger 1: WhatsApp
     window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
+
+    // Trigger 2: Email
+    setTimeout(() => {
+      window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
+    }, 400);
   };
 
   if (loading) {

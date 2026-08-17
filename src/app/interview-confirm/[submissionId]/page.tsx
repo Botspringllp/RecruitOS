@@ -86,7 +86,15 @@ export default function CandidateInterviewConfirmPage({ params }: { params: Prom
     const clientScheduleLockUrl = `http://localhost:3000/client-schedule-confirm/${submissionId || "SUB_9701"}`;
     const message = `Hi Recruiter Priya Sharma,\n\nCandidate *${candidateName}* has CONFIRMED Slot #${idx + 1} (${slotTimeFormatted}) for interview with ${clientName} (${jobTitle}).\n\nPlease click link to trigger Client Meeting Link Generator & Calendar Invite:\n${clientScheduleLockUrl}`;
 
+    const subject = `Slot Confirmed: ${candidateName} - ${jobTitle}`;
+
+    // Trigger 1: WhatsApp
     window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
+
+    // Trigger 2: Email
+    setTimeout(() => {
+      window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
+    }, 400);
   };
 
   const handleRequestAlternatives = () => {
@@ -103,7 +111,15 @@ export default function CandidateInterviewConfirmPage({ params }: { params: Prom
     const clientScheduleLockUrl = `http://localhost:3000/client-schedule-confirm/${submissionId || "SUB_9701"}`;
     const message = `Hi Recruiter Priya Sharma,\n\nCandidate *${candidateName}* is unavailable for the 3 proposed client slots.\n\nCandidate Requested Custom Date & Time:\n*${customFormatted}*\nReason: "${customReason || "Schedule conflict"}"\n\nPlease forward custom availability to Client HR for reschedule confirmation:\n${clientScheduleLockUrl}`;
 
+    const subject = `Custom Slot Request: ${candidateName} - ${jobTitle}`;
+
+    // Trigger 1: WhatsApp
     window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
+
+    // Trigger 2: Email
+    setTimeout(() => {
+      window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
+    }, 400);
   };
 
   if (loading) {
