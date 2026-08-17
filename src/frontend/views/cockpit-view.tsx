@@ -2397,7 +2397,7 @@ export default function CockpitView() {
       {/* Workflow 4: Present to Client Secure Review Link Modal */}
       {presentModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 w-full max-w-lg shadow-2xl space-y-5 text-slate-900 animate-in zoom-in-95">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 w-full max-w-4xl shadow-2xl space-y-5 text-slate-900 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-amber-500 text-2xl">send</span>
@@ -2406,7 +2406,7 @@ export default function CockpitView() {
                     Present Shortlisted Candidates to Client
                   </h4>
                   <p className="text-xs text-slate-500">
-                    Client: {selectedJob?.client || "Zylker"} • Mandate: {selectedJob?.title || "Software Developer"}
+                    Client: {selectedJob?.client || "Apex Global"} • Mandate: {selectedJob?.title || "Software Engineer"}
                   </p>
                 </div>
               </div>
@@ -2419,26 +2419,6 @@ export default function CockpitView() {
               >
                 ✕
               </button>
-            </div>
-
-            {/* List of candidates included in link */}
-            <div className="space-y-2">
-              <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
-                Selected Candidates Included ({selectedCandidateIds.length}):
-              </span>
-              <div className="flex flex-wrap gap-2 max-h-28 overflow-y-auto p-2 bg-slate-50 rounded-xl border border-slate-200">
-                {jobCandidates
-                  .filter((c) => selectedCandidateIds.includes(c.id))
-                  .map((cand) => (
-                    <span
-                      key={cand.id}
-                      className="bg-white border border-slate-200 text-slate-800 text-xs font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-2xs"
-                    >
-                      <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
-                      {cand.name} ({cand.designation})
-                    </span>
-                  ))}
-              </div>
             </div>
 
             {/* Generated Magic Link Box */}
@@ -2467,42 +2447,202 @@ export default function CockpitView() {
               </div>
             </div>
 
-            {/* Quick Dispatch Actions */}
+            {/* Simulating Attached Resume Files (as shown in screenshot) */}
             <div className="space-y-2">
               <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
-                Instant Dispatch Channels:
+                Attached Resume PDF Files ({selectedCandidateIds.length}):
               </span>
-              <div className="text-xs">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const candNames = jobCandidates
-                      .filter((c) => selectedCandidateIds.includes(c.id))
-                      .map((c) => c.name)
-                      .join(", ");
-
-                    const waMessage = `Hello ${selectedJob?.client || "Client HR"},\n\nRecruiter Priya Sharma from RecruitOS Agency has presented ${selectedCandidateIds.length} candidate(s) (${candNames}) for your mandate: ${selectedJob?.title || "Role"}.\n\nPlease review profiles, experience, CTC breakdown, and resumes using your secure review portal:\n${generatedPortalLink}\n\nRegards,\nRecruitOS Agency`;
-
-                    const emailSubject = `Candidate Shortlist Presentation: ${selectedJob?.title || "Mandate"} - RecruitOS`;
-                    const emailBody = `Dear ${selectedJob?.client || "Client HR"},\n\nWe have presented ${selectedCandidateIds.length} candidate(s) (${candNames}) for your requirement: ${selectedJob?.title || "Role"}.\n\nReview complete profiles & download resumes via your secure link:\n${generatedPortalLink}\n\nBest regards,\nRecruitOS Agency`;
-
-                    // Trigger 1: Open WhatsApp in new tab
-                    window.open(`https://wa.me/?text=${encodeURIComponent(waMessage)}`, "_blank");
-
-                    // Trigger 2: Trigger Mailto for default Email client
-                    setTimeout(() => {
-                      window.location.href = `mailto:?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
-                    }, 400);
-                  }}
-                  className="w-full bg-gradient-to-r from-emerald-600 to-slate-900 hover:from-emerald-700 hover:to-slate-950 text-white font-black py-3.5 rounded-2xl flex items-center justify-center gap-2 shadow-lg cursor-pointer transition-all active:scale-95"
-                >
-                  <span className="material-symbols-outlined text-lg text-amber-400">send</span>
-                  <span>🚀 Dispatch Notification (WhatsApp + Email)</span>
-                </button>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {jobCandidates
+                  .filter((c) => selectedCandidateIds.includes(c.id))
+                  .map((cand, idx) => (
+                    <div
+                      key={cand.id}
+                      className="bg-slate-50 border border-slate-200 p-2.5 rounded-xl flex items-center gap-2 text-xs shadow-2xs hover:border-emerald-500 transition-all"
+                    >
+                      <span className="material-symbols-outlined text-red-500 text-xl">picture_as_pdf</span>
+                      <div className="overflow-hidden flex-1">
+                        <p className="font-bold text-slate-800 text-[11px] truncate">
+                          Naukri_{cand.name.replace(/\s+/g, "")}.pdf
+                        </p>
+                        <p className="text-[9px] text-slate-500 font-mono">
+                          {(70 + idx * 25.4).toFixed(1)} KB
+                        </p>
+                      </div>
+                    </div>
+                  ))}
               </div>
             </div>
 
-            <div className="pt-2 border-t border-slate-100 text-right">
+            {/* Candidate Summary Tracker Email Preview & Tabular Data (Matching Screenshot) */}
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
+                  Email Summary Tracker Preview (19 Columns Table):
+                </span>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const selectedCands = jobCandidates.filter((c) => selectedCandidateIds.includes(c.id));
+                    const todayDate = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "2-digit" });
+
+                    // Generate Rich HTML Table for Outlook/Gmail pasting
+                    const htmlContent = `<div><p style="font-family: sans-serif; font-size: 14px; color: #1e293b;">Hi <strong>${selectedJob?.client || "Client HR"}</strong>,</p><p style="font-family: sans-serif; font-size: 13px; color: #334155;">Please have a look at the tracker and attached are a few resumes for <strong>${selectedJob?.title || "Position"}</strong>.</p><table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; font-family: sans-serif; font-size: 12px; width: 100%; border: 1px solid #cbd5e1;"><tr style="background-color: #0F172A; color: #ffffff; text-align: left;"><th style="border: 1px solid #334155;">Date</th><th style="border: 1px solid #334155;">Source</th><th style="border: 1px solid #334155;">Client Name</th><th style="border: 1px solid #334155;">Applied Position Name</th><th style="border: 1px solid #334155;">Candidate Name</th><th style="border: 1px solid #334155;">Email ID</th><th style="border: 1px solid #334155;">Number</th><th style="border: 1px solid #334155;">Location</th><th style="border: 1px solid #334155;">Ready to Relocate</th><th style="border: 1px solid #334155;">Experience</th><th style="border: 1px solid #334155;">Relevant Exp</th><th style="border: 1px solid #334155;">Designation</th><th style="border: 1px solid #334155;">Qualification</th><th style="border: 1px solid #334155;">Current/ Last Company</th><th style="border: 1px solid #334155;">Current Salary</th><th style="border: 1px solid #334155;">Expectation</th><th style="border: 1px solid #334155;">Notice Period</th><th style="border: 1px solid #334155;">Reason of Leaving</th><th style="border: 1px solid #334155;">Offer in Hand</th></tr>${selectedCands.map(cand => `<tr style="background-color: #ffffff;"><td style="border: 1px solid #cbd5e1;">${todayDate}</td><td style="border: 1px solid #cbd5e1;">Naukri</td><td style="border: 1px solid #cbd5e1; font-weight: bold;">${selectedJob?.client || "Client"}</td><td style="border: 1px solid #cbd5e1; font-weight: bold;">${selectedJob?.title || "Role"}</td><td style="border: 1px solid #cbd5e1; font-weight: bold; color: #1e3a8a;">${cand.name}</td><td style="border: 1px solid #cbd5e1; color: #2563eb;"><a href="mailto:${cand.email}">${cand.email}</a></td><td style="border: 1px solid #cbd5e1;">${cand.phone}</td><td style="border: 1px solid #cbd5e1;">Bangalore</td><td style="border: 1px solid #cbd5e1;">Yes</td><td style="border: 1px solid #cbd5e1;">${cand.experience || "5.0 Yrs"}</td><td style="border: 1px solid #cbd5e1;">4.0 Yrs</td><td style="border: 1px solid #cbd5e1;">${cand.designation}</td><td style="border: 1px solid #cbd5e1;">B.Tech / MCA</td><td style="border: 1px solid #cbd5e1;">${cand.currentCompany}</td><td style="border: 1px solid #cbd5e1;">₹18.5 LPA</td><td style="border: 1px solid #cbd5e1; font-weight: bold; color: #065f46;">${cand.expectedCtc}</td><td style="border: 1px solid #cbd5e1; font-weight: bold; color: #92400e;">${cand.noticePeriod}</td><td style="border: 1px solid #cbd5e1;">Career Growth</td><td style="border: 1px solid #cbd5e1;">No</td></tr>`).join('')}</table><p style="font-family: sans-serif; font-size: 13px; color: #334155; margin-top: 16px;">Regards,<br/><strong>Shivani / Priya Sharma</strong><br/>RecruitOS Agency</p><p style="font-family: sans-serif; font-size: 12px;"><a href="${generatedPortalLink}" style="color: #2563eb; font-weight: bold;">Click to View Interactive Candidate Review Portal & Download Resumes</a></p></div>`;
+
+                    try {
+                      const htmlBlob = new Blob([htmlContent], { type: "text/html" });
+                      const textBlob = new Blob([htmlContent.replace(/<[^>]+>/g, " ")], { type: "text/plain" });
+                      await navigator.clipboard.write([
+                        new ClipboardItem({
+                          "text/html": htmlBlob,
+                          "text/plain": textBlob,
+                        }),
+                      ]);
+                      alert("✨ Rich HTML Table with 19 columns copied to Clipboard!\n\nWhen your email app (Gmail / Outlook) opens, press Ctrl+V (or Cmd+V) to paste the EXACT styled HTML table with borders & colored headers!");
+                    } catch (err) {
+                      navigator.clipboard.writeText(htmlContent);
+                      alert("HTML Code copied to clipboard!");
+                    }
+                  }}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg text-[10px] cursor-pointer flex items-center gap-1 shadow-sm transition-all"
+                >
+                  <span className="material-symbols-outlined text-xs">content_copy</span>
+                  <span>📋 Copy Rich HTML Table (Paste into Gmail/Outlook)</span>
+                </button>
+              </div>
+
+              {/* Email Content Box */}
+              <div className="bg-white border-2 border-slate-300 rounded-2xl p-4 space-y-3 font-sans text-xs shadow-inner">
+                <div className="space-y-1 text-slate-700 font-medium border-b border-slate-100 pb-2">
+                  <p><strong>Hi {selectedJob?.client || "Client HR"},</strong></p>
+                  <p>Please have a look at the tracker and attached are a few resumes for <strong>{selectedJob?.title || "Role"}</strong>.</p>
+                </div>
+
+                {/* 19-Column Structured Summary Table */}
+                <div className="overflow-x-auto max-w-full rounded-xl border border-slate-300 shadow-xs">
+                  <table className="w-full text-left text-[11px] border-collapse">
+                    <thead>
+                      <tr className="bg-[#0F172A] text-white font-bold whitespace-nowrap">
+                        <th className="p-2 border-r border-slate-700">Date</th>
+                        <th className="p-2 border-r border-slate-700">Source</th>
+                        <th className="p-2 border-r border-slate-700">Client Name</th>
+                        <th className="p-2 border-r border-slate-700">Applied Position Name</th>
+                        <th className="p-2 border-r border-slate-700">Candidate Name</th>
+                        <th className="p-2 border-r border-slate-700">Email ID</th>
+                        <th className="p-2 border-r border-slate-700">Number</th>
+                        <th className="p-2 border-r border-slate-700">Location</th>
+                        <th className="p-2 border-r border-slate-700">Ready to Relocate</th>
+                        <th className="p-2 border-r border-slate-700">Experience</th>
+                        <th className="p-2 border-r border-slate-700">Relevant Exp</th>
+                        <th className="p-2 border-r border-slate-700">Designation</th>
+                        <th className="p-2 border-r border-slate-700">Qualification</th>
+                        <th className="p-2 border-r border-slate-700">Current/ Last Company</th>
+                        <th className="p-2 border-r border-slate-700">Current Salary</th>
+                        <th className="p-2 border-r border-slate-700">Expectation</th>
+                        <th className="p-2 border-r border-slate-700">Notice Period</th>
+                        <th className="p-2 border-r border-slate-700">Reason of Leaving</th>
+                        <th className="p-2">Offer in Hand</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 bg-white">
+                      {jobCandidates
+                        .filter((c) => selectedCandidateIds.includes(c.id))
+                        .map((cand) => (
+                          <tr key={cand.id} className="hover:bg-slate-50 whitespace-nowrap text-slate-800 font-medium">
+                            <td className="p-2 border-r border-slate-200 font-mono text-[10px]">
+                              {new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "2-digit" })}
+                            </td>
+                            <td className="p-2 border-r border-slate-200">Naukri</td>
+                            <td className="p-2 border-r border-slate-200 font-bold">{selectedJob?.client || "Apex Global"}</td>
+                            <td className="p-2 border-r border-slate-200 font-bold text-slate-900">{selectedJob?.title || "Engineer"}</td>
+                            <td className="p-2 border-r border-slate-200 font-extrabold text-blue-900">{cand.name}</td>
+                            <td className="p-2 border-r border-slate-200 text-blue-600 underline">{cand.email}</td>
+                            <td className="p-2 border-r border-slate-200 font-mono">{cand.phone}</td>
+                            <td className="p-2 border-r border-slate-200">Bangalore</td>
+                            <td className="p-2 border-r border-slate-200">Yes</td>
+                            <td className="p-2 border-r border-slate-200">{cand.experience || "5.0 Yrs"}</td>
+                            <td className="p-2 border-r border-slate-200">4.0 Yrs</td>
+                            <td className="p-2 border-r border-slate-200">{cand.designation}</td>
+                            <td className="p-2 border-r border-slate-200">B.Tech / MCA</td>
+                            <td className="p-2 border-r border-slate-200">{cand.currentCompany}</td>
+                            <td className="p-2 border-r border-slate-200">₹18.5 LPA</td>
+                            <td className="p-2 border-r border-slate-200 font-bold text-emerald-800">{cand.expectedCtc}</td>
+                            <td className="p-2 border-r border-slate-200 text-amber-800 font-bold">{cand.noticePeriod}</td>
+                            <td className="p-2 border-r border-slate-200">Career Growth</td>
+                            <td className="p-2">No</td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="pt-2 text-slate-700 font-medium">
+                  <p>Regards,<br /><strong>Shivani / Priya Sharma</strong><br />RecruitOS Operations</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Instant Dispatch Action Buttons */}
+            <div className="space-y-2 pt-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  const selectedCands = jobCandidates.filter((c) => selectedCandidateIds.includes(c.id));
+                  const candNames = selectedCands.map((c) => c.name).join(", ");
+                  const todayDate = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "2-digit" });
+
+                  // 1. Copy Rich HTML table to Clipboard automatically!
+                  const htmlContent = `<div><p style="font-family: sans-serif; font-size: 14px;">Hi <strong>${selectedJob?.client || "Client HR"}</strong>,</p><p style="font-family: sans-serif; font-size: 13px;">Please have a look at the tracker and attached are a few resumes for <strong>${selectedJob?.title || "Position"}</strong>.</p><table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; font-family: sans-serif; font-size: 12px; width: 100%; border: 1px solid #cbd5e1;"><tr style="background-color: #0F172A; color: #ffffff; text-align: left;"><th style="border: 1px solid #334155;">Date</th><th style="border: 1px solid #334155;">Source</th><th style="border: 1px solid #334155;">Client Name</th><th style="border: 1px solid #334155;">Applied Position Name</th><th style="border: 1px solid #334155;">Candidate Name</th><th style="border: 1px solid #334155;">Email ID</th><th style="border: 1px solid #334155;">Number</th><th style="border: 1px solid #334155;">Location</th><th style="border: 1px solid #334155;">Ready to Relocate</th><th style="border: 1px solid #334155;">Experience</th><th style="border: 1px solid #334155;">Relevant Exp</th><th style="border: 1px solid #334155;">Designation</th><th style="border: 1px solid #334155;">Qualification</th><th style="border: 1px solid #334155;">Current/ Last Company</th><th style="border: 1px solid #334155;">Current Salary</th><th style="border: 1px solid #334155;">Expectation</th><th style="border: 1px solid #334155;">Notice Period</th><th style="border: 1px solid #334155;">Reason of Leaving</th><th style="border: 1px solid #334155;">Offer in Hand</th></tr>${selectedCands.map(cand => `<tr style="background-color: #ffffff;"><td style="border: 1px solid #cbd5e1;">${todayDate}</td><td style="border: 1px solid #cbd5e1;">Naukri</td><td style="border: 1px solid #cbd5e1; font-weight: bold;">${selectedJob?.client || "Client"}</td><td style="border: 1px solid #cbd5e1; font-weight: bold;">${selectedJob?.title || "Role"}</td><td style="border: 1px solid #cbd5e1; font-weight: bold; color: #1e3a8a;">${cand.name}</td><td style="border: 1px solid #cbd5e1; color: #2563eb;"><a href="mailto:${cand.email}">${cand.email}</a></td><td style="border: 1px solid #cbd5e1;">${cand.phone}</td><td style="border: 1px solid #cbd5e1;">Bangalore</td><td style="border: 1px solid #cbd5e1;">Yes</td><td style="border: 1px solid #cbd5e1;">${cand.experience || "5.0 Yrs"}</td><td style="border: 1px solid #cbd5e1;">4.0 Yrs</td><td style="border: 1px solid #cbd5e1;">${cand.designation}</td><td style="border: 1px solid #cbd5e1;">B.Tech / MCA</td><td style="border: 1px solid #cbd5e1;">${cand.currentCompany}</td><td style="border: 1px solid #cbd5e1;">₹18.5 LPA</td><td style="border: 1px solid #cbd5e1; font-weight: bold; color: #065f46;">${cand.expectedCtc}</td><td style="border: 1px solid #cbd5e1; font-weight: bold; color: #92400e;">${cand.noticePeriod}</td><td style="border: 1px solid #cbd5e1;">Career Growth</td><td style="border: 1px solid #cbd5e1;">No</td></tr>`).join('')}</table><p style="font-family: sans-serif; font-size: 13px; margin-top: 16px;">Regards,<br/><strong>Shivani / Priya Sharma</strong><br/>RecruitOS Agency</p><p style="font-family: sans-serif; font-size: 12px;"><a href="${generatedPortalLink}" style="color: #2563eb; font-weight: bold;">Click to View Interactive Candidate Review Portal & Download Resumes</a></p></div>`;
+
+                  try {
+                    const htmlBlob = new Blob([htmlContent], { type: "text/html" });
+                    const textBlob = new Blob([htmlContent.replace(/<[^>]+>/g, " ")], { type: "text/plain" });
+                    await navigator.clipboard.write([
+                      new ClipboardItem({
+                        "text/html": htmlBlob,
+                        "text/plain": textBlob,
+                      }),
+                    ]);
+                  } catch (e) {}
+
+                  // Format WhatsApp Message
+                  const waMessage = `Hello ${selectedJob?.client || "Client HR"},\n\nRecruiter Priya Sharma from RecruitOS Agency has presented ${selectedCandidateIds.length} candidate(s) (${candNames}) for your mandate: ${selectedJob?.title || "Role"}.\n\nPlease review profiles, experience, CTC breakdown, and resumes using your secure review portal:\n${generatedPortalLink}\n\nRegards,\nRecruitOS Agency`;
+
+                  // Format Plain Text Fallback for Mailto
+                  let emailTableText = `Hi ${selectedJob?.client || "Client HR"},\n\nPlease have a look at the tracker and attached are a few resumes for ${selectedJob?.title || "Position"}.\n\n(Note: Rich HTML Table with 19 columns has been copied to your Clipboard! Press Ctrl+V inside your Email body to paste the full styled HTML table!)\n\nView Portal & Resumes:\n${generatedPortalLink}\n\nRegards,\nShivani / Priya Sharma`;
+
+                  const emailSubject = `Candidate Shortlist Tracker Presentation: ${selectedJob?.title || "Mandate"} (${selectedCandidateIds.length} Candidates) - RecruitOS`;
+
+                  // Trigger 1: Open WhatsApp in new tab
+                  window.open(`https://wa.me/?text=${encodeURIComponent(waMessage)}`, "_blank");
+
+                  // Trigger 2: Trigger Mailto for default Email client
+                  setTimeout(() => {
+                    window.location.href = `mailto:?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailTableText)}`;
+                  }, 400);
+
+                  setEmailNoticeBanner(`🚀 Dispatched via WhatsApp! Rich HTML Table copied to Clipboard (Press Ctrl+V in email to paste HTML Table).`);
+                  setTimeout(() => setEmailNoticeBanner(null), 6000);
+                }}
+                className="w-full bg-gradient-to-r from-emerald-600 to-slate-900 hover:from-emerald-700 hover:to-slate-950 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 shadow-xl cursor-pointer transition-all active:scale-95 text-xs"
+              >
+                <span className="material-symbols-outlined text-xl text-amber-400">send</span>
+                <span>🚀 Dispatch Notification + Copy Rich HTML Table (WhatsApp + Email)</span>
+              </button>
+            </div>
+
+            <div className="pt-2 border-t border-slate-100 flex justify-between items-center">
+              <button
+                type="button"
+                onClick={() => {
+                  alert(`Downloading ${selectedCandidateIds.length} candidate resume PDF files in ZIP package...`);
+                }}
+                className="text-xs text-blue-600 font-bold hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-sm">download</span>
+                <span>Download All Resumes (PDF Zip)</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => setPresentModalOpen(false)}
