@@ -163,38 +163,6 @@ export default function CockpitView() {
     { id: 5, text: "Notice Period Review", done: false },
   ]);
 
-  // User Profile & Tenant Information State
-  const [showProfileModal, setShowProfileModal] = useState(false);
-  const [currentUser, setCurrentUser] = useState({
-    name: "Divyanshu Sharma",
-    email: "divyanshu@botspring.in",
-    agencyName: "Apex Recruitment Partners",
-    role: "Agency Owner & Admin",
-    mobile: "+91 7982416306",
-    tenantId: "11111111-1111-4111-8111-111111111111",
-  });
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const savedUser = localStorage.getItem("recruitos_current_user");
-      if (savedUser) {
-        try {
-          const parsed = JSON.parse(savedUser);
-          setCurrentUser({
-            name: parsed.ownerName || parsed.name || "Divyanshu Sharma",
-            email: parsed.email || "divyanshu@botspring.in",
-            agencyName: parsed.agencyName || "Apex Recruitment Partners",
-            role: parsed.role || "Agency Owner",
-            mobile: parsed.mobile || "+91 7982416306",
-            tenantId: parsed.tenantId || "11111111-1111-4111-8111-111111111111",
-          });
-        } catch (e) {
-          console.error("Failed to parse user data", e);
-        }
-      }
-    }
-  }, []);
-
   // Initial Mandates List State
   const [openMandatesList, setOpenMandatesList] = useState([
     {
@@ -695,18 +663,15 @@ export default function CockpitView() {
             <div className="h-6 w-[1px] bg-slate-200"></div>
 
             <div
-              onClick={() => setShowProfileModal(true)}
-              className="flex items-center gap-3 cursor-pointer p-1.5 rounded-xl hover:bg-slate-100 transition-all border border-transparent hover:border-slate-200"
-              title="Click to view user profile details"
+              onClick={() => setShowProfileDrawer(true)}
+              className="flex items-center gap-3 cursor-pointer p-1 rounded-xl hover:bg-slate-100 transition-all"
             >
               <div className="h-9 w-9 rounded-xl bg-[#0F172A] text-[#FFD400] flex items-center justify-center font-black text-xs shadow-sm">
-                {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : "D"}
+                D
               </div>
               <div className="hidden sm:block text-left">
-                <p className="text-xs font-black text-slate-900 leading-tight">{currentUser.name}</p>
-                <p className="text-[10px] font-bold text-amber-600 uppercase truncate max-w-[120px]">
-                  {currentUser.role}
-                </p>
+                <p className="text-xs font-black text-slate-900 leading-tight">Divyanshu</p>
+                <p className="text-[10px] font-bold text-amber-600 uppercase">Agency Admin</p>
               </div>
               <span className="material-symbols-outlined text-[18px] text-slate-400">expand_more</span>
             </div>
@@ -728,7 +693,7 @@ export default function CockpitView() {
                     <span className="h-2 w-2 rounded-full bg-[#FFD400] animate-pulse"></span>
                     <span>RecruitOS Cockpit SLA Radar Active</span>
                   </div>
-                  <h2 className="text-2xl md:text-3xl font-black tracking-tight">Good Morning {currentUser.name.split(" ")[0]} 👋</h2>
+                  <h2 className="text-2xl md:text-3xl font-black tracking-tight">Good Morning Divyanshu 👋</h2>
                   <div className="flex flex-wrap items-center gap-4 pt-1 text-xs text-slate-300 font-semibold">
                     <span className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-xl border border-white/10">
                       <span className="material-symbols-outlined text-amber-400 text-[18px]">event</span>
@@ -2692,79 +2657,6 @@ export default function CockpitView() {
                 className="px-4 py-2 border border-slate-300 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-50 cursor-pointer"
               >
                 Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* USER PROFILE & TENANT DETAILS MODAL */}
-      {showProfileModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-5 text-slate-900 animate-in zoom-in-95">
-            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-2xl bg-[#0F172A] text-[#FFD400] flex items-center justify-center font-black text-lg shadow-md">
-                  {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : "D"}
-                </div>
-                <div>
-                  <h4 className="font-extrabold text-base text-slate-900 tracking-tight">{currentUser.name}</h4>
-                  <span className="text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded-full uppercase">
-                    {currentUser.role}
-                  </span>
-                </div>
-              </div>
-              <button onClick={() => setShowProfileModal(false)} className="text-slate-400 hover:text-slate-700">
-                <span className="material-symbols-outlined text-[20px]">close</span>
-              </button>
-            </div>
-
-            <div className="space-y-3.5 text-xs">
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-1">
-                <span className="text-[10px] font-extrabold uppercase text-slate-400 block">Agency Name</span>
-                <p className="font-extrabold text-slate-900 text-sm">{currentUser.agencyName}</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-1">
-                  <span className="text-[10px] font-extrabold uppercase text-slate-400 block">Work Email</span>
-                  <p className="font-bold text-slate-800 truncate">{currentUser.email}</p>
-                </div>
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-1">
-                  <span className="text-[10px] font-extrabold uppercase text-slate-400 block">Mobile No</span>
-                  <p className="font-bold text-slate-800">{currentUser.mobile}</p>
-                </div>
-              </div>
-
-              <div className="p-3 bg-slate-900 text-white rounded-2xl space-y-1 font-mono">
-                <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">
-                  🔒 Agency Tenant ID (RLS Isolated)
-                </span>
-                <p className="text-[11px] text-slate-300 truncate">{currentUser.tenantId}</p>
-              </div>
-            </div>
-
-            <div className="pt-2 border-t border-slate-100 flex justify-between items-center">
-              <button
-                type="button"
-                onClick={() => {
-                  if (typeof window !== "undefined") {
-                    localStorage.removeItem("recruitos_current_user");
-                  }
-                  window.location.href = "/login";
-                }}
-                className="px-4 py-2 bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 font-extrabold text-xs rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
-              >
-                <span className="material-symbols-outlined text-[16px]">logout</span>
-                <span>Log Out</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowProfileModal(false)}
-                className="px-5 py-2 bg-[#0F172A] text-white font-bold text-xs rounded-xl hover:bg-slate-800 cursor-pointer"
-              >
-                Done
               </button>
             </div>
           </div>
