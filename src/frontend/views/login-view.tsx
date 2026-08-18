@@ -16,7 +16,7 @@ export default function LoginView() {
   // Sign Up Form States
   const [signupForm, setSignupForm] = useState({
     agencyName: "",
-    tenantId: "11111111-1111-4111-8111-111111111111",
+    tenantId: "",
     ownerName: "",
     email: "",
     mobile: "",
@@ -26,7 +26,7 @@ export default function LoginView() {
 
   // Login Form States
   const [loginForm, setLoginForm] = useState({
-    identifier: "11111111-1111-4111-8111-111111111111",
+    identifier: "",
     password: "",
   });
 
@@ -72,7 +72,7 @@ export default function LoginView() {
 
   const handleSignupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!signupForm.agencyName || !signupForm.email || !signupForm.password) {
+    if (!signupForm.agencyName || !signupForm.ownerName || !signupForm.email || !signupForm.password || !signupForm.confirmPassword) {
       setError("Please fill in all mandatory fields.");
       return;
     }
@@ -80,7 +80,8 @@ export default function LoginView() {
       setError("Password and Confirm Password do not match.");
       return;
     }
-    await performAuth(signupForm.tenantId);
+    const targetTenant = signupForm.tenantId.trim() || "11111111-1111-4111-8111-111111111111";
+    await performAuth(targetTenant);
   };
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
@@ -256,16 +257,16 @@ export default function LoginView() {
                     />
                   </div>
 
-                  {/* Agency Tenant ID */}
+                  {/* Agency Tenant ID (OPTIONAL) */}
                   <div className="space-y-1">
                     <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700 block">
-                      Agency Tenant ID
+                      Agency Tenant ID <span className="text-slate-400 font-normal lowercase">(optional)</span>
                     </label>
                     <input
                       type="text"
                       value={signupForm.tenantId}
                       onChange={(e) => setSignupForm({ ...signupForm, tenantId: e.target.value })}
-                      placeholder="11111111-1111-4111-8111-111111111111"
+                      placeholder="Auto-generated if empty"
                       className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#0F172A] focus:bg-white transition-all"
                     />
                   </div>
@@ -275,11 +276,12 @@ export default function LoginView() {
                   {/* Agency Owner Name */}
                   <div className="space-y-1">
                     <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700 block">
-                      Agency Owner Name
+                      Agency Owner Name <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
-                      placeholder="e.g. Divyanshu Sharma"
+                      required
+                      placeholder="e.g. Divyanshu Kashyap"
                       value={signupForm.ownerName}
                       onChange={(e) => setSignupForm({ ...signupForm, ownerName: e.target.value })}
                       className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#0F172A] focus:bg-white transition-all"
@@ -293,7 +295,7 @@ export default function LoginView() {
                     </label>
                     <input
                       type="tel"
-                      placeholder="+91 9876543210"
+                      placeholder="+91 xxxxxxxxxx"
                       value={signupForm.mobile}
                       onChange={(e) => setSignupForm({ ...signupForm, mobile: e.target.value })}
                       className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#0F172A] focus:bg-white transition-all"
@@ -429,24 +431,6 @@ export default function LoginView() {
                 </div>
               </form>
             )}
-          </div>
-
-          {/* Quick Demo Access Bar */}
-          <div className="border-t border-slate-100 pt-4 mt-6">
-            <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-2">
-              Dev Seed Tenant Access:
-            </p>
-            <button
-              type="button"
-              onClick={() => performAuth("11111111-1111-4111-8111-111111111111")}
-              className="w-full flex items-center justify-between p-2.5 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 transition-all cursor-pointer"
-            >
-              <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
-                <span>Apex Recruitment Partners (Seed Tenant)</span>
-              </div>
-              <span className="text-[10px] font-mono text-slate-500">11111111-1111...</span>
-            </button>
           </div>
         </div>
       </div>
