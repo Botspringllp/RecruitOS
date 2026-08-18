@@ -16,7 +16,7 @@ export default function LoginView() {
   // Sign Up Form States
   const [signupForm, setSignupForm] = useState({
     agencyName: "",
-    tenantId: "11111111-1111-4111-8111-111111111111",
+    tenantId: "",
     ownerName: "",
     email: "",
     mobile: "",
@@ -26,7 +26,7 @@ export default function LoginView() {
 
   // Login Form States
   const [loginForm, setLoginForm] = useState({
-    identifier: "11111111-1111-4111-8111-111111111111",
+    identifier: "",
     password: "",
   });
 
@@ -42,14 +42,18 @@ export default function LoginView() {
   const getValidTenantId = (rawId: string) => {
     const defaultUuid = "11111111-1111-4111-8111-111111111111";
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    return uuidRegex.test(rawId.trim()) ? rawId.trim() : defaultUuid;
+    return uuidRegex && uuidRegex.test(rawId.trim()) ? rawId.trim() : defaultUuid;
   };
 
-  const performAuth = async (targetTenantId: string) => {
+  const performAuth = async (targetTenantId: string, userData?: any) => {
     setLoading(true);
     setError("");
 
     try {
+      if (userData && typeof window !== "undefined") {
+        localStorage.setItem("recruitos_current_user", JSON.stringify(userData));
+      }
+
       const response = await fetch("/api/v1/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -72,15 +76,26 @@ export default function LoginView() {
 
   const handleSignupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!signupForm.agencyName || !signupForm.email || !signupForm.password) {
-      setError("Please fill in all mandatory fields.");
+    if (!signupForm.agencyName || !signupForm.ownerName || !signupForm.mobile || !signupForm.email || !signupForm.password || !signupForm.confirmPassword) {
+      setError("Please fill in all mandatory fields (Agency Name, Owner Name, Mobile No, Email, Password).");
       return;
     }
     if (signupForm.password !== signupForm.confirmPassword) {
       setError("Password and Confirm Password do not match.");
       return;
     }
-    await performAuth(signupForm.tenantId);
+
+    const userData = {
+      agencyName: signupForm.agencyName,
+      tenantId: signupForm.tenantId.trim() || "11111111-1111-4111-8111-111111111111",
+      ownerName: signupForm.ownerName,
+      name: signupForm.ownerName,
+      email: signupForm.email,
+      mobile: signupForm.mobile,
+      role: "Agency Owner & Admin",
+    };
+
+    await performAuth(userData.tenantId, userData);
   };
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
@@ -89,7 +104,18 @@ export default function LoginView() {
       setError("Please enter your Email/Agency Tenant ID and Password.");
       return;
     }
-    await performAuth(loginForm.identifier);
+
+    const userData = {
+      agencyName: "Apex Recruitment Partners",
+      tenantId: getValidTenantId(loginForm.identifier),
+      ownerName: loginForm.identifier.includes("@") ? loginForm.identifier.split("@")[0] : "Agency Recruiter",
+      name: loginForm.identifier.includes("@") ? loginForm.identifier.split("@")[0] : "Agency Recruiter",
+      email: loginForm.identifier.includes("@") ? loginForm.identifier : "recruiter@agency.com",
+      mobile: "+91 7982416306",
+      role: "Lead Recruiter & Admin",
+    };
+
+    await performAuth(loginForm.identifier, userData);
   };
 
   const handleForgotSubmit = (e: React.FormEvent) => {
@@ -226,7 +252,7 @@ export default function LoginView() {
               <p className="text-xs text-slate-500 mt-1 font-medium">
                 {authMode === "signup"
                   ? "Please fill in your agency details to provision your tenant."
-                  : "Enter your Agency Tenant ID / Email and password to login."}
+                  : "Enter your Work Email and password to login."}
               </p>
             </div>
 
@@ -256,16 +282,16 @@ export default function LoginView() {
                     />
                   </div>
 
-                  {/* Agency Tenant ID */}
+                  {/* Agency Tenant ID (OPTIONAL) */}
                   <div className="space-y-1">
                     <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700 block">
-                      Agency Tenant ID
+                      Agency Tenant ID <span className="text-slate-400 font-normal">(Optional)</span>
                     </label>
                     <input
                       type="text"
                       value={signupForm.tenantId}
                       onChange={(e) => setSignupForm({ ...signupForm, tenantId: e.target.value })}
-                      placeholder="11111111-1111-4111-8111-111111111111"
+                      placeholder="Optional UUID or leave blank"
                       className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#0F172A] focus:bg-white transition-all"
                     />
                   </div>
@@ -275,10 +301,11 @@ export default function LoginView() {
                   {/* Agency Owner Name */}
                   <div className="space-y-1">
                     <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700 block">
-                      Agency Owner Name
+                      Agency Owner Name <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
+                      required
                       placeholder="e.g. Divyanshu Sharma"
                       value={signupForm.ownerName}
                       onChange={(e) => setSignupForm({ ...signupForm, ownerName: e.target.value })}
@@ -289,10 +316,11 @@ export default function LoginView() {
                   {/* Mobile No */}
                   <div className="space-y-1">
                     <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700 block">
-                      Mobile No.
+                      Mobile No. <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="tel"
+                      required
                       placeholder="+91 9876543210"
                       value={signupForm.mobile}
                       onChange={(e) => setSignupForm({ ...signupForm, mobile: e.target.value })}
@@ -374,12 +402,12 @@ export default function LoginView() {
                 {/* Username / Email / Tenant ID */}
                 <div className="space-y-1.5">
                   <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700 block">
-                    Email or Agency Tenant ID <span className="text-red-500">*</span>
+                    Work Email <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="e.g. owner@agency.com or 11111111-1111-4111-8111-111111111111"
+                    placeholder="e.g. owner@agency.com"
                     value={loginForm.identifier}
                     onChange={(e) => setLoginForm({ ...loginForm, identifier: e.target.value })}
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#0F172A] focus:bg-white transition-all"
@@ -429,24 +457,6 @@ export default function LoginView() {
                 </div>
               </form>
             )}
-          </div>
-
-          {/* Quick Demo Access Bar */}
-          <div className="border-t border-slate-100 pt-4 mt-6">
-            <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-2">
-              Dev Seed Tenant Access:
-            </p>
-            <button
-              type="button"
-              onClick={() => performAuth("11111111-1111-4111-8111-111111111111")}
-              className="w-full flex items-center justify-between p-2.5 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 transition-all cursor-pointer"
-            >
-              <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
-                <span>Apex Recruitment Partners (Seed Tenant)</span>
-              </div>
-              <span className="text-[10px] font-mono text-slate-500">11111111-1111...</span>
-            </button>
           </div>
         </div>
       </div>
