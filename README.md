@@ -8,9 +8,19 @@
 
 ### Core Technologies
 - **Framework**: Next.js 16 (App Router, Type-safe Server API Routes & Server Components)
+- **UI Framework & Libraries**: React 19, TypeScript 5+, Tailwind CSS, Material Symbols Icons
 - **Database**: PostgreSQL (Multi-Tenancy isolated via Row-Level Security)
 - **ORM & Migrations**: Drizzle ORM (Type-safe queries, relational joins & schema migrations)
 - **Validation**: Zod (Type-safe schema validation for all incoming API payloads)
+- **Communication & Dispatch System**:
+  - **Unified Communication Engine**: Single-button dual-trigger dispatcher (`wa.me` + `mailto:`) with default configured recipients:
+    - **Default Email**: `divyanshu@botspring.in`
+    - **Default WhatsApp**: `+91 7982416306` (`917982416306`)
+  - **19-Column Candidate Summary Tracker Table**:
+    - Generates 19 structured data metrics: `Date`, `Source`, `Client Name`, `Applied Position Name`, `Candidate Name`, `Email ID`, `Number`, `Location`, `Ready to Relocate`, `Experience`, `Relevant Exp`, `Designation`, `Qualification`, `Current Company`, `Current Salary`, `Expectation`, `Notice Period`, `Reason of Leaving`, `Offer in Hand`.
+    - **Rich HTML Clipboard Engine**: Implements browser `navigator.clipboard.write([new ClipboardItem({'text/html': blob})])` to copy styled HTML tables with navy headers (`#0F172A`) directly into Outlook/Gmail.
+- **Candidate Selection & Portal Persistence**:
+  - **Exact Pass-Through Engine**: Recruiter candidate selections (1, 3, 5, or all candidates) persist to `localStorage` under dynamic tokens (`recruitos_portal_${token}`), ensuring Client Review Portals (`/portal/[token]`) render every candidate selected.
 - **Styling & UI**: Vanilla CSS + Tailwind CSS (Deep Navy `#0F172A` / `#0B132B` theme, Glassmorphism, Accent Yellow `#FFD400`)
 - **Authentication**: JWT HTTP-Only Cookies + Header Fallback (`x-agency-id`, `x-user-id`, `userRole`)
 - **Testing**: `tsx` Node.js test scripts for automated end-to-end workflow verification

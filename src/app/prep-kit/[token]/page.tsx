@@ -49,12 +49,12 @@ export default function CandidatePrepKitPage({ params }: { params: Promise<{ tok
       const message = `Hi Recruiter Priya Sharma,\n\nCandidate *Aarav Sharma* has reviewed the Placement Prep Kit and confirmed 100% READINESS for interview with Apex Global Technologies tomorrow!`;
       const subject = `Placement Prep Confirmed: Aarav Sharma - Ready`;
 
-      // Trigger 1: WhatsApp
-      window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
+      // Trigger 1: WhatsApp to DEFAULT 917982416306
+      window.open(`https://wa.me/917982416306?text=${encodeURIComponent(message)}`, "_blank");
 
-      // Trigger 2: Email
+      // Trigger 2: Email to DEFAULT divyanshu@botspring.in
       setTimeout(() => {
-        window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
+        window.location.href = `mailto:divyanshu@botspring.in?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
       }, 400);
     } catch (err: any) {
       alert(`Error: ${err.message}`);
@@ -75,12 +75,12 @@ export default function CandidatePrepKitPage({ params }: { params: Promise<{ tok
     const message = `Hi Recruiter Priya Sharma,\n\nCandidate *Aarav Sharma* has DECLINED / CANCELLED the scheduled interview for Senior Full Stack Engineer with Apex Global Technologies.\n\nReason: "${declineReason}"`;
     const subject = `Interview Declined by Candidate: Aarav Sharma`;
 
-    // Trigger 1: WhatsApp
-    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
+    // Trigger 1: WhatsApp to DEFAULT 917982416306
+    window.open(`https://wa.me/917982416306?text=${encodeURIComponent(message)}`, "_blank");
 
-    // Trigger 2: Email
+    // Trigger 2: Email to DEFAULT divyanshu@botspring.in
     setTimeout(() => {
-      window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
+      window.location.href = `mailto:divyanshu@botspring.in?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
     }, 400);
   };
 

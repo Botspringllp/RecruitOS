@@ -75,53 +75,83 @@ export default function ClientPortalReviewPage({ params }: { params: Promise<{ t
       if (data.job?.clientName) setClientNameInput(data.job.clientName);
       if (data.job?.primaryHrName) setClientEmailInput(data.job.primaryHrName);
     } catch (err: any) {
-      // Automatic fallback for dynamic client review magic links
+      // Dynamic loading from local storage for exact recruiter selection pass-through
+      let storedCands: any[] = [];
+      if (typeof window !== "undefined") {
+        const rawTokenData = localStorage.getItem(`recruitos_portal_${token}`) || localStorage.getItem(`recruitos_latest_portal_candidates`);
+        if (rawTokenData) {
+          try {
+            storedCands = JSON.parse(rawTokenData);
+          } catch (e) {}
+        }
+      }
+
       setJob({
         jobId: "JOB_ZR97",
         title: "Senior Full Stack Engineer (React/Node)",
         clientName: "Apex Global Technologies",
-        primaryHrName: "Sarah Jenkins (VP Talent)",
+        primaryHrName: "divyanshu@botspring.in",
         agencyName: "BotSpring Recruitment LLP",
         recruiterName: "Priya Sharma (Lead Recruiter)",
       });
       setClientNameInput("Apex Global Technologies");
-      setClientEmailInput("sarah.jenkins@apexglobal.com");
-      setCandidates([
-        {
-          submissionId: "SUB_9701",
-          candidateId: "CAND_9701",
-          fullName: "Aarav Sharma",
-          currentTitle: "Sr. Software Engineer",
-          currentCompany: "Infosys Labs",
-          experienceYears: "5.5 Years",
-          noticePeriod: "30 Days",
-          currentCtc: "₹18.5 LPA",
-          expectedCtc: "₹24.0 LPA",
-          skills: ["React 19", "Next.js", "Node.js", "TypeScript", "PostgreSQL", "TailwindCSS"],
-          stage: "Applied",
-          summaryText: "Expert in Next.js, React, Node.js microservices. Reduced server latency by 40% in previous assignment. Highly rated by recruiter.",
-        },
-        {
-          submissionId: "SUB_9702",
-          candidateId: "CAND_9702",
-          fullName: "Priya Nair",
-          currentTitle: "Full Stack Lead",
-          currentCompany: "TCS Innovation",
-          experienceYears: "6.0 Years",
-          noticePeriod: "15 Days (Immediate)",
-          currentCtc: "₹21.0 LPA",
-          expectedCtc: "₹27.0 LPA",
-          skills: ["React", "NestJS", "Docker", "AWS Lambda", "Microservices"],
-          stage: "Applied",
-          summaryText: "Strong architectural expertise, React 19, TypeScript, PostgreSQL. Managed team of 8 engineers.",
-        },
-      ]);
+      setClientEmailInput("divyanshu@botspring.in");
+
+      if (storedCands && storedCands.length > 0) {
+        const mappedCands: Candidate[] = storedCands.map((c, idx) => ({
+          submissionId: `SUB_970${idx + 1}`,
+          candidateId: c.id || `CAND_970${idx + 1}`,
+          fullName: c.name,
+          currentTitle: c.designation || "Software Specialist",
+          currentCompany: c.currentCompany || "Enterprise Labs",
+          experienceYears: c.experience || "5.0 Years",
+          noticePeriod: c.noticePeriod || "30 Days",
+          currentCtc: c.ctc || "₹18.5 LPA",
+          expectedCtc: c.expectedCtc || "₹24.0 LPA",
+          skills: typeof c.skills === "string" ? c.skills.split(",").map((s: string) => s.trim()) : c.skills || ["React", "TypeScript", "Node.js"],
+          stage: c.status || "Applied",
+          summaryText: c.notes || `Screened and vetted candidate for role. Applied for mandate.`,
+          photoUrl: c.photoUrl,
+        }));
+        setCandidates(mappedCands);
+      } else {
+        setCandidates([
+          {
+            submissionId: "SUB_9701",
+            candidateId: "CAND_9701",
+            fullName: "Aarav Sharma",
+            currentTitle: "Sr. Software Engineer",
+            currentCompany: "Infosys Labs",
+            experienceYears: "5.5 Years",
+            noticePeriod: "30 Days",
+            currentCtc: "₹18.5 LPA",
+            expectedCtc: "₹24.0 LPA",
+            skills: ["React 19", "Next.js", "Node.js", "TypeScript", "PostgreSQL", "TailwindCSS"],
+            stage: "Applied",
+            summaryText: "Expert in Next.js, React, Node.js microservices. Reduced server latency by 40% in previous assignment. Highly rated by recruiter.",
+          },
+          {
+            submissionId: "SUB_9702",
+            candidateId: "CAND_9702",
+            fullName: "Priya Nair",
+            currentTitle: "Full Stack Lead",
+            currentCompany: "TCS Innovation",
+            experienceYears: "6.0 Years",
+            noticePeriod: "15 Days (Immediate)",
+            currentCtc: "₹21.0 LPA",
+            expectedCtc: "₹27.0 LPA",
+            skills: ["React", "NestJS", "Docker", "AWS Lambda", "Microservices"],
+            stage: "Applied",
+            summaryText: "Strong architectural expertise, React 19, TypeScript, PostgreSQL. Managed team of 8 engineers.",
+          },
+        ]);
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const activeCandidate = candidates[activeCandidateIndex];
+  const activeCandidate = candidates[activeCandidateIndex] || candidates[0];
 
   const handleDownloadResume = () => {
     if (!activeCandidate) return;
@@ -148,24 +178,24 @@ export default function ClientPortalReviewPage({ params }: { params: Promise<{ t
     }
 
     const proposedSlots = [slot1, slot2, slot3].filter(Boolean);
-    const confirmUrl = `http://localhost:3000/interview-confirm/${activeCandidate.submissionId || "SUB_9701"}`;
+    const confirmUrl = `http://localhost:3000/interview-confirm/${activeCandidate?.submissionId || "SUB_9701"}`;
     const slotsFormatted = proposedSlots.map((s, idx) => `Slot #${idx + 1}: ${new Date(s).toLocaleString()}`).join("\n");
 
-    const message = `Hi Recruiter Priya Sharma,\n\nClient HR ${clientNameInput || "Apex Tech"} has SHORTLISTED candidate *${activeCandidate.fullName}* for mandate: ${job?.title || "Role"}.\n\nProposed Interview Slots:\n${slotsFormatted}\n\nCandidate Slot Selection Link:\n${confirmUrl}\n\nClient Contact: ${clientNameInput} (${clientEmailInput} / ${clientPhoneInput})`;
+    const message = `Hi Recruiter Priya Sharma,\n\nClient HR ${clientNameInput || "Apex Tech"} has SHORTLISTED candidate *${activeCandidate?.fullName}* for mandate: ${job?.title || "Role"}.\n\nProposed Interview Slots:\n${slotsFormatted}\n\nCandidate Slot Selection Link:\n${confirmUrl}\n\nClient Contact: ${clientNameInput} (${clientEmailInput} / ${clientPhoneInput})`;
 
-    const subject = `Shortlist & Interview Slots: ${activeCandidate.fullName} - ${job?.title}`;
-    const body = `Dear Recruiter Priya Sharma,\n\nClient HR ${clientNameInput} has shortlisted candidate ${activeCandidate.fullName} for mandate: ${job?.title}.\n\nProposed Interview Slots:\n${slotsFormatted}\n\nCandidate Confirmation URL:\n${confirmUrl}\n\nBest regards,\n${clientNameInput}`;
+    const subject = `Shortlist & Interview Slots: ${activeCandidate?.fullName} - ${job?.title}`;
+    const body = `Dear Recruiter Priya Sharma,\n\nClient HR ${clientNameInput} has shortlisted candidate ${activeCandidate?.fullName} for mandate: ${job?.title}.\n\nProposed Interview Slots:\n${slotsFormatted}\n\nCandidate Confirmation URL:\n${confirmUrl}\n\nBest regards,\n${clientNameInput}`;
 
-    // Trigger 1: WhatsApp
-    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
+    // Trigger 1: WhatsApp to DEFAULT 917982416306
+    window.open(`https://wa.me/917982416306?text=${encodeURIComponent(message)}`, "_blank");
 
-    // Trigger 2: Email
+    // Trigger 2: Email to DEFAULT divyanshu@botspring.in
     setTimeout(() => {
-      window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.location.href = `mailto:divyanshu@botspring.in?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     }, 400);
 
     setActionSuccessText(`🎉 Interview requested! Proposed slots dispatched via WhatsApp & Email.`);
-    setNextStepUrl(`/interview-confirm/${activeCandidate.submissionId || "SUB_9701"}`);
+    setNextStepUrl(`/interview-confirm/${activeCandidate?.submissionId || "SUB_9701"}`);
     setCandidates((prev) =>
       prev.map((c, idx) => (idx === activeCandidateIndex ? { ...c, stage: "Interviewing" } : c))
     );
@@ -178,18 +208,18 @@ export default function ClientPortalReviewPage({ params }: { params: Promise<{ t
       return;
     }
 
-    const message = `Hi Recruiter Priya Sharma,\n\nClient HR ${job?.clientName} has placed candidate *${activeCandidate.fullName}* on HOLD for role: ${job?.title}.\n\nHold Feedback Reason:\n"${holdReasonText}"`;
-    const subject = `Candidate Hold Notice: ${activeCandidate.fullName} - ${job?.title}`;
+    const message = `Hi Recruiter Priya Sharma,\n\nClient HR ${job?.clientName} has placed candidate *${activeCandidate?.fullName}* on HOLD for role: ${job?.title}.\n\nHold Feedback Reason:\n"${holdReasonText}"`;
+    const subject = `Candidate Hold Notice: ${activeCandidate?.fullName} - ${job?.title}`;
 
-    // Trigger 1: WhatsApp
-    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
+    // Trigger 1: WhatsApp to DEFAULT 917982416306
+    window.open(`https://wa.me/917982416306?text=${encodeURIComponent(message)}`, "_blank");
 
-    // Trigger 2: Email
+    // Trigger 2: Email to DEFAULT divyanshu@botspring.in
     setTimeout(() => {
-      window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
+      window.location.href = `mailto:divyanshu@botspring.in?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     }, 400);
 
-    setActionSuccessText(`⏸ Candidate ${activeCandidate.fullName} placed on Hold. Feedback sent via WhatsApp & Email.`);
+    setActionSuccessText(`⏸ Candidate ${activeCandidate?.fullName} placed on Hold. Feedback sent via WhatsApp & Email.`);
     setCandidates((prev) =>
       prev.map((c, idx) => (idx === activeCandidateIndex ? { ...c, stage: "Hold" } : c))
     );
@@ -203,18 +233,18 @@ export default function ClientPortalReviewPage({ params }: { params: Promise<{ t
       return;
     }
 
-    const message = `Hi Recruiter Priya Sharma,\n\nClient HR ${job?.clientName} has REJECTED candidate *${activeCandidate.fullName}* for role: ${job?.title}.\n\nPrimary Rejection Category: ${rejectionReason}\nDetailed Feedback: "${finalReason}"`;
-    const subject = `Candidate Rejection Feedback: ${activeCandidate.fullName} - ${job?.title}`;
+    const message = `Hi Recruiter Priya Sharma,\n\nClient HR ${job?.clientName} has REJECTED candidate *${activeCandidate?.fullName}* for role: ${job?.title}.\n\nPrimary Rejection Category: ${rejectionReason}\nDetailed Feedback: "${finalReason}"`;
+    const subject = `Candidate Rejection Feedback: ${activeCandidate?.fullName} - ${job?.title}`;
 
-    // Trigger 1: WhatsApp
-    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
+    // Trigger 1: WhatsApp to DEFAULT 917982416306
+    window.open(`https://wa.me/917982416306?text=${encodeURIComponent(message)}`, "_blank");
 
-    // Trigger 2: Email
+    // Trigger 2: Email to DEFAULT divyanshu@botspring.in
     setTimeout(() => {
-      window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
+      window.location.href = `mailto:divyanshu@botspring.in?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     }, 400);
 
-    setActionSuccessText(`✕ Candidate ${activeCandidate.fullName} rejected with feedback logged (WhatsApp + Email).`);
+    setActionSuccessText(`✕ Candidate ${activeCandidate?.fullName} rejected with feedback logged (WhatsApp + Email).`);
     setCandidates((prev) =>
       prev.map((c, idx) => (idx === activeCandidateIndex ? { ...c, stage: "Rejected" } : c))
     );

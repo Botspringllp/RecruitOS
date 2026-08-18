@@ -1306,7 +1306,15 @@ export default function CockpitView() {
                                 return;
                               }
                               const token = `SECURE_PORTAL_TOKEN_${Date.now().toString().slice(-4)}`;
-                              setGeneratedPortalLink(`${window.location.origin}/portal/${token}`);
+                              const selectedCands = jobCandidates.filter((c) => selectedCandidateIds.includes(c.id));
+                              
+                              if (typeof window !== "undefined") {
+                                localStorage.setItem(`recruitos_portal_${token}`, JSON.stringify(selectedCands));
+                                localStorage.setItem(`recruitos_latest_portal_candidates`, JSON.stringify(selectedCands));
+                              }
+
+                              const link = `${window.location.origin}/portal/${token}`;
+                              setGeneratedPortalLink(link);
                               setPresentModalOpen(true);
                             }}
                             className="bg-[#FFD400] text-[#0F172A] font-black px-4 py-1.5 rounded-lg text-xs flex items-center gap-1.5 hover:brightness-105 transition-all cursor-pointer shadow-md"
@@ -2613,12 +2621,12 @@ export default function CockpitView() {
 
                   const emailSubject = `Candidate Shortlist Tracker Presentation: ${selectedJob?.title || "Mandate"} (${selectedCandidateIds.length} Candidates) - RecruitOS`;
 
-                  // Trigger 1: Open WhatsApp in new tab
-                  window.open(`https://wa.me/?text=${encodeURIComponent(waMessage)}`, "_blank");
+                  // Trigger 1: Open WhatsApp in new tab with DEFAULT number 917982416306
+                  window.open(`https://wa.me/917982416306?text=${encodeURIComponent(waMessage)}`, "_blank");
 
-                  // Trigger 2: Trigger Mailto for default Email client
+                  // Trigger 2: Trigger Mailto for DEFAULT Email divyanshu@botspring.in
                   setTimeout(() => {
-                    window.location.href = `mailto:?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailTableText)}`;
+                    window.location.href = `mailto:divyanshu@botspring.in?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailTableText)}`;
                   }, 400);
 
                   setEmailNoticeBanner(`🚀 Dispatched via WhatsApp! Rich HTML Table copied to Clipboard (Press Ctrl+V in email to paste HTML Table).`);

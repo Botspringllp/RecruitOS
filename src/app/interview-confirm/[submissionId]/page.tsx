@@ -88,12 +88,12 @@ export default function CandidateInterviewConfirmPage({ params }: { params: Prom
 
     const subject = `Slot Confirmed: ${candidateName} - ${jobTitle}`;
 
-    // Trigger 1: WhatsApp
-    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
+    // Trigger 1: WhatsApp to DEFAULT 917982416306
+    window.open(`https://wa.me/917982416306?text=${encodeURIComponent(message)}`, "_blank");
 
-    // Trigger 2: Email
+    // Trigger 2: Email to DEFAULT divyanshu@botspring.in
     setTimeout(() => {
-      window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
+      window.location.href = `mailto:divyanshu@botspring.in?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
     }, 400);
   };
 
@@ -113,12 +113,12 @@ export default function CandidateInterviewConfirmPage({ params }: { params: Prom
 
     const subject = `Custom Slot Request: ${candidateName} - ${jobTitle}`;
 
-    // Trigger 1: WhatsApp
-    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
+    // Trigger 1: WhatsApp to DEFAULT 917982416306
+    window.open(`https://wa.me/917982416306?text=${encodeURIComponent(message)}`, "_blank");
 
-    // Trigger 2: Email
+    // Trigger 2: Email to DEFAULT divyanshu@botspring.in
     setTimeout(() => {
-      window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
+      window.location.href = `mailto:divyanshu@botspring.in?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
     }, 400);
   };
 

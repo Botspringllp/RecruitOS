@@ -32,12 +32,12 @@ export default function ClientScheduleConfirmPage({ params }: { params: Promise<
     const message = `Hi ${candidateName},\n\nYour interview for *${jobTitle}* with *${clientName}* is 100% CONFIRMED!\n\n📅 Date & Time: ${confirmedSlot}\n🎥 Google Meet Join Link:\n${meetUrl}\n\n📚 Placement Preparation Kit (T-24h Intel):\n${prepKitUrl}\n\nPlease click your prep kit link to acknowledge your readiness before the interview!`;
     const subject = `Interview Confirmed & Google Meet Link: ${jobTitle} - ${clientName}`;
 
-    // Trigger 1: WhatsApp
-    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
+    // Trigger 1: WhatsApp to DEFAULT 917982416306
+    window.open(`https://wa.me/917982416306?text=${encodeURIComponent(message)}`, "_blank");
 
-    // Trigger 2: Email
+    // Trigger 2: Email to DEFAULT divyanshu@botspring.in
     setTimeout(() => {
-      window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
+      window.location.href = `mailto:divyanshu@botspring.in?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
     }, 400);
   };
 
@@ -50,12 +50,12 @@ export default function ClientScheduleConfirmPage({ params }: { params: Promise<
     const message = `Hi Recruiter Priya Sharma,\n\nClient HR ${clientName} requests to RESCHEDULE candidate *${candidateName}* for role: ${jobTitle}.\n\nNew Proposed Client Slots:\n1. ${new Date(newSlot1).toLocaleString()}\n${newSlot2 ? `2. ${new Date(newSlot2).toLocaleString()}` : ""}\n\nPlease forward new slots to candidate for re-confirmation.`;
     const subject = `Reschedule Request: ${candidateName} - ${jobTitle}`;
 
-    // Trigger 1: WhatsApp
-    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
+    // Trigger 1: WhatsApp to DEFAULT 917982416306
+    window.open(`https://wa.me/917982416306?text=${encodeURIComponent(message)}`, "_blank");
 
-    // Trigger 2: Email
+    // Trigger 2: Email to DEFAULT divyanshu@botspring.in
     setTimeout(() => {
-      window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
+      window.location.href = `mailto:divyanshu@botspring.in?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
     }, 400);
 
     alert("Reschedule notice dispatched via WhatsApp & Email.");
@@ -71,12 +71,12 @@ export default function ClientScheduleConfirmPage({ params }: { params: Promise<
     const message = `Hi Recruiter Priya Sharma,\n\nClient HR ${clientName} has CANCELLED/REJECTED candidate *${candidateName}* for role: ${jobTitle}.\n\nReason: "${rejectReason}"`;
     const subject = `Cancellation Notice: ${candidateName} - ${jobTitle}`;
 
-    // Trigger 1: WhatsApp
-    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
+    // Trigger 1: WhatsApp to DEFAULT 917982416306
+    window.open(`https://wa.me/917982416306?text=${encodeURIComponent(message)}`, "_blank");
 
-    // Trigger 2: Email
+    // Trigger 2: Email to DEFAULT divyanshu@botspring.in
     setTimeout(() => {
-      window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
+      window.location.href = `mailto:divyanshu@botspring.in?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
     }, 400);
 
     alert("Rejection notice dispatched via WhatsApp & Email.");
