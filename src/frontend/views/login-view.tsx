@@ -256,16 +256,16 @@ export default function LoginView() {
                     />
                   </div>
 
-                  {/* Agency Tenant ID */}
+                  {/* Agency Tenant ID - Optional */}
                   <div className="space-y-1">
                     <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700 block">
-                      Agency Tenant ID
+                      Agency Tenant ID <span className="text-slate-400 font-medium text-[10px]">(optional)</span>
                     </label>
                     <input
                       type="text"
                       value={signupForm.tenantId}
                       onChange={(e) => setSignupForm({ ...signupForm, tenantId: e.target.value })}
-                      placeholder="11111111-1111-4111-8111-111111111111"
+                      placeholder="Leave blank to auto-generate"
                       className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#0F172A] focus:bg-white transition-all"
                     />
                   </div>
@@ -275,10 +275,11 @@ export default function LoginView() {
                   {/* Agency Owner Name */}
                   <div className="space-y-1">
                     <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700 block">
-                      Agency Owner Name
+                      Agency Owner Name <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
+                      required
                       placeholder="e.g. Divyanshu Sharma"
                       value={signupForm.ownerName}
                       onChange={(e) => setSignupForm({ ...signupForm, ownerName: e.target.value })}
@@ -289,10 +290,11 @@ export default function LoginView() {
                   {/* Mobile No */}
                   <div className="space-y-1">
                     <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700 block">
-                      Mobile No.
+                      Mobile No. <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="tel"
+                      required
                       placeholder="+91 9876543210"
                       value={signupForm.mobile}
                       onChange={(e) => setSignupForm({ ...signupForm, mobile: e.target.value })}
@@ -429,24 +431,6 @@ export default function LoginView() {
                 </div>
               </form>
             )}
-          </div>
-
-          {/* Quick Demo Access Bar */}
-          <div className="border-t border-slate-100 pt-4 mt-6">
-            <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-2">
-              Dev Seed Tenant Access:
-            </p>
-            <button
-              type="button"
-              onClick={() => performAuth("11111111-1111-4111-8111-111111111111")}
-              className="w-full flex items-center justify-between p-2.5 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 transition-all cursor-pointer"
-            >
-              <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
-                <span>Apex Recruitment Partners (Seed Tenant)</span>
-              </div>
-              <span className="text-[10px] font-mono text-slate-500">11111111-1111...</span>
-            </button>
           </div>
         </div>
       </div>

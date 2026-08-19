@@ -2,6 +2,111 @@
 
 import React, { useState, useEffect, use } from "react";
 
+/* --------------------------------------------------------
+   Outlook-Style Calendar Slot Picker Component
+   Matches the Microsoft Outlook new-event date/time row
+-------------------------------------------------------- */
+function OutlookSlotPicker({
+  label,
+  required = false,
+  value,
+  onChange,
+}: {
+  label: string;
+  required?: boolean;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  // Derive date and time parts from combined ISO datetime value
+  const datePart = value ? value.split("T")[0] : "";
+  const timePart = value ? value.split("T")[1]?.slice(0, 5) : "";
+
+  // Generate 30-min interval time options (00:00 → 23:30)
+  const timeSlots: string[] = [];
+  for (let h = 0; h < 24; h++) {
+    ["00", "30"].forEach((m) => {
+      timeSlots.push(`${String(h).padStart(2, "0")}:${m}`);
+    });
+  }
+
+  // Compute end time (+30 min by default)
+  const computeEndTime = (t: string) => {
+    if (!t) return "";
+    const [hh, mm] = t.split(":").map(Number);
+    const total = hh * 60 + mm + 30;
+    return `${String(Math.floor(total / 60) % 24).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+  };
+
+  const endTime = computeEndTime(timePart);
+
+  const handleDateChange = (d: string) => {
+    onChange(`${d}T${timePart || "09:00"}`);
+  };
+
+  const handleStartTimeChange = (t: string) => {
+    onChange(`${datePart || new Date().toISOString().split("T")[0]}T${t}`);
+  };
+
+  return (
+    <div className="space-y-2">
+      {/* Slot label */}
+      <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
+        {label}{required && <span className="text-red-500 ml-0.5">*</span>}
+      </span>
+
+      {/* Outlook-style rows */}
+      <div className="border border-slate-200 rounded-xl px-3 py-2.5 space-y-2 bg-white">
+        {/* Row 1: Start date */}
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] text-slate-400 font-semibold w-20 shrink-0">Start date</span>
+          <input
+            type="date"
+            value={datePart}
+            onChange={(e) => handleDateChange(e.target.value)}
+            className="flex-1 text-[13px] font-medium text-slate-800 border-0 border-b border-slate-200 focus:border-sky-400 focus:outline-none bg-transparent py-0.5"
+          />
+        </div>
+
+        {/* Divider */}
+        <div className="border-t border-slate-100" />
+
+        {/* Row 2: Start time + End time */}
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] text-slate-400 font-semibold w-20 shrink-0">Start time</span>
+          <div className="relative flex-1">
+            <select
+              value={timePart}
+              onChange={(e) => handleStartTimeChange(e.target.value)}
+              className="w-full appearance-none text-[13px] font-medium text-slate-800 border border-slate-200 focus:border-sky-400 focus:outline-none rounded-lg px-2 py-1 pr-6 bg-white cursor-pointer"
+            >
+              <option value="">--:--</option>
+              {timeSlots.map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]">▼</span>
+          </div>
+
+          <span className="text-[11px] text-slate-400 font-semibold w-16 shrink-0 text-center">End time</span>
+          <div className="relative flex-1">
+            <select
+              value={endTime}
+              disabled
+              className="w-full appearance-none text-[13px] font-medium text-slate-700 border border-sky-300 focus:outline-none rounded-lg px-2 py-1 pr-6 bg-slate-50 cursor-not-allowed"
+            >
+              <option value="">{endTime || "--:--"}</option>
+              {timeSlots.map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]">▼</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface Candidate {
   submissionId: string;
   candidateId: string;
@@ -730,40 +835,15 @@ export default function ClientPortalReviewPage({ params }: { params: Promise<{ t
                 />
               </div>
 
-              <div className="space-y-2 pt-2 border-t border-slate-100">
-                <span className="font-extrabold text-slate-800 uppercase tracking-wider block text-[10px]">
-                  Drop 3 Proposed Interview Slot Start Times
+              {/* Outlook-Style Slot Pickers */}
+              <div className="space-y-5 pt-2 border-t border-slate-100">
+                <span className="font-extrabold text-slate-800 uppercase tracking-wider block text-[10px] pt-1">
+                  📅 Propose Up to 3 Interview Slots
                 </span>
 
-                <div>
-                  <label className="font-bold text-slate-600 block mb-0.5">Slot 1 Start Time *</label>
-                  <input
-                    type="datetime-local"
-                    value={slot1}
-                    onChange={(e) => setSlot1(e.target.value)}
-                    className="w-full p-2 border border-slate-300 rounded-xl text-xs"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-bold text-slate-600 block mb-0.5">Slot 2 Start Time</label>
-                  <input
-                    type="datetime-local"
-                    value={slot2}
-                    onChange={(e) => setSlot2(e.target.value)}
-                    className="w-full p-2 border border-slate-300 rounded-xl text-xs"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-bold text-slate-600 block mb-0.5">Slot 3 Start Time</label>
-                  <input
-                    type="datetime-local"
-                    value={slot3}
-                    onChange={(e) => setSlot3(e.target.value)}
-                    className="w-full p-2 border border-slate-300 rounded-xl text-xs"
-                  />
-                </div>
+                <OutlookSlotPicker label="Slot 1" required value={slot1} onChange={setSlot1} />
+                <OutlookSlotPicker label="Slot 2" value={slot2} onChange={setSlot2} />
+                <OutlookSlotPicker label="Slot 3" value={slot3} onChange={setSlot3} />
               </div>
             </div>
 
