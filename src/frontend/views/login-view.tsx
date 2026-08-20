@@ -16,7 +16,7 @@ export default function LoginView() {
   // Sign Up Form States
   const [signupForm, setSignupForm] = useState({
     agencyName: "",
-    tenantId: "11111111-1111-4111-8111-111111111111",
+    tenantId: "",
     ownerName: "",
     email: "",
     mobile: "",
@@ -26,7 +26,7 @@ export default function LoginView() {
 
   // Login Form States
   const [loginForm, setLoginForm] = useState({
-    identifier: "11111111-1111-4111-8111-111111111111",
+    identifier: "",
     password: "",
   });
 
@@ -381,7 +381,7 @@ export default function LoginView() {
                   <input
                     type="text"
                     required
-                    placeholder="e.g. owner@agency.com or 11111111-1111-4111-8111-111111111111"
+                    placeholder="e.g. owner@agency.com or Tenant ID"
                     value={loginForm.identifier}
                     onChange={(e) => setLoginForm({ ...loginForm, identifier: e.target.value })}
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#0F172A] focus:bg-white transition-all"
