@@ -14,6 +14,19 @@ export default function StorefrontPage() {
   // About Section Contact Info Modal State
   const [showContactModal, setShowContactModal] = useState(false);
 
+  // Form Data State
+  const [formData, setFormData] = useState({
+    companyName: "",
+    contactPerson: "",
+    position: "",
+    openings: "1",
+    experience: "3-5 Years",
+    location: "Bangalore / Remote",
+    compensation: "₹18-25 LPA",
+    priority: "High",
+    commercialModel: "8.33% Contingency",
+  });
+
   // Dynamic Agency Theme Config State
   const [agencyConfig, setAgencyConfig] = useState({
     agencyName: "Apex Recruitment Partners",

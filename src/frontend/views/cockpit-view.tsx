@@ -454,7 +454,7 @@ export default function CockpitView() {
     e.preventDefault();
     if (!selectedMandate) return;
 
-    const updated = openMandatesList.map((man) => {
+    const updated = openMandatesList.map((man: any) => {
       if (man.id === selectedMandate.id) {
         return {
           ...man,
@@ -490,7 +490,7 @@ export default function CockpitView() {
     e.preventDefault();
     if (!selectedMandate) return;
 
-    const updated = openMandatesList.map((man) => {
+    const updated = openMandatesList.map((man: any) => {
       if (man.id === selectedMandate.id) {
         return {
           ...man,
@@ -1710,7 +1710,7 @@ export default function CockpitView() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {openMandatesList.map((m) => (
+                    {openMandatesList.map((m: any) => (
                       <tr key={m.id} className="hover:bg-slate-50">
                         <td className="p-3 font-extrabold text-slate-900">{m.companyName}</td>
                         <td className="p-3 font-bold text-slate-800">{m.position}</td>

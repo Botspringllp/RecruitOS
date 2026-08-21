@@ -321,7 +321,7 @@ export default function ClientPortalReviewPage({ params }: { params: Promise<{ t
 
     // Trigger 2: Email to DEFAULT divyanshu@botspring.in
     setTimeout(() => {
-      window.location.href = `mailto:divyanshu@botspring.in?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.location.href = `mailto:divyanshu@botspring.in?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
     }, 400);
 
     setActionSuccessText(`⏸ Candidate ${activeCandidate?.fullName} placed on Hold. Feedback sent via WhatsApp & Email.`);
@@ -346,7 +346,7 @@ export default function ClientPortalReviewPage({ params }: { params: Promise<{ t
 
     // Trigger 2: Email to DEFAULT divyanshu@botspring.in
     setTimeout(() => {
-      window.location.href = `mailto:divyanshu@botspring.in?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.location.href = `mailto:divyanshu@botspring.in?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
     }, 400);
 
     setActionSuccessText(`✕ Candidate ${activeCandidate?.fullName} rejected with feedback logged (WhatsApp + Email).`);
