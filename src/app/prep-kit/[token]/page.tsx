@@ -3,7 +3,6 @@
 import React, { useState, useEffect, use } from "react";
 
 const WA_GREEN = "#25D366";
-const WA_DARK = "#111B21";
 const WA_PANEL = "#202C33";
 const WA_BUBBLE_IN = "#202C33";
 const WA_BUBBLE_OUT = "#005C4B";
@@ -73,9 +72,12 @@ export default function CandidatePrepKitPage({ params }: { params: Promise<{ tok
   const [step, setStep] = useState<"intro" | "kit" | "ready" | "declined">("intro");
   const [declineReason, setDeclineReason] = useState("");
   const [showDeclineInput, setShowDeclineInput] = useState(false);
-  const [countdown, setCountdown] = useState({ h: 23, m: 58 });
 
-  const candidateName = "Aarav";
+  // 24-HOUR COUNTDOWN TIMER STATE
+  const [countdown, setCountdown] = useState({ hours: 23, minutes: 58, seconds: 45 });
+  const [showPopupModal, setShowPopupModal] = useState(true); // Popup on load per requirement!
+
+  const candidateName = "Aarav Sharma";
   const jobTitle = "Senior Full Stack Engineer";
   const clientName = "Apex Global Technologies";
   const interviewer = "Sarah Jenkins (VP Talent)";
@@ -84,19 +86,21 @@ export default function CandidatePrepKitPage({ params }: { params: Promise<{ tok
   useEffect(() => {
     setTimeout(() => {
       setLoading(false);
-      setTimeout(() => setStep("kit"), 1000);
-    }, 800);
+      setTimeout(() => setStep("kit"), 800);
+    }, 600);
   }, [token]);
 
-  // Countdown tick
+  // Live seconds countdown timer tick
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCountdown(prev => {
-        if (prev.m === 0) return { h: prev.h - 1, m: 59 };
-        return { ...prev, m: prev.m - 1 };
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 };
+        if (prev.minutes > 0) return { ...prev, minutes: 59, seconds: 59 };
+        if (prev.hours > 0) return { hours: prev.hours - 1, minutes: 59, seconds: 59 };
+        return prev;
       });
-    }, 60000);
-    return () => clearInterval(interval);
+    }, 1000);
+    return () => clearInterval(timer);
   }, []);
 
   const handleReady = () => {
@@ -129,20 +133,81 @@ export default function CandidatePrepKitPage({ params }: { params: Promise<{ tok
   }
 
   return (
-    <div className="min-h-screen flex flex-col font-sans" style={{ backgroundColor: WA_BG }}>
+    <div className="min-h-screen flex flex-col font-sans relative" style={{ backgroundColor: WA_BG }}>
+
+      {/* ── 24-HOUR COUNTDOWN POPUP MODAL (Triggers automatically upon page load) ── */}
+      {showPopupModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-[#1F2C34] border-2 border-[#FFD400] rounded-3xl max-w-sm w-full p-6 text-center space-y-4 shadow-2xl animate-in zoom-in-95">
+            <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-[#FFD400] text-[#0F172A] text-2xl font-black shadow-lg">
+              ⏱️
+            </div>
+            
+            <div className="space-y-1">
+              <span className="text-[10px] font-black uppercase tracking-wider text-[#FFD400] bg-[#FFD400]/10 px-3 py-1 rounded-full border border-[#FFD400]/30">
+                T-24 Hours Automated Trigger
+              </span>
+              <h2 className="text-lg font-black text-white mt-1">Interview Prep Kit Activated!</h2>
+              <p className="text-xs text-slate-300">
+                Your interview with <strong className="text-white">{clientName}</strong> is scheduled in:
+              </p>
+            </div>
+
+            {/* Live Countdown Display */}
+            <div className="grid grid-cols-3 gap-2 bg-[#111B21] p-3 rounded-2xl border border-slate-700">
+              <div className="bg-[#202C33] p-2 rounded-xl">
+                <span className="text-xl font-black text-[#25D366] font-mono block">
+                  {String(countdown.hours).padStart(2, "0")}
+                </span>
+                <span className="text-[9px] uppercase font-bold text-slate-400">Hours</span>
+              </div>
+              <div className="bg-[#202C33] p-2 rounded-xl">
+                <span className="text-xl font-black text-[#25D366] font-mono block">
+                  {String(countdown.minutes).padStart(2, "0")}
+                </span>
+                <span className="text-[9px] uppercase font-bold text-slate-400">Mins</span>
+              </div>
+              <div className="bg-[#202C33] p-2 rounded-xl">
+                <span className="text-xl font-black text-[#FFD400] font-mono block">
+                  {String(countdown.seconds).padStart(2, "0")}
+                </span>
+                <span className="text-[9px] uppercase font-bold text-slate-400">Secs</span>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+              Review company overview, tech stack topics, and behavioral response guides before your interview call!
+            </p>
+
+            <button
+              onClick={() => setShowPopupModal(false)}
+              className="w-full py-3.5 bg-[#FFD400] hover:brightness-105 text-[#0F172A] font-black text-xs rounded-xl shadow-lg cursor-pointer transition-all active:scale-95 flex items-center justify-center gap-2"
+            >
+              <span>Explore Interview Prep Kit</span>
+              <span className="material-symbols-outlined text-sm">arrow_forward</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Top bar */}
       <div className="sticky top-0 z-10 flex items-center gap-3 px-4 py-2.5 shadow-lg" style={{ backgroundColor: WA_PANEL }}>
         <div className="h-9 w-9 rounded-full flex items-center justify-center text-white text-sm font-black flex-shrink-0"
-          style={{ background: `linear-gradient(135deg, ${WA_GREEN}, #128C7E)` }}>R</div>
+          style={{ background: "linear-gradient(135deg, #25D366, #128C7E)" }}>R</div>
         <div className="flex-1 min-w-0">
           <p className="text-white text-sm font-bold">RecruitOS Bot</p>
           <p className="text-xs truncate" style={{ color: WA_GREEN }}>Interview Prep Kit · {clientName}</p>
         </div>
-        {/* Countdown */}
-        <div className="text-xs font-bold px-2 py-1 rounded-lg" style={{ backgroundColor: "#FF6B35", color: "#fff" }}>
-          ⏱ {countdown.h}h {countdown.m}m
-        </div>
+
+        {/* Live Timer Badge */}
+        <button
+          onClick={() => setShowPopupModal(true)}
+          className="text-xs font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 cursor-pointer"
+          style={{ backgroundColor: "#FF6B35", color: "#fff" }}
+        >
+          <span>⏱️</span>
+          <span>{countdown.hours}h {countdown.minutes}m {countdown.seconds}s</span>
+        </button>
       </div>
 
       {/* Chat body */}
@@ -152,10 +217,10 @@ export default function CandidatePrepKitPage({ params }: { params: Promise<{ tok
         <BotBubble>
           <p>Hi <strong>{candidateName}! 🎉</strong></p>
           <p className="text-slate-300 text-xs mt-1 leading-relaxed">
-            Your interview with <strong className="text-white">{clientName}</strong> is in <strong className="text-[#FFD400]">{countdown.h}h {countdown.m}m</strong>!
+            Your interview with <strong className="text-white">{clientName}</strong> is in <strong className="text-[#FFD400]">{countdown.hours}h {countdown.minutes}m</strong>!
           </p>
           <p className="text-slate-300 text-xs mt-1 leading-relaxed">
-            Here is your personalised <strong className="text-white">Interview Prep Kit</strong>. Please go through it carefully before your interview. 📚
+            Here is your personalized <strong className="text-white">Interview Prep Kit</strong>. Please go through it carefully before your interview. 📚
           </p>
         </BotBubble>
 
@@ -167,7 +232,7 @@ export default function CandidatePrepKitPage({ params }: { params: Promise<{ tok
 
               {/* Meet link */}
               <div className="rounded-xl p-2.5 mb-3" style={{ backgroundColor: "#1A2730", border: "1px solid #2A373F" }}>
-                <p className="text-[11px] text-slate-400 font-bold mb-1.5">🎥 Video Interview Link</p>
+                <p className="text-[11px] text-slate-400 font-bold mb-1.5">🎥 Google Meet Video Call</p>
                 <a
                   href={meetLink}
                   target="_blank"
@@ -175,9 +240,9 @@ export default function CandidatePrepKitPage({ params }: { params: Promise<{ tok
                   className="flex items-center gap-2 text-xs font-bold px-3 py-2 rounded-lg"
                   style={{ backgroundColor: "#00A884", color: "#fff" }}
                 >
-                  <span>📹</span> Join Google Meet — Click to Enter
+                  <span>📹</span> Join Video Call — Click to Enter
                 </a>
-                <p className="text-[10px] text-slate-500 mt-1.5">Join 5 minutes early. Keep background clean.</p>
+                <p className="text-[10px] text-slate-500 mt-1.5">Join 5 minutes early. Keep camera on.</p>
               </div>
 
               {/* Accordions */}
@@ -198,8 +263,6 @@ export default function CandidatePrepKitPage({ params }: { params: Promise<{ tok
                       <br />Framework: Situation → Problem → Action → Result (always with metrics).</li>
                     <li><strong className="text-[#FFD400]">Q: "How do you handle technical debt?"</strong>
                       <br />Framework: Always ask "why" before proposing solutions. Show trade-off thinking.</li>
-                    <li><strong className="text-[#FFD400]">Q: "REST vs GraphQL — when to use which?"</strong>
-                      <br />Framework: Be contextual. Avoid dogmatic answers.</li>
                   </ul>
                   <div className="mt-2 p-2 rounded-lg" style={{ backgroundColor: "#2A3942" }}>
                     <p className="text-[#FFD400] font-bold text-xs">🍊 Orange Test Rule:</p>
@@ -210,13 +273,6 @@ export default function CandidatePrepKitPage({ params }: { params: Promise<{ tok
                 <Accordion title="Interviewer Profile" icon="👤">
                   <p><strong className="text-white">Panel:</strong> {interviewer}</p>
                   <p><strong className="text-white">Format:</strong> 45-Min Technical Deep Dive + System Architecture</p>
-                  <p className="mt-1"><strong className="text-white">Key Focus Areas:</strong></p>
-                  <ul className="list-disc pl-3 space-y-0.5 text-slate-300">
-                    <li>Next.js App Router & Server Components</li>
-                    <li>PostgreSQL index design & query optimization</li>
-                    <li>Microservices vs monolith trade-offs</li>
-                    <li>System design: design a payment gateway</li>
-                  </ul>
                 </Accordion>
               </div>
             </BotBubble>
@@ -227,7 +283,6 @@ export default function CandidatePrepKitPage({ params }: { params: Promise<{ tok
                 <p className="text-xs text-slate-300 leading-relaxed">
                   Once you've reviewed everything above, please tap <strong className="text-[#25D366]">I'm Ready!</strong> so your recruiter knows you're prepared. 👍
                 </p>
-                <p className="text-xs text-slate-400 mt-1">If you need to cancel, tap <strong className="text-red-400">Decline Interview</strong>.</p>
               </BotBubble>
             )}
 
@@ -258,27 +313,21 @@ export default function CandidatePrepKitPage({ params }: { params: Promise<{ tok
                   <p>❌ I need to cancel the interview.</p>
                 </CandidateBubble>
                 <BotBubble>
-                  <p>😔 Sorry to hear that!</p>
-                  <p className="text-slate-300 text-xs mt-1">Please share a reason so we can inform the recruiter and reschedule if needed.</p>
+                  <p>Please share a reason so we can inform recruiter Priya Sharma:</p>
                 </BotBubble>
                 <div className="self-start ml-10 w-full max-w-[88%] space-y-2 animate-in fade-in">
                   <div className="rounded-xl p-3 space-y-2" style={{ backgroundColor: "#1F2C34", border: "1px solid #2A373F" }}>
-                    <label className="text-[11px] text-slate-400 font-bold block">Reason for cancellation *</label>
                     <textarea
                       rows={3}
                       value={declineReason}
                       onChange={e => setDeclineReason(e.target.value)}
-                      placeholder="e.g. Received another offer / Schedule conflict / Personal emergency..."
-                      className="w-full text-sm text-white rounded-xl px-3 py-2 focus:outline-none placeholder:text-slate-600 resize-none"
+                      placeholder="Reason for cancellation..."
+                      className="w-full text-sm text-white rounded-xl px-3 py-2 focus:outline-none resize-none"
                       style={{ backgroundColor: "#2A3942", border: "1px solid #3C4C55" }}
                     />
                     <div className="flex gap-2">
-                      <button onClick={() => setShowDeclineInput(false)}
-                        className="flex-1 py-2 text-xs font-bold rounded-xl text-slate-300 cursor-pointer"
-                        style={{ backgroundColor: "#2A3942" }}>← Back</button>
-                      <button onClick={handleDecline} disabled={!declineReason.trim()}
-                        className="flex-1 py-2 text-xs font-bold rounded-xl text-white cursor-pointer disabled:opacity-50"
-                        style={{ backgroundColor: "#B91C1C" }}>Send Cancellation</button>
+                      <button onClick={() => setShowDeclineInput(false)} className="flex-1 py-2 text-xs font-bold rounded-xl text-slate-300 cursor-pointer" style={{ backgroundColor: "#2A3942" }}>← Back</button>
+                      <button onClick={handleDecline} disabled={!declineReason.trim()} className="flex-1 py-2 text-xs font-bold rounded-xl text-white cursor-pointer disabled:opacity-50" style={{ backgroundColor: "#B91C1C" }}>Send Cancellation</button>
                     </div>
                   </div>
                 </div>
@@ -292,18 +341,19 @@ export default function CandidatePrepKitPage({ params }: { params: Promise<{ tok
                   <p>✅ I've reviewed everything. I'm 100% ready for the interview!</p>
                 </CandidateBubble>
                 <BotBubble>
-                  <p>🚀 <strong>Outstanding!</strong></p>
-                  <p className="text-slate-300 text-xs mt-1 leading-relaxed">
-                    Your recruiter <strong className="text-white">Priya Sharma</strong> has been notified. Go ace it, {candidateName}! 🌟
-                  </p>
-                  <a href={meetLink} target="_blank" rel="noreferrer"
-                    className="mt-3 flex items-center justify-center gap-2 text-xs font-bold px-4 py-2.5 rounded-xl"
-                    style={{ backgroundColor: "#00A884", color: "#fff" }}>
-                    🎥 Join Interview Now
+                  <p>🚀 <strong>Outstanding!</strong> Recruiter Priya Sharma has been notified. Go ace it, {candidateName}! 🌟</p>
+                  <a href={meetLink} target="_blank" rel="noreferrer" className="mt-3 flex items-center justify-center gap-2 text-xs font-bold px-4 py-2.5 rounded-xl" style={{ backgroundColor: "#00A884", color: "#fff" }}>
+                    🎥 Join Interview Call Now
                   </a>
-                  <p className="text-slate-400 text-xs mt-2 text-center">
-                    After the interview, you'll receive a quick debrief survey on WhatsApp in 15 minutes. 📋
-                  </p>
+
+                  {/* Next Step to Debrief */}
+                  <a
+                    href={`/debrief/INT_${token || "SUB_9703"}`}
+                    className="mt-2 flex items-center justify-between text-xs font-bold p-2.5 rounded-xl bg-amber-500 text-slate-950 hover:brightness-105"
+                  >
+                    <span>➡️ Next Step: Post-Interview Debrief Survey (/debrief/INT_9703)</span>
+                    <span className="material-symbols-outlined text-sm">open_in_new</span>
+                  </a>
                 </BotBubble>
               </>
             )}
@@ -315,15 +365,7 @@ export default function CandidatePrepKitPage({ params }: { params: Promise<{ tok
                   <p>❌ Cancelling interview. Reason: {declineReason}</p>
                 </CandidateBubble>
                 <BotBubble>
-                  <p>😔 <strong>Noted.</strong></p>
-                  <p className="text-slate-300 text-xs mt-1 leading-relaxed">
-                    Cancellation has been sent to recruiter <strong className="text-white">Priya Sharma</strong>. They will coordinate with {clientName} and reach out to you shortly.
-                  </p>
-                  <a href="https://wa.me/917982416306" target="_blank" rel="noreferrer"
-                    className="mt-3 flex items-center gap-2 text-xs font-bold px-3 py-2 rounded-xl"
-                    style={{ backgroundColor: WA_GREEN, color: "#fff" }}>
-                    💬 Message Recruiter Directly
-                  </a>
+                  <p>😔 Cancellation sent to recruiter Priya Sharma.</p>
                 </BotBubble>
               </>
             )}
@@ -332,7 +374,7 @@ export default function CandidatePrepKitPage({ params }: { params: Promise<{ tok
       </div>
 
       <div className="sticky bottom-0 py-2 text-center text-[10px]" style={{ backgroundColor: WA_BG, color: "#8696A0" }}>
-        🔒 End-to-end encrypted · RecruitOS Interview Prep Engine
+        🔒 End-to-end encrypted · RecruitOS Candidate Experience Engine
       </div>
     </div>
   );

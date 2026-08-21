@@ -265,7 +265,7 @@ export default function LoginView() {
                       type="text"
                       value={signupForm.tenantId}
                       onChange={(e) => setSignupForm({ ...signupForm, tenantId: e.target.value })}
-                      placeholder="Leave blank to auto-generate"
+                      placeholder=""
                       className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#0F172A] focus:bg-white transition-all"
                     />
                   </div>
@@ -280,7 +280,7 @@ export default function LoginView() {
                     <input
                       type="text"
                       required
-                      placeholder="e.g. Divyanshu Sharma"
+                      placeholder="e.g. Divyanshu Kashyap"
                       value={signupForm.ownerName}
                       onChange={(e) => setSignupForm({ ...signupForm, ownerName: e.target.value })}
                       className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#0F172A] focus:bg-white transition-all"
@@ -295,7 +295,7 @@ export default function LoginView() {
                     <input
                       type="tel"
                       required
-                      placeholder="+91 9876543210"
+                      placeholder="+91 XXXXXXXXXX"
                       value={signupForm.mobile}
                       onChange={(e) => setSignupForm({ ...signupForm, mobile: e.target.value })}
                       className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#0F172A] focus:bg-white transition-all"
