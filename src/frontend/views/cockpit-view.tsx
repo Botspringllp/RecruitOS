@@ -129,6 +129,7 @@ export default function CockpitView() {
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
 
   const [selectedResumeFile, setSelectedResumeFile] = useState<File | null>(null);
+  const [pipelineStageFilter, setPipelineStageFilter] = useState("All");
 
   // Candidate Profile Edit & Resume Viewer Modal States
   const [isEditingWorkExp, setIsEditingWorkExp] = useState(false);
@@ -166,6 +167,7 @@ export default function CockpitView() {
     skills: "",
     photoUrl: "",
     resumeFileName: "",
+    resumeUrl: "",
     notes: "",
   });
 
@@ -308,9 +310,11 @@ export default function CockpitView() {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setSelectedResumeFile(file);
-      setNewCandidateForm(prev => ({
+      const fileObjUrl = URL.createObjectURL(file);
+      setNewCandidateForm((prev) => ({
         ...prev,
         resumeFileName: file.name,
+        resumeUrl: fileObjUrl,
       }));
       setDuplicateWarning(null);
     }
@@ -378,6 +382,8 @@ export default function CockpitView() {
         }
       }
 
+      const fileObjUrl = selectedResumeFile ? URL.createObjectURL(selectedResumeFile) : "";
+
       const parsedData = {
         name: data.fullName || "Candidate Profile",
         email: data.email || "",
@@ -392,6 +398,7 @@ export default function CockpitView() {
         skills: Array.isArray(data.skills) ? data.skills.join(", ") : "",
         photoUrl: "",
         resumeFileName: selectedResumeFile.name,
+        resumeUrl: fileObjUrl,
         notes: `Uploaded resume '${selectedResumeFile.name}' parsed automatically with high precision AI engine.`,
       };
 
@@ -453,6 +460,7 @@ export default function CockpitView() {
       skills: "",
       photoUrl: "",
       resumeFileName: "",
+      resumeUrl: "",
       notes: "",
     });
     setDuplicateWarning(null);
@@ -1023,7 +1031,7 @@ export default function CockpitView() {
               {viewingCandidate ? (
                 <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-md space-y-6 animate-in fade-in">
                   
-                  {/* Top Bar with Back Button and Pipeline Stage Selector */}
+                  {/* Top Bar with Back Button */}
                   <div className="flex flex-wrap justify-between items-center border-b border-slate-100 pb-4 gap-3">
                     <div>
                       <button
@@ -1037,22 +1045,6 @@ export default function CockpitView() {
                         <h3 className="text-2xl font-black text-slate-900">Candidate Full Profile</h3>
                         <span className="text-xs text-slate-500 font-mono">ID: {viewingCandidate.id}</span>
                       </div>
-                    </div>
-
-                    {/* Pipeline Stage Selector moved next to top title */}
-                    <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-xl border border-slate-200 shadow-2xs">
-                      <span className="text-xs font-black text-slate-700 pl-2">Pipeline Stage:</span>
-                      <select
-                        value={viewingCandidate.status}
-                        onChange={(e) => handleUpdateCandidateStatus(e.target.value)}
-                        className="bg-white border border-slate-200 text-slate-900 font-extrabold text-xs px-3 py-1.5 rounded-lg focus:outline-none focus:border-amber-400 cursor-pointer shadow-xs"
-                      >
-                        <option value="Applied">Applied</option>
-                        <option value="Screening">Screening</option>
-                        <option value="Interview">Interview</option>
-                        <option value="Offer">Offer</option>
-                        <option value="Joining">Joining</option>
-                      </select>
                     </div>
                   </div>
 
@@ -1342,52 +1334,51 @@ export default function CockpitView() {
                         </div>
                       </div>
 
-                      {/* Interactive Resume Preview Panel */}
-                      <div
-                        onClick={() => setShowFullResumeModal(true)}
-                        className="bg-white border border-slate-300 rounded-2xl p-6 space-y-4 shadow-sm hover:border-amber-400 cursor-pointer transition-all group"
-                      >
-                        <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                      {/* Uploaded Candidate Resume Document View */}
+                      <div className="bg-slate-900 border border-slate-700 rounded-2xl p-3 shadow-inner space-y-3">
+                        <div className="flex justify-between items-center bg-slate-800 p-3 rounded-xl border border-slate-700 text-white">
                           <div className="flex items-center gap-2">
-                            <span className="material-symbols-outlined text-amber-500 text-xl group-hover:scale-110 transition-transform">
-                              description
+                            <span className="material-symbols-outlined text-red-500 text-xl">picture_as_pdf</span>
+                            <span className="font-extrabold text-xs text-slate-200">
+                              {viewingCandidate.resumeFileName || "Candidate_Resume.pdf"} (Uploaded CV Document)
                             </span>
-                            <span className="font-black text-slate-900 text-xs">Resume Document View (Click to Expand)</span>
                           </div>
-                          <span className="text-[10px] bg-slate-100 text-slate-600 px-2.5 py-1 rounded-md font-mono">PDF Viewer</span>
+                          <span className="text-[10px] bg-slate-700 text-amber-300 font-mono px-2 py-0.5 rounded">PDF Viewer</span>
                         </div>
 
-                        <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 font-mono text-[11px] text-slate-800 space-y-3 leading-relaxed max-h-64 overflow-y-auto">
-                          <div className="border-b border-slate-200 pb-2 flex justify-between items-center">
-                            <div>
-                              <p className="font-black text-sm text-slate-900">{viewingCandidate.name}</p>
-                              <p className="text-slate-600 text-[10px]">
-                                Email: {viewingCandidate.email} | Mobile: {viewingCandidate.phone || "N/A"}
-                              </p>
+                        {viewingCandidate.resumeUrl ? (
+                          <iframe
+                            src={viewingCandidate.resumeUrl}
+                            className="w-full h-[550px] rounded-xl bg-white border border-slate-700"
+                            title={`Uploaded Resume Document of ${viewingCandidate.name}`}
+                          />
+                        ) : (
+                          <div
+                            onClick={() => setShowFullResumeModal(true)}
+                            className="bg-white p-6 rounded-xl border border-slate-300 shadow-sm cursor-pointer hover:border-amber-400 transition-all font-sans text-slate-900 space-y-4"
+                          >
+                            <div className="border-b border-slate-200 pb-3 flex justify-between items-center">
+                              <div>
+                                <h2 className="text-xl font-black text-slate-900">{viewingCandidate.name}</h2>
+                                <p className="text-xs text-slate-500 font-medium">Uploaded File: {viewingCandidate.resumeFileName || "Resume.pdf"}</p>
+                              </div>
+                              <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded">ORIGINAL CV</span>
                             </div>
-                            <span className="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded text-[10px]">VERIFIED CV</span>
-                          </div>
 
-                          <div className="space-y-1">
-                            <p className="font-extrabold text-slate-900">TECHNICAL SKILLS & COMPETENCIES:</p>
-                            <p className="text-slate-700">{viewingCandidate.skills || "JavaScript, TypeScript, React, Node.js, Express, HTML/CSS"}</p>
-                          </div>
+                            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-xs">
+                              <p className="font-bold text-slate-700">CV Designation: {viewingCandidate.designation || "N/A"}</p>
+                              <p className="font-bold text-slate-700">Company: {viewingCandidate.currentCompany || "N/A"}</p>
+                              <p className="font-mono text-slate-600 text-[11px]">Skills: {viewingCandidate.skills || "N/A"}</p>
+                            </div>
 
-                          <div className="space-y-1">
-                            <p className="font-extrabold text-slate-900">EMPLOYMENT HISTORY:</p>
-                            <p className="text-slate-700">
-                              • {viewingCandidate.designation || "Software Engineer"} — {viewingCandidate.currentCompany || "Cognizant Technology Solutions"}
-                            </p>
-                            <p className="text-slate-700">• Responsible for full-stack feature delivery, API integrations, and database design.</p>
+                            <div className="text-center pt-2">
+                              <span className="text-xs font-black text-amber-600 hover:underline flex items-center justify-center gap-1">
+                                <span>Click to open interactive full-screen document viewer</span>
+                                <span className="material-symbols-outlined text-[14px]">open_in_full</span>
+                              </span>
+                            </div>
                           </div>
-                        </div>
-
-                        <div className="text-center pt-1">
-                          <span className="text-xs font-black text-amber-600 group-hover:underline inline-flex items-center gap-1">
-                            <span>Click anywhere inside to open full high-res document viewer</span>
-                            <span className="material-symbols-outlined text-[14px]">open_in_full</span>
-                          </span>
-                        </div>
+                        )}
                       </div>
                     </div>
 
@@ -1439,17 +1430,36 @@ export default function CockpitView() {
                       <p className="text-xs text-slate-500">Job ID: {selectedJob.id} • Client: {selectedJob.client}</p>
                     </div>
 
-                    {/* + Add New Candidate Button */}
-                    <button
-                      onClick={() => {
-                        setDuplicateWarning(null);
-                        setAddCandidateModalOpen(true);
-                      }}
-                      className="bg-[#FFD400] text-[#0F172A] font-black px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-md hover:brightness-105 active:scale-95 transition-all cursor-pointer"
-                    >
-                      <span className="material-symbols-outlined text-[18px]">person_add</span>
-                      <span>+ Add New Candidate</span>
-                    </button>
+                    <div className="flex items-center gap-3">
+                      {/* Pipeline Stage Dropdown (Positioned to the left of + Add New Candidate button) */}
+                      <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-xl border border-slate-200 shadow-2xs">
+                        <span className="text-xs font-black text-slate-700 pl-2">Pipeline Stage:</span>
+                        <select
+                          value={pipelineStageFilter}
+                          onChange={(e) => setPipelineStageFilter(e.target.value)}
+                          className="bg-white border border-slate-200 text-slate-900 font-extrabold text-xs px-3 py-1.5 rounded-lg focus:outline-none focus:border-amber-400 cursor-pointer shadow-xs"
+                        >
+                          <option value="All">All Stages</option>
+                          <option value="Applied">Applied</option>
+                          <option value="Screening">Screening</option>
+                          <option value="Interview">Interview</option>
+                          <option value="Offer">Offer</option>
+                          <option value="Joining">Joining</option>
+                        </select>
+                      </div>
+
+                      {/* + Add New Candidate Button */}
+                      <button
+                        onClick={() => {
+                          setDuplicateWarning(null);
+                          setAddCandidateModalOpen(true);
+                        }}
+                        className="bg-[#FFD400] text-[#0F172A] font-black px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-md hover:brightness-105 active:scale-95 transition-all cursor-pointer"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">person_add</span>
+                        <span>+ Add New Candidate</span>
+                      </button>
+                    </div>
                   </div>
 
                   {/* Main Grid: Left Filter Sidebar + Right Candidates Table */}
@@ -1552,7 +1562,9 @@ export default function CockpitView() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                          {jobCandidates.map((cand, idx) => {
+                          {jobCandidates
+                            .filter((cand) => pipelineStageFilter === "All" || cand.status === pipelineStageFilter)
+                            .map((cand, idx) => {
                             const isSelected = selectedCandidateIds.includes(cand.id);
                             return (
                               <tr
@@ -2904,59 +2916,48 @@ export default function CockpitView() {
             </div>
 
             {/* Modal Body / Interactive Resume Viewer */}
-            <div className="p-8 overflow-y-auto space-y-6 bg-slate-100 font-sans text-slate-800">
-              <div className="bg-white p-8 rounded-2xl shadow-md border border-slate-200 max-w-3xl mx-auto space-y-6">
-                {/* Resume Top Title */}
-                <div className="border-b border-slate-200 pb-4 flex justify-between items-start">
-                  <div>
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">{viewingCandidate.name}</h1>
-                    <p className="text-sm font-bold text-amber-600">{viewingCandidate.designation || "Full Stack Developer"}</p>
-                  </div>
-                  <div className="text-right text-xs font-mono text-slate-600 space-y-1">
-                    <p>📧 {viewingCandidate.email}</p>
-                    <p>📞 {viewingCandidate.phone || "N/A"}</p>
-                  </div>
-                </div>
-
-                {/* Professional Summary */}
-                <div className="space-y-2">
-                  <h4 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Professional Profile</h4>
-                  <p className="text-xs text-slate-700 leading-relaxed font-medium">
-                    Results-driven technical professional with hands-on experience in full-stack web applications, database architecture, and agile software execution. Proven record in creating robust scalable systems and delivering high-impact recruitment candidates.
-                  </p>
-                </div>
-
-                {/* Technical Skills */}
-                <div className="space-y-2">
-                  <h4 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Core Technical Competencies</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {(viewingCandidate.skills || "JavaScript, TypeScript, React, Next.js, Node.js, PostgreSQL, TailwindCSS, REST APIs")
-                      .split(",")
-                      .map((s: string, idx: number) => (
-                        <span key={idx} className="bg-slate-100 border border-slate-300 text-slate-800 font-extrabold text-xs px-3 py-1 rounded-lg">
-                          {s.trim()}
-                        </span>
-                      ))}
-                  </div>
-                </div>
-
-                {/* Employment History */}
-                <div className="space-y-4">
-                  <h4 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Employment & Key Projects</h4>
-                  
-                  <div className="space-y-2 border-l-2 border-amber-400 pl-4">
-                    <div className="flex justify-between items-center text-xs">
-                      <p className="font-black text-slate-900">{viewingCandidate.designation || "Senior Software Engineer"}</p>
-                      <span className="font-mono text-slate-500">{viewingCandidate.currentCompany || "Cognizant Technology Solutions"}</span>
+            <div className="p-6 overflow-y-auto space-y-6 bg-slate-900 font-sans text-slate-800 min-h-[600px] flex flex-col justify-center">
+              {viewingCandidate.resumeUrl ? (
+                <iframe
+                  src={viewingCandidate.resumeUrl}
+                  className="w-full h-[700px] rounded-2xl bg-white border border-slate-700 shadow-2xl"
+                  title={`Full Resume Document - ${viewingCandidate.name}`}
+                />
+              ) : (
+                <div className="bg-white p-8 rounded-2xl shadow-md border border-slate-200 max-w-3xl mx-auto space-y-6 w-full">
+                  {/* Resume Top Title */}
+                  <div className="border-b border-slate-200 pb-4 flex justify-between items-start">
+                    <div>
+                      <h1 className="text-3xl font-black text-slate-900 tracking-tight">{viewingCandidate.name}</h1>
+                      <p className="text-sm font-bold text-amber-600">{viewingCandidate.designation || "Software Candidate Profile"}</p>
                     </div>
-                    <ul className="list-disc list-inside text-xs text-slate-600 space-y-1 font-medium">
-                      <li>Designed and deployed enterprise RESTful backend controllers and database schemas.</li>
-                      <li>Architected front-end dashboard interfaces with real-time analytics and dynamic state management.</li>
-                      <li>Collaborated directly with client teams to streamline software release pipelines and code reviews.</li>
-                    </ul>
+                    <div className="text-right text-xs font-mono text-slate-600 space-y-1">
+                      <p>📧 {viewingCandidate.email}</p>
+                      <p>📞 {viewingCandidate.phone || "N/A"}</p>
+                    </div>
+                  </div>
+
+                  {/* Uploaded File Details */}
+                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-1 text-xs">
+                    <p className="font-extrabold text-amber-900">📄 Uploaded File Name: {viewingCandidate.resumeFileName || "Candidate_CV.pdf"}</p>
+                    <p className="text-amber-800">Company: {viewingCandidate.currentCompany || "N/A"}</p>
+                  </div>
+
+                  {/* Technical Skills */}
+                  <div className="space-y-2">
+                    <h4 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Core Technical Competencies</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {(viewingCandidate.skills || "JavaScript, TypeScript, React, Next.js, Node.js, REST APIs")
+                        .split(",")
+                        .map((s: string, idx: number) => (
+                          <span key={idx} className="bg-slate-100 border border-slate-300 text-slate-800 font-extrabold text-xs px-3 py-1 rounded-lg">
+                            {s.trim()}
+                          </span>
+                        ))}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Modal Footer */}
