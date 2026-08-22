@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { agencies, users } from "@/db/schema";
+import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
 
 const loginSchema = z.object({
-  agencyId: z.string().trim().uuid("Invalid Agency ID format. Must be a valid UUID."),
+  email: z.string().trim().email("Invalid email address format."),
+  password: z.string().min(1, "Password is required."),
 });
 
 export async function login(req: NextRequest) {
@@ -21,56 +23,66 @@ export async function login(req: NextRequest) {
       );
     }
 
-    const { agencyId } = result.data;
+    const { email, password } = result.data;
 
-    // Check if the agency exists in the database
-    const agencyList = await db
-      .select({ id: agencies.agencyId })
-      .from(agencies)
-      .where(eq(agencies.agencyId, agencyId))
+    // Check if JWT_SECRET environment variable is configured
+    if (!process.env.JWT_SECRET) {
+      throw new Error("JWT_SECRET environment variable is missing.");
+    }
+    const jwtSecret = process.env.JWT_SECRET;
+
+    // Query user by email
+    const userList = await db
+      .select({
+        userId: users.userId,
+        agencyId: users.agencyId,
+        email: users.email,
+        passwordHash: users.passwordHash,
+        role: users.role,
+      })
+      .from(users)
+      .where(eq(users.email, email))
       .limit(1);
 
-    if (agencyList.length === 0) {
+    if (userList.length === 0) {
       return NextResponse.json(
-        { error: "Agency not found. Please ensure this tenant ID is seeded in the database." },
-        { status: 404 }
+        { error: "Invalid email or password." },
+        { status: 401 }
       );
     }
 
-    // Find the first user in this agency to bind the session context to,
-    // or seed a default user if none exists.
-    let userList = await db
-      .select({ id: users.userId, email: users.email })
-      .from(users)
-      .where(eq(users.agencyId, agencyId))
-      .limit(1);
+    const targetUser = userList[0];
 
-    let userId: string;
+    // Verify password hash using bcrypt
+    const isPasswordValid = await bcrypt.compare(password, targetUser.passwordHash);
 
-    if (userList.length === 0) {
-      // Auto-seed a default user for local testing purposes
-      userId = crypto.randomUUID();
-      await db.insert(users).values({
-        userId,
-        agencyId,
-        email: `recruiter@agency-${agencyId.slice(0, 8)}.com`,
-        fullName: "Default Recruiter Admin",
-        passwordHash: "dev_seed_bypass_hash",
-        role: "admin",
-      });
-    } else {
-      userId = userList[0].id;
+    if (!isPasswordValid) {
+      return NextResponse.json(
+        { error: "Invalid email or password." },
+        { status: 401 }
+      );
     }
 
-    // Sign the JWT token
-    const secret = process.env.JWT_SECRET || 'fallback_jwt_secret_change_me_in_prod';
+    // Sign JWT Token
     const token = jwt.sign(
-      { agencyId, userId },
-      secret,
+      {
+        agencyId: targetUser.agencyId,
+        userId: targetUser.userId,
+        role: targetUser.role,
+      },
+      jwtSecret,
       { expiresIn: "7d" }
     );
 
-    const response = NextResponse.json({ success: true, agencyId, userId });
+    const response = NextResponse.json({
+      success: true,
+      user: {
+        userId: targetUser.userId,
+        agencyId: targetUser.agencyId,
+        email: targetUser.email,
+        role: targetUser.role,
+      },
+    });
 
     // Set secure HTTP-only cookie
     response.cookies.set("auth_token", token, {
@@ -85,7 +97,7 @@ export async function login(req: NextRequest) {
   } catch (error: any) {
     console.error("Login controller error:", error);
     return NextResponse.json(
-      { error: "Internal Server Error during authentication" },
+      { error: error.message || "Internal Server Error during authentication" },
       { status: 500 }
     );
   }

@@ -11,6 +11,10 @@ if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL environment variable is missing.');
 }
 
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is missing.');
+}
+
 // Connection pool for PostgreSQL client
 // Note: Ensure the database user connected here is NOT a superuser/owner.
 // If it is, PostgreSQL will bypass Row-Level Security (RLS) policies by default.
