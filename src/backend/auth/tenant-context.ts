@@ -9,11 +9,10 @@ export interface TenantContext {
 
 /**
  * Extracts and validates the tenant context (agencyId and userId) for API Route Handlers.
- * In production, it extracts from the HttpOnly JWT cookie.
- * Dev header bypass is strictly gated behind process.env.ALLOW_DEV_AUTH === 'true'.
+ * Header bypass is strictly gated behind process.env.ALLOW_DEV_AUTH === 'true' for Postman/testing.
  */
 export async function getTenantContext(): Promise<TenantContext> {
-  // 1. Strict Dev-Bypass gated behind ALLOW_DEV_AUTH environment variable
+  // 1. Explicit Development Auth Header Bypass (Gated strictly by ALLOW_DEV_AUTH=true)
   if (process.env.ALLOW_DEV_AUTH === 'true') {
     const reqHeaders = await headers();
     const devAgencyId = reqHeaders.get('x-agency-id');
@@ -26,7 +25,7 @@ export async function getTenantContext(): Promise<TenantContext> {
     }
   }
 
-  // 2. Cookie extraction & verification
+  // 2. Cookie Extraction & JWT Verification
   const cookieStore = await cookies();
   const token = cookieStore.get('auth_token')?.value;
 
@@ -34,10 +33,10 @@ export async function getTenantContext(): Promise<TenantContext> {
     throw new Error('Unauthorized: Missing authentication token');
   }
 
-  if (!process.env.JWT_SECRET) {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
     throw new Error('JWT_SECRET environment variable is missing.');
   }
-  const secret = process.env.JWT_SECRET;
 
   try {
     const decoded = jwt.verify(token, secret) as any;
@@ -49,7 +48,8 @@ export async function getTenantContext(): Promise<TenantContext> {
       userId: decoded.userId,
       userRole: decoded.role,
     };
-  } catch (error: any) {
-    throw new Error(`Unauthorized: ${error.message || 'Invalid or expired token'}`);
+  } catch (error) {
+    throw new Error('Unauthorized: Invalid or expired token');
   }
 }
+

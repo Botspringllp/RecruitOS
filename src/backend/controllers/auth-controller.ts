@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
 import { z } from "zod";
 
 const loginSchema = z.object({
@@ -25,13 +25,7 @@ export async function login(req: NextRequest) {
 
     const { email, password } = result.data;
 
-    // Check if JWT_SECRET environment variable is configured
-    if (!process.env.JWT_SECRET) {
-      throw new Error("JWT_SECRET environment variable is missing.");
-    }
-    const jwtSecret = process.env.JWT_SECRET;
-
-    // Query user by email
+    // Lookup user by email
     const userList = await db
       .select({
         userId: users.userId,
@@ -39,9 +33,10 @@ export async function login(req: NextRequest) {
         email: users.email,
         passwordHash: users.passwordHash,
         role: users.role,
+        fullName: users.fullName,
       })
       .from(users)
-      .where(eq(users.email, email))
+      .where(eq(users.email, email.toLowerCase()))
       .limit(1);
 
     if (userList.length === 0) {
@@ -51,10 +46,10 @@ export async function login(req: NextRequest) {
       );
     }
 
-    const targetUser = userList[0];
+    const user = userList[0];
 
-    // Verify password hash using bcrypt
-    const isPasswordValid = await bcrypt.compare(password, targetUser.passwordHash);
+    // Verify password hash
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
 
     if (!isPasswordValid) {
       return NextResponse.json(
@@ -63,28 +58,35 @@ export async function login(req: NextRequest) {
       );
     }
 
-    // Sign JWT Token
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      throw new Error("JWT_SECRET environment variable is missing.");
+    }
+
+    // Sign JWT session token
     const token = jwt.sign(
       {
-        agencyId: targetUser.agencyId,
-        userId: targetUser.userId,
-        role: targetUser.role,
+        agencyId: user.agencyId,
+        userId: user.userId,
+        email: user.email,
+        role: user.role,
       },
-      jwtSecret,
+      secret,
       { expiresIn: "7d" }
     );
 
     const response = NextResponse.json({
       success: true,
       user: {
-        userId: targetUser.userId,
-        agencyId: targetUser.agencyId,
-        email: targetUser.email,
-        role: targetUser.role,
+        userId: user.userId,
+        agencyId: user.agencyId,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
       },
     });
 
-    // Set secure HTTP-only cookie
+    // Set HTTP-only secure session cookie
     response.cookies.set("auth_token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -102,3 +104,4 @@ export async function login(req: NextRequest) {
     );
   }
 }
+
