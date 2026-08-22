@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { agencies, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
-import bcrypt from "bcryptjs";
 
 const loginSchema = z.object({
-  email: z.string().trim().email("Invalid email format."),
-  password: z.string().min(1, "Password is required."),
+  agencyId: z.string().trim().uuid("Invalid Agency ID format. Must be a valid UUID."),
 });
 
 export async function login(req: NextRequest) {
@@ -23,70 +21,58 @@ export async function login(req: NextRequest) {
       );
     }
 
-    const { email, password } = result.data;
+    const { agencyId } = result.data;
 
-    // Strict check for JWT_SECRET
-    const secret = process.env.JWT_SECRET;
-    if (!secret) {
-      throw new Error("JWT_SECRET environment variable is missing.");
-    }
-
-    // Lookup user by email in database
-    const userList = await db
-      .select({
-        userId: users.userId,
-        agencyId: users.agencyId,
-        email: users.email,
-        fullName: users.fullName,
-        role: users.role,
-        passwordHash: users.passwordHash,
-      })
-      .from(users)
-      .where(eq(users.email, email))
+    // Check if the agency exists in the database
+    const agencyList = await db
+      .select({ id: agencies.agencyId })
+      .from(agencies)
+      .where(eq(agencies.agencyId, agencyId))
       .limit(1);
 
+    if (agencyList.length === 0) {
+      return NextResponse.json(
+        { error: "Agency not found. Please ensure this tenant ID is seeded in the database." },
+        { status: 404 }
+      );
+    }
+
+    // Find the first user in this agency to bind the session context to,
+    // or seed a default user if none exists.
+    let userList = await db
+      .select({ id: users.userId, email: users.email })
+      .from(users)
+      .where(eq(users.agencyId, agencyId))
+      .limit(1);
+
+    let userId: string;
+
     if (userList.length === 0) {
-      return NextResponse.json(
-        { error: "Invalid email or password." },
-        { status: 401 }
-      );
+      // Auto-seed a default user for local testing purposes
+      userId = crypto.randomUUID();
+      await db.insert(users).values({
+        userId,
+        agencyId,
+        email: `recruiter@agency-${agencyId.slice(0, 8)}.com`,
+        fullName: "Default Recruiter Admin",
+        passwordHash: "dev_seed_bypass_hash",
+        role: "admin",
+      });
+    } else {
+      userId = userList[0].id;
     }
 
-    const user = userList[0];
-
-    // Verify password hash with bcrypt
-    const passwordValid = await bcrypt.compare(password, user.passwordHash);
-    if (!passwordValid) {
-      return NextResponse.json(
-        { error: "Invalid email or password." },
-        { status: 401 }
-      );
-    }
-
-    // Sign JWT Token
+    // Sign the JWT token
+    const secret = process.env.JWT_SECRET || 'fallback_jwt_secret_change_me_in_prod';
     const token = jwt.sign(
-      {
-        agencyId: user.agencyId,
-        userId: user.userId,
-        email: user.email,
-        role: user.role,
-      },
+      { agencyId, userId },
       secret,
       { expiresIn: "7d" }
     );
 
-    const response = NextResponse.json({
-      success: true,
-      user: {
-        userId: user.userId,
-        agencyId: user.agencyId,
-        email: user.email,
-        fullName: user.fullName,
-        role: user.role,
-      },
-    });
+    const response = NextResponse.json({ success: true, agencyId, userId });
 
-    // Set HttpOnly authentication cookie
+    // Set secure HTTP-only cookie
     response.cookies.set("auth_token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -99,7 +85,7 @@ export async function login(req: NextRequest) {
   } catch (error: any) {
     console.error("Login controller error:", error);
     return NextResponse.json(
-      { error: error.message || "Internal Server Error during authentication" },
+      { error: "Internal Server Error during authentication" },
       { status: 500 }
     );
   }
