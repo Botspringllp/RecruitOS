@@ -5,16 +5,17 @@ export interface TenantContext {
   agencyId: string;
   userId: string;
   userRole?: string;
+  email?: string;
 }
 
 /**
  * Extracts and validates the tenant context (agencyId and userId) for API Route Handlers.
  * In production, it extracts from the HttpOnly JWT cookie.
- * In development, it allows a fallback to custom request headers for easier testing.
+ * Development header bypass is ONLY allowed if ALLOW_DEV_AUTH is explicitly set to 'true' AND NOT in production.
  */
 export async function getTenantContext(): Promise<TenantContext> {
-  // 1. Development Mode fallback using headers (extremely useful for Postman/Insomnia testing)
-  if (process.env.NODE_ENV === 'development') {
+  // 1. Development Mode header bypass (GATED explicitly on ALLOW_DEV_AUTH env variable)
+  if (process.env.ALLOW_DEV_AUTH === 'true' && process.env.NODE_ENV !== 'production') {
     const reqHeaders = await headers();
     const devAgencyId = reqHeaders.get('x-agency-id');
     const devUserId = reqHeaders.get('x-user-id');
@@ -26,7 +27,7 @@ export async function getTenantContext(): Promise<TenantContext> {
     }
   }
 
-  // 2. Production Cookie extraction
+  // 2. Cookie Extraction & Verification
   const cookieStore = await cookies();
   const token = cookieStore.get('auth_token')?.value;
 
@@ -34,7 +35,10 @@ export async function getTenantContext(): Promise<TenantContext> {
     throw new Error('Unauthorized: Missing authentication token');
   }
 
-  const secret = process.env.JWT_SECRET || 'fallback_jwt_secret_change_me_in_prod';
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET environment variable is missing.');
+  }
 
   try {
     const decoded = jwt.verify(token, secret) as any;
@@ -44,8 +48,10 @@ export async function getTenantContext(): Promise<TenantContext> {
     return {
       agencyId: decoded.agencyId,
       userId: decoded.userId,
+      userRole: decoded.role,
+      email: decoded.email,
     };
-  } catch (error) {
-    throw new Error('Unauthorized: Invalid or expired token');
+  } catch (error: any) {
+    throw new Error('Unauthorized: Invalid or expired authentication token');
   }
 }
