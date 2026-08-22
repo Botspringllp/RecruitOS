@@ -45,7 +45,13 @@ export default function LoginView() {
     return uuidRegex.test(rawId.trim()) ? rawId.trim() : defaultUuid;
   };
 
-  const performAuth = async (targetTenantId: string) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!loginForm.identifier || !loginForm.password) {
+      setError("Please enter your Email and Password.");
+      return;
+    }
+
     setLoading(true);
     setError("");
 
@@ -53,16 +59,18 @@ export default function LoginView() {
       const response = await fetch("/api/v1/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ agencyId: getValidTenantId(targetTenantId) }),
+        body: JSON.stringify({
+          email: loginForm.identifier.trim(),
+          password: loginForm.password,
+        }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Authentication failed. Please check details.");
+        throw new Error(data.error || "Login failed. Invalid email or password.");
       }
 
-      // Redirect to Cockpit Dashboard
       router.push("/cockpit");
     } catch (err: any) {
       setError(err.message || "An unexpected error occurred.");
@@ -72,7 +80,7 @@ export default function LoginView() {
 
   const handleSignupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!signupForm.agencyName || !signupForm.email || !signupForm.password) {
+    if (!signupForm.agencyName || !signupForm.ownerName || !signupForm.email || !signupForm.password) {
       setError("Please fill in all mandatory fields.");
       return;
     }
@@ -80,16 +88,35 @@ export default function LoginView() {
       setError("Password and Confirm Password do not match.");
       return;
     }
-    await performAuth(signupForm.tenantId);
-  };
 
-  const handleLoginSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!loginForm.identifier || !loginForm.password) {
-      setError("Please enter your Email/Agency Tenant ID and Password.");
-      return;
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/v1/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          agencyName: signupForm.agencyName,
+          tenantId: signupForm.tenantId || undefined,
+          ownerName: signupForm.ownerName,
+          email: signupForm.email.trim(),
+          mobile: signupForm.mobile || undefined,
+          password: signupForm.password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Registration failed. Please check details.");
+      }
+
+      router.push("/cockpit");
+    } catch (err: any) {
+      setError(err.message || "An unexpected error occurred.");
+      setLoading(false);
     }
-    await performAuth(loginForm.identifier);
   };
 
   const handleForgotSubmit = (e: React.FormEvent) => {
