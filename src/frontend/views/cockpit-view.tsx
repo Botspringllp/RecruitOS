@@ -128,15 +128,17 @@ export default function CockpitView() {
   const [isParsingResume, setIsParsingResume] = useState(false);
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
 
+  const [selectedResumeFile, setSelectedResumeFile] = useState<File | null>(null);
+
   const [newCandidateForm, setNewCandidateForm] = useState({
     name: "",
     email: "",
     phone: "",
     designation: "",
     currentCompany: "",
-    experience: "5 Years",
-    noticePeriod: "30 Days",
-    expectedCtc: "$95,000 / Year",
+    experience: "",
+    noticePeriod: "",
+    expectedCtc: "",
     status: "Applied",
     rating: "4.5 ⭐",
     skills: "",
@@ -279,72 +281,16 @@ export default function CockpitView() {
     }
   };
 
-  // Upload Real Candidate Resume File Handler with AI Auto-Parse
-  const handleResumeFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Store Uploaded Candidate Resume File without immediate auto-parsing
+  const handleResumeFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setIsParsingResume(true);
-
-      try {
-        const formData = new FormData();
-        formData.append("file", file);
-
-        const response = await fetch("/api/v1/parser", {
-          method: "POST",
-          body: formData,
-        });
-
-        const result = await response.json();
-
-        if (!response.ok || !result.success) {
-          throw new Error(result.error || "Failed to parse resume file.");
-        }
-
-        const data = result.data;
-
-        // Calculate human readable experience
-        let expText = "";
-        if (typeof data.totalExpMonths === "number" && data.totalExpMonths > 0) {
-          if (data.totalExpMonths >= 12) {
-            const yrs = (data.totalExpMonths / 12).toFixed(1);
-            expText = yrs.endsWith(".0") ? `${Math.floor(data.totalExpMonths / 12)} Years` : `${yrs} Years`;
-          } else {
-            expText = `${data.totalExpMonths} Months`;
-          }
-        }
-
-        const parsedData = {
-          name: data.fullName || "Candidate Profile",
-          email: data.email || "",
-          phone: data.phone || "",
-          designation: data.currentTitle || "Software Engineer",
-          currentCompany: data.currentCompany || "",
-          experience: expText,
-          noticePeriod: "", // Kept blank per user preference
-          expectedCtc: "",  // Kept blank per user preference
-          status: "Applied",
-          rating: "4.8 ⭐",
-          skills: Array.isArray(data.skills) ? data.skills.join(", ") : "",
-          photoUrl: "",
-          resumeFileName: file.name,
-          notes: `Uploaded resume '${file.name}' parsed automatically with high precision AI engine.`,
-        };
-
-        setNewCandidateForm(parsedData);
-
-        if (result.duplicateDetected) {
-          setDuplicateWarning(
-            `⚠️ DUPLICATE CANDIDATE DETECTED! A candidate with name '${result.duplicateCandidateName}' already exists in your database.`
-          );
-        } else {
-          checkForDuplicates(parsedData.email, parsedData.name);
-        }
-      } catch (err: any) {
-        console.error("Resume file parsing error:", err);
-        alert(`⚠️ Could not parse resume: ${err.message || "Unknown error"}`);
-      } finally {
-        setIsParsingResume(false);
-      }
+      setSelectedResumeFile(file);
+      setNewCandidateForm(prev => ({
+        ...prev,
+        resumeFileName: file.name,
+      }));
+      setDuplicateWarning(null);
     }
   };
 
@@ -372,30 +318,76 @@ export default function CockpitView() {
     }
   };
 
-  // Trigger Sample Resume Auto-Parse
-  const handleTriggerAutoParseSample = () => {
+  // Trigger Real AI Resume Auto-Parse on Button Click
+  const handleTriggerAutoParseSample = async () => {
+    if (!selectedResumeFile) {
+      alert("⚠️ Please upload/select a candidate resume file (PDF or DOCX) first, then click 'Auto-Parse CV'!");
+      return;
+    }
+
     setIsParsingResume(true);
-    setTimeout(() => {
-      const parsedSample = {
-        name: "Rohan Sharma",
-        email: "rohan.sharma@techcorp.com",
-        phone: "+91 98765 43210",
-        designation: "Lead React & Node Architect",
-        currentCompany: "Cognizant Technology Solutions",
-        experience: "6.5 Years",
-        noticePeriod: "30 Days",
-        expectedCtc: "$105,000 / Year",
+    setDuplicateWarning(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", selectedResumeFile);
+
+      const response = await fetch("/api/v1/parser", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Failed to parse resume file.");
+      }
+
+      const data = result.data;
+
+      // Calculate human readable experience
+      let expText = "";
+      if (typeof data.totalExpMonths === "number" && data.totalExpMonths > 0) {
+        if (data.totalExpMonths >= 12) {
+          const yrs = (data.totalExpMonths / 12).toFixed(1);
+          expText = yrs.endsWith(".0") ? `${Math.floor(data.totalExpMonths / 12)} Years` : `${yrs} Years`;
+        } else {
+          expText = `${data.totalExpMonths} Months`;
+        }
+      }
+
+      const parsedData = {
+        name: data.fullName || "Candidate Profile",
+        email: data.email || "",
+        phone: data.phone || "",
+        designation: data.currentTitle || "Software Engineer",
+        currentCompany: data.currentCompany || "",
+        experience: expText,
+        noticePeriod: "", // Kept blank per user preference
+        expectedCtc: "",  // Kept blank per user preference
         status: "Applied",
         rating: "4.8 ⭐",
-        skills: "React.js, Node.js, TypeScript, Next.js, PostgreSQL, Docker, AWS",
-        photoUrl: "/images/executive_leader_woman.png",
-        resumeFileName: "Rohan_Sharma_Parsed_CV_2026.pdf",
-        notes: "Automated CV Parsing: Extracted 6.5 yrs exp in Full-Stack web apps. Immediate fit for Senior Developer role.",
+        skills: Array.isArray(data.skills) ? data.skills.join(", ") : "",
+        photoUrl: "",
+        resumeFileName: selectedResumeFile.name,
+        notes: `Uploaded resume '${selectedResumeFile.name}' parsed automatically with high precision AI engine.`,
       };
-      setNewCandidateForm(parsedSample);
-      checkForDuplicates(parsedSample.email, parsedSample.name);
+
+      setNewCandidateForm(parsedData);
+
+      if (result.duplicateDetected) {
+        setDuplicateWarning(
+          `⚠️ DUPLICATE CANDIDATE DETECTED! A candidate with name '${result.duplicateCandidateName}' already exists in your database.`
+        );
+      } else {
+        checkForDuplicates(parsedData.email, parsedData.name);
+      }
+    } catch (err: any) {
+      console.error("Resume file parsing error:", err);
+      alert(`⚠️ Could not parse resume: ${err.message || "Unknown error"}`);
+    } finally {
       setIsParsingResume(false);
-    }, 1200);
+    }
   };
 
   // Add Candidate Submit Handler
@@ -424,15 +416,16 @@ export default function CockpitView() {
     alert(`🎉 Candidate ${createdCand.name} successfully ingested & parsed into ${selectedJob?.title || "Job Mandate"}!`);
     
     // Reset Form
+    setSelectedResumeFile(null);
     setNewCandidateForm({
       name: "",
       email: "",
       phone: "",
       designation: "",
       currentCompany: "",
-      experience: "5 Years",
-      noticePeriod: "30 Days",
-      expectedCtc: "$95,000 / Year",
+      experience: "",
+      noticePeriod: "",
+      expectedCtc: "",
       status: "Applied",
       rating: "4.5 ⭐",
       skills: "",
@@ -2033,7 +2026,7 @@ export default function CockpitView() {
               </button>
             </div>
 
-            {/* Resume Upload & Sample Auto-Parse Dropzone */}
+            {/* Resume Upload & Auto-Parse Dropzone */}
             <label className="p-5 bg-slate-50 border-2 border-dashed border-slate-300 hover:border-amber-400 hover:bg-amber-50/40 rounded-2xl space-y-3 text-center block cursor-pointer transition-all group">
               <input
                 type="file"
@@ -2043,19 +2036,25 @@ export default function CockpitView() {
               />
               <div className="flex justify-center items-center gap-2">
                 <span className="material-symbols-outlined text-[36px] text-amber-600 group-hover:scale-110 transition-transform">
-                  upload_file
+                  {selectedResumeFile ? "description" : "upload_file"}
                 </span>
               </div>
               <div>
                 <p className="font-black text-slate-900 text-xs">
-                  {isParsingResume ? "⚡ Parsing Resume File..." : "📁 Click or Drag & Drop candidate CV (PDF / DOCX)"}
+                  {isParsingResume
+                    ? "⚡ AI Parsing Selected Resume File..."
+                    : selectedResumeFile
+                    ? `📄 Selected: ${selectedResumeFile.name}`
+                    : "📁 Click or Drag & Drop Candidate Resume (PDF / DOCX)"}
                 </p>
                 <p className="text-[10px] text-slate-500 font-medium">
-                  Click anywhere in this box to upload resume. Automated AI parser extracts skills & details automatically.
+                  {selectedResumeFile
+                    ? "Resume file selected! Click '⚡ Auto-Parse CV' button below to extract candidate information."
+                    : "Select a candidate resume file, then click the Auto-Parse button below to auto-fill details."}
                 </p>
               </div>
 
-              {/* Quick Sample Resume Parse Action */}
+              {/* Real AI Resume Parse Action Button */}
               <button
                 type="button"
                 onClick={(e) => {
@@ -2066,7 +2065,7 @@ export default function CockpitView() {
                 className="bg-amber-400 text-[#0F172A] font-black px-4 py-2 rounded-xl text-xs shadow-xs hover:brightness-105 transition-all cursor-pointer inline-flex items-center gap-1.5"
               >
                 <span className="material-symbols-outlined text-[16px]">bolt</span>
-                <span>{isParsingResume ? "Parsing..." : "Auto-Parse Sample CV"}</span>
+                <span>{isParsingResume ? "Parsing..." : "⚡ Auto-Parse CV"}</span>
               </button>
             </label>
 
