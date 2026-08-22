@@ -9,8 +9,13 @@ import { pathToFileURL } from "url";
 import * as pdfParse from "pdf-parse";
 
 // Strict file limits for security
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
-const ALLOWED_TYPES = ["application/pdf", "text/plain"];
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB limit
+const ALLOWED_MIME_TYPES = [
+  "application/pdf",
+  "text/plain",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/msword"
+];
 
 export async function parseResume(req: NextRequest) {
   try {
@@ -28,14 +33,17 @@ export async function parseResume(req: NextRequest) {
       return NextResponse.json({ error: "No resume file uploaded" }, { status: 400 });
     }
 
-    // Security: Check file size
+    // Security: Check file size (5MB DoS protection)
     if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json({ error: "File exceeds 5MB size limit" }, { status: 400 });
+      return NextResponse.json({ error: "File size exceeds 5MB limit." }, { status: 400 });
     }
 
-    // Security: Check file type
-    if (!ALLOWED_TYPES.includes(file.type) && !file.name.endsWith(".pdf") && !file.name.endsWith(".txt")) {
-      return NextResponse.json({ error: "Invalid file type. Only PDF and TXT files are allowed." }, { status: 400 });
+    // Security: Check file extension & mime type
+    const lowerName = file.name.toLowerCase();
+    const isValidExt = lowerName.endsWith(".pdf") || lowerName.endsWith(".txt") || lowerName.endsWith(".docx") || lowerName.endsWith(".doc");
+
+    if (!ALLOWED_MIME_TYPES.includes(file.type) && !isValidExt) {
+      return NextResponse.json({ error: "Invalid file format. Only PDF, DOCX, DOC, and TXT files are allowed." }, { status: 400 });
     }
 
     // 3. Extract Raw Text
