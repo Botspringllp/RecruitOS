@@ -118,12 +118,12 @@ ${text}
       email: finalEmail,
       phone: finalPhone,
       skills: Array.isArray(validated.skills) ? validated.skills : [],
-      totalExpMonths: typeof validated.totalExpMonths === "number" ? validated.totalExpMonths : null,
+      totalExpMonths: null, // Kept blank per user preference
       currentCompany: validated.currentCompany || null,
       currentTitle: validated.currentTitle || null,
-      noticePeriodDays: typeof validated.noticePeriodDays === "number" ? validated.noticePeriodDays : null,
-      currentCtc: typeof validated.currentCtc === "number" ? validated.currentCtc : null,
-      expectedCtc: typeof validated.expectedCtc === "number" ? validated.expectedCtc : null,
+      noticePeriodDays: null,
+      currentCtc: null,
+      expectedCtc: null,
     };
   } catch (error) {
     console.error("Gemini CV Parsing service failed or hit quota, falling back to local regex parser:", error);
@@ -262,7 +262,7 @@ function fallbackLocalParser(text: string): ParsedResume {
     email,
     phone,
     skills: Array.from(skillsSet),
-    totalExpMonths: totalExpMonths || 4, // Calculated months fallback
+    totalExpMonths: null, // Kept blank per user preference
     currentCompany,
     currentTitle: "Full Stack Developer (Intern)",
     noticePeriodDays: null, // User requested: Keep blank

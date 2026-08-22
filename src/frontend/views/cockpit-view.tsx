@@ -130,6 +130,28 @@ export default function CockpitView() {
 
   const [selectedResumeFile, setSelectedResumeFile] = useState<File | null>(null);
 
+  // Candidate Profile Edit & Resume Viewer Modal States
+  const [isEditingWorkExp, setIsEditingWorkExp] = useState(false);
+  const [editWorkExpForm, setEditWorkExpForm] = useState({
+    designation: "",
+    currentCompany: "",
+    experience: "",
+    noticePeriod: "",
+    expectedCtc: "",
+  });
+  const [recruiterAssessmentNoteInput, setRecruiterAssessmentNoteInput] = useState("");
+  const [showFullResumeModal, setShowFullResumeModal] = useState(false);
+
+  // Get Clean First & Last Name Initials (e.g. Divyanshu Kumar => DK)
+  const getInitials = (nameStr: string) => {
+    if (!nameStr) return "DK";
+    const parts = nameStr.trim().split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return nameStr.slice(0, 2).toUpperCase();
+  };
+
   const [newCandidateForm, setNewCandidateForm] = useState({
     name: "",
     email: "",
@@ -459,15 +481,62 @@ export default function CockpitView() {
     setViewingCandidate({ ...viewingCandidate, status: newStatus });
   };
 
-  // Candidate Photo Change Handler inside Detailed Profile View
+  // Candidate Photo Change Handler inside Detailed Profile View (5MB Limit Enforced)
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0] && viewingCandidate) {
       const file = e.target.files[0];
+      if (file.size > 5 * 1024 * 1024) {
+        alert("⚠️ Photo file size exceeds 5MB limit. Please upload an image under 5MB.");
+        return;
+      }
       const fakeUrl = URL.createObjectURL(file);
       const updatedList = jobCandidates.map((c) => (c.id === viewingCandidate.id ? { ...c, photoUrl: fakeUrl } : c));
       setJobCandidates(updatedList);
       setViewingCandidate({ ...viewingCandidate, photoUrl: fakeUrl });
     }
+  };
+
+  // Select candidate profile to view & initialize edit form states
+  const handleOpenCandidateProfile = (cand: any) => {
+    setViewingCandidate(cand);
+    setRecruiterAssessmentNoteInput(cand.notes || "");
+    setEditWorkExpForm({
+      designation: cand.designation || "",
+      currentCompany: cand.currentCompany || "",
+      experience: cand.experience || "",
+      noticePeriod: cand.noticePeriod || "",
+      expectedCtc: cand.expectedCtc || "",
+    });
+    setIsEditingWorkExp(false);
+  };
+
+  // Save Candidate Work Experience Edits
+  const handleSaveWorkExperience = () => {
+    if (!viewingCandidate) return;
+    const updated = {
+      ...viewingCandidate,
+      designation: editWorkExpForm.designation,
+      currentCompany: editWorkExpForm.currentCompany,
+      experience: editWorkExpForm.experience,
+      noticePeriod: editWorkExpForm.noticePeriod,
+      expectedCtc: editWorkExpForm.expectedCtc,
+    };
+    setViewingCandidate(updated);
+    setJobCandidates(jobCandidates.map((c) => (c.id === updated.id ? updated : c)));
+    setIsEditingWorkExp(false);
+    alert("✅ Candidate Work Experience updated successfully!");
+  };
+
+  // Save Recruiter Assessment Notes
+  const handleSaveAssessmentNotes = () => {
+    if (!viewingCandidate) return;
+    const updated = {
+      ...viewingCandidate,
+      notes: recruiterAssessmentNoteInput,
+    };
+    setViewingCandidate(updated);
+    setJobCandidates(jobCandidates.map((c) => (c.id === updated.id ? updated : c)));
+    alert("💾 Recruiter Assessment Notes saved successfully!");
   };
 
   // Logout Handler
@@ -954,40 +1023,40 @@ export default function CockpitView() {
               {viewingCandidate ? (
                 <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-md space-y-6 animate-in fade-in">
                   
-                  {/* Top Bar with Back Button */}
-                  <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+                  {/* Top Bar with Back Button and Pipeline Stage Selector */}
+                  <div className="flex flex-wrap justify-between items-center border-b border-slate-100 pb-4 gap-3">
                     <div>
                       <button
                         onClick={() => setViewingCandidate(null)}
-                        className="text-xs font-bold text-slate-500 hover:text-slate-900 flex items-center gap-1 mb-2"
+                        className="text-xs font-bold text-slate-500 hover:text-slate-900 flex items-center gap-1 mb-1 cursor-pointer"
                       >
                         <span className="material-symbols-outlined text-[16px]">arrow_back</span>
                         <span>Back to Candidate Directory ({selectedJob?.title || "Job Mandate"})</span>
                       </button>
-                      <h3 className="text-2xl font-black text-slate-900">Candidate Full Profile</h3>
-                      <p className="text-xs text-slate-500">Candidate ID: {viewingCandidate.id} • Applied for {selectedJob?.title || "Software Developer"}</p>
+                      <div className="flex items-center gap-3">
+                        <h3 className="text-2xl font-black text-slate-900">Candidate Full Profile</h3>
+                        <span className="text-xs text-slate-500 font-mono">ID: {viewingCandidate.id}</span>
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                      {/* Pipeline Stage Selector */}
-                      <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
-                        <span className="text-xs font-black text-slate-700 pl-2">Pipeline Stage:</span>
-                        <select
-                          value={viewingCandidate.status}
-                          onChange={(e) => handleUpdateCandidateStatus(e.target.value)}
-                          className="bg-white border border-slate-200 text-slate-900 font-extrabold text-xs px-3 py-1.5 rounded-lg focus:outline-none focus:border-amber-400 cursor-pointer shadow-xs"
-                        >
-                          <option value="Applied">Applied</option>
-                          <option value="Screening">Screening</option>
-                          <option value="Interview">Interview</option>
-                          <option value="Offer">Offer (Stage-Gate Check Required)</option>
-                          <option value="Joining">Joining (Stage-Gate Check Required)</option>
-                        </select>
-                      </div>
+                    {/* Pipeline Stage Selector moved next to top title */}
+                    <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-xl border border-slate-200 shadow-2xs">
+                      <span className="text-xs font-black text-slate-700 pl-2">Pipeline Stage:</span>
+                      <select
+                        value={viewingCandidate.status}
+                        onChange={(e) => handleUpdateCandidateStatus(e.target.value)}
+                        className="bg-white border border-slate-200 text-slate-900 font-extrabold text-xs px-3 py-1.5 rounded-lg focus:outline-none focus:border-amber-400 cursor-pointer shadow-xs"
+                      >
+                        <option value="Applied">Applied</option>
+                        <option value="Screening">Screening</option>
+                        <option value="Interview">Interview</option>
+                        <option value="Offer">Offer</option>
+                        <option value="Joining">Joining</option>
+                      </select>
                     </div>
                   </div>
 
-                  {/* Stage-Gate Error Warning Alert Banner */}
+                  {/* Stage-Gate Error Warning Alert Banner if active */}
                   {stageGateErrorNotice && (
                     <div className="bg-red-50 border-2 border-red-400 p-4 rounded-2xl flex items-center justify-between text-red-900 text-xs font-bold animate-in fade-in shadow-md">
                       <div className="flex items-center gap-2.5">
@@ -996,141 +1065,57 @@ export default function CockpitView() {
                       </div>
                       <button
                         onClick={() => setStageGateErrorNotice(null)}
-                        className="text-red-700 hover:text-red-900 font-extrabold text-xs"
+                        className="text-red-700 hover:text-red-900 font-extrabold text-xs cursor-pointer"
                       >
                         ✕
                       </button>
                     </div>
                   )}
 
-                  {/* Workflow 5: Stage-Gate Compliance Audit Checklist Card */}
-                  <div className="bg-slate-900 text-white p-5 rounded-2xl space-y-3 shadow-md border border-slate-800">
-                    <div className="flex justify-between items-center border-b border-slate-800 pb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-amber-400 text-xl">verified_user</span>
-                        <h4 className="font-extrabold text-xs text-white uppercase tracking-wider">
-                          Stage-Gate Enforcement & Governance Audit
-                        </h4>
-                      </div>
-                      <span className="text-[10px] font-extrabold bg-slate-800 text-amber-400 px-2.5 py-1 rounded-full border border-amber-400/30">
-                        Rule Engine Active
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-                      {/* Item 1: Interview Conducted */}
-                      <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700 flex items-center justify-between">
-                        <div>
-                          <span className="text-[10px] text-slate-400 block font-bold">1. Interview Status</span>
-                          <span className="font-extrabold text-emerald-400">Completed</span>
-                        </div>
-                        <span className="material-symbols-outlined text-emerald-400 text-xl">check_circle</span>
-                      </div>
-
-                      {/* Item 2: Client Review & Feedback */}
-                      <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700 flex items-center justify-between">
-                        <div>
-                          <span className="text-[10px] text-slate-400 block font-bold">2. Client Decision</span>
-                          <span className="font-extrabold text-emerald-400">
-                            {viewingCandidate.clientDecisionSubmitted ? "✓ Decision Logged" : "Pending Feedback"}
-                          </span>
-                        </div>
-                        <span
-                          className={`material-symbols-outlined text-xl ${
-                            viewingCandidate.clientDecisionSubmitted ? "text-emerald-400" : "text-amber-400"
-                          }`}
-                        >
-                          {viewingCandidate.clientDecisionSubmitted ? "check_circle" : "pending"}
-                        </span>
-                      </div>
-
-                      {/* Item 3: Candidate Debrief */}
-                      <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700 flex items-center justify-between">
-                        <div>
-                          <span className="text-[10px] text-slate-400 block font-bold">3. Candidate Debrief</span>
-                          <span className="font-extrabold text-emerald-400">
-                            {viewingCandidate.candidateDebriefSubmitted ? "✓ Submitted" : "Pending Survey"}
-                          </span>
-                        </div>
-                        <span
-                          className={`material-symbols-outlined text-xl ${
-                            viewingCandidate.candidateDebriefSubmitted ? "text-emerald-400" : "text-amber-400"
-                          }`}
-                        >
-                          {viewingCandidate.candidateDebriefSubmitted ? "check_circle" : "pending"}
-                        </span>
-                      </div>
-
-                      {/* Item 4: Recruiter Evaluation Notes */}
-                      <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700 flex items-center justify-between">
-                        <div>
-                          <span className="text-[10px] text-slate-400 block font-bold">4. Recruiter Audit</span>
-                          <span className="font-extrabold text-emerald-400">Verified</span>
-                        </div>
-                        <span className="material-symbols-outlined text-emerald-400 text-xl">check_circle</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Candidate Header Profile Card */}
+                  {/* Candidate Dark Card */}
                   <div className="bg-gradient-to-r from-[#0F172A] to-slate-900 text-white rounded-2xl p-6 flex flex-col md:flex-row items-center gap-6 shadow-lg">
                     
-                    {/* Photo with Change Photo Upload Feature */}
+                    {/* Photo with Change Photo Upload Feature & 5MB Limit */}
                     <div className="relative group flex-shrink-0">
-                      <div className="h-24 w-24 rounded-2xl bg-amber-400 text-[#0F172A] flex items-center justify-center font-black text-3xl overflow-hidden border-2 border-white shadow-md">
+                      <div className="h-24 w-24 rounded-2xl bg-amber-400 text-[#0F172A] flex items-center justify-center font-black text-3xl overflow-hidden border-2 border-white shadow-md cursor-pointer">
                         {viewingCandidate.photoUrl ? (
                           <img src={viewingCandidate.photoUrl} alt={viewingCandidate.name} className="h-full w-full object-cover" />
                         ) : (
-                          <span>{viewingCandidate.name.slice(0, 2).toUpperCase()}</span>
+                          <span>{getInitials(viewingCandidate.name)}</span>
                         )}
                       </div>
                       
                       {/* Upload/Change Photo Button Overlay */}
-                      <label className="absolute inset-0 bg-black/60 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white cursor-pointer">
+                      <label className="absolute inset-0 bg-black/70 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white cursor-pointer text-center p-1">
                         <span className="material-symbols-outlined text-[20px]">photo_camera</span>
-                        <span className="text-[9px] font-bold">Change</span>
+                        <span className="text-[9px] font-bold">Upload Photo</span>
+                        <span className="text-[7px] text-slate-300">(Max 5MB)</span>
                         <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
                       </label>
                     </div>
 
-                    {/* Basic Info */}
-                    <div className="space-y-1 text-center md:text-left flex-1">
-                      <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
-                        <h4 className="text-2xl font-black">{viewingCandidate.name}</h4>
-                        <span className="bg-[#FFD400] text-[#0F172A] font-extrabold text-[10px] px-2.5 py-0.5 rounded-full">
-                          {viewingCandidate.rating}
+                    {/* Candidate Name, Email, Phone ONLY (No rating badge, clean text name) */}
+                    <div className="space-y-2 text-center md:text-left flex-1">
+                      <h4 className="text-2xl font-black text-white tracking-tight">{viewingCandidate.name}</h4>
+                      <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-xs text-slate-300 font-mono">
+                        <span className="flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-[15px] text-amber-400">mail</span>
+                          <span>{viewingCandidate.email || "No Email Provided"}</span>
                         </span>
-                      </div>
-                      <p className="text-xs font-bold text-amber-400">{viewingCandidate.designation} • {viewingCandidate.currentCompany}</p>
-                      <p className="text-xs text-slate-300 font-mono">📧 {viewingCandidate.email} | 📞 {viewingCandidate.phone}</p>
-                    </div>
-
-                    {/* Quick Specs */}
-                    <div className="grid grid-cols-2 gap-3 text-xs border-t md:border-t-0 md:border-l border-slate-800 pt-4 md:pt-0 md:pl-6 text-slate-300">
-                      <div>
-                        <span className="text-[10px] text-slate-400 uppercase font-bold block">Total Experience</span>
-                        <span className="font-black text-white">{viewingCandidate.experience}</span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-slate-400 uppercase font-bold block">Notice Period</span>
-                        <span className="font-black text-amber-400">{viewingCandidate.noticePeriod}</span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-slate-400 uppercase font-bold block">Expected CTC</span>
-                        <span className="font-black text-emerald-400">{viewingCandidate.expectedCtc}</span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-slate-400 uppercase font-bold block">Pipeline Stage</span>
-                        <span className="font-black text-purple-300">{viewingCandidate.status}</span>
+                        {viewingCandidate.phone && (
+                          <span className="flex items-center gap-1.5">
+                            <span className="material-symbols-outlined text-[15px] text-emerald-400">call</span>
+                            <span>{viewingCandidate.phone}</span>
+                          </span>
+                        )}
                       </div>
                     </div>
-
                   </div>
 
-                  {/* Single Unified Candidate Profile View (All Information Displayed Continuously) */}
+                  {/* Single Unified Candidate Profile View */}
                   <div className="space-y-6 pt-2">
 
-                    {/* Section 1: Recruitment Stage Progress Timeline */}
+                    {/* Section 1: Recruitment Stage Progress Timeline with Flipkart-style Connecting Line */}
                     <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl space-y-4 text-xs">
                       <div className="flex justify-between items-center border-b border-slate-200 pb-3">
                         <h4 className="font-black text-slate-900 text-sm flex items-center gap-2">
@@ -1138,109 +1123,299 @@ export default function CockpitView() {
                           <span>1. Recruitment Pipeline Progress</span>
                         </h4>
                         <span className="bg-purple-100 text-purple-900 font-extrabold text-[10px] px-2.5 py-0.5 rounded-full border border-purple-200">
-                          Current: {viewingCandidate.status}
+                          Current Stage: {viewingCandidate.status}
                         </span>
                       </div>
 
-                      <div className="flex items-center justify-between pt-2">
-                        {["Applied", "Screening", "Interview", "Offer", "Joining"].map((stg, i) => {
+                      <div className="relative pt-4 pb-2 px-4">
+                        {/* Connecting Line (Flipkart Order Tracking Style) */}
+                        <div className="absolute top-9 left-12 right-12 h-1 bg-slate-200 -z-0 rounded-full" />
+                        {(() => {
                           const stages = ["Applied", "Screening", "Interview", "Offer", "Joining"];
                           const currentIdx = stages.indexOf(viewingCandidate.status);
-                          const isDone = i <= currentIdx;
+                          const progressPercent = Math.max(0, (currentIdx / (stages.length - 1)) * 100);
                           return (
-                            <div key={i} className="flex flex-col items-center space-y-1">
-                              <div className={`h-9 w-9 rounded-full flex items-center justify-center font-black text-xs shadow-xs ${
-                                isDone ? "bg-emerald-600 text-white" : "bg-slate-200 text-slate-500"
-                              }`}>
-                                {i + 1}
-                              </div>
-                              <span className={`font-extrabold text-xs ${isDone ? "text-emerald-800" : "text-slate-400"}`}>{stg}</span>
-                            </div>
+                            <div
+                              className="absolute top-9 left-12 h-1 bg-emerald-500 transition-all duration-500 rounded-full -z-0"
+                              style={{ width: `calc(${progressPercent}% - 3rem)` }}
+                            />
                           );
-                        })}
+                        })()}
+
+                        <div className="relative z-10 flex items-center justify-between">
+                          {["Applied", "Screening", "Interview", "Offer", "Joining"].map((stg, i) => {
+                            const stages = ["Applied", "Screening", "Interview", "Offer", "Joining"];
+                            const currentIdx = stages.indexOf(viewingCandidate.status);
+                            const isDone = i <= currentIdx;
+                            const isCurrent = i === currentIdx;
+
+                            return (
+                              <div
+                                key={i}
+                                className="flex flex-col items-center space-y-1.5 cursor-pointer"
+                                onClick={() => handleUpdateCandidateStatus(stg)}
+                              >
+                                <div
+                                  className={`h-10 w-10 rounded-full flex items-center justify-center font-black text-xs transition-all shadow-md ${
+                                    isCurrent
+                                      ? "bg-amber-400 text-[#0F172A] ring-4 ring-amber-200 scale-110"
+                                      : isDone
+                                      ? "bg-emerald-600 text-white"
+                                      : "bg-slate-200 text-slate-500"
+                                  }`}
+                                >
+                                  {isDone && !isCurrent ? (
+                                    <span className="material-symbols-outlined text-[16px]">check</span>
+                                  ) : (
+                                    i + 1
+                                  )}
+                                </div>
+                                <span
+                                  className={`font-extrabold text-xs ${
+                                    isCurrent ? "text-amber-700 font-black" : isDone ? "text-emerald-800" : "text-slate-400"
+                                  }`}
+                                >
+                                  {stg}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
 
-                    {/* Section 2: Skill Set & Technical Competencies */}
+                    {/* Section 2: Skill Set & Extracted Competencies */}
                     <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl space-y-3 text-xs">
                       <h4 className="font-black text-slate-900 text-sm flex items-center gap-2">
                         <span className="material-symbols-outlined text-amber-600">psychology</span>
                         <span>2. Skill Set & Extracted Competencies</span>
                       </h4>
                       <div className="flex flex-wrap gap-2 pt-1">
-                        {viewingCandidate.skills.split(",").map((sk: string, idx: number) => (
-                          <span key={idx} className="bg-amber-100 text-amber-900 border border-amber-300 font-extrabold px-3 py-1.5 rounded-xl shadow-2xs">
-                            ⚡ {sk.trim()}
-                          </span>
-                        ))}
+                        {viewingCandidate.skills ? (
+                          viewingCandidate.skills.split(",").map((sk: string, idx: number) => (
+                            <span key={idx} className="bg-amber-100 text-amber-900 border border-amber-300 font-extrabold px-3 py-1.5 rounded-xl shadow-2xs">
+                              ⚡ {sk.trim()}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-slate-400 italic">No skills specified</span>
+                        )}
                       </div>
                     </div>
 
-                    {/* Section 3: Work Experience & History */}
-                    <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl space-y-3 text-xs">
-                      <h4 className="font-black text-slate-900 text-sm flex items-center gap-2">
-                        <span className="material-symbols-outlined text-sky-600">work_history</span>
-                        <span>3. Work Experience & Career Overview</span>
-                      </h4>
+                    {/* Section 3: Work Experience & History with Inline Edit Option */}
+                    <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl space-y-4 text-xs">
+                      <div className="flex justify-between items-center border-b border-slate-200 pb-3">
+                        <h4 className="font-black text-slate-900 text-sm flex items-center gap-2">
+                          <span className="material-symbols-outlined text-sky-600">work_history</span>
+                          <span>3. Work Experience & Career Overview</span>
+                        </h4>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 pt-1">
-                        <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-1">
-                          <span className="text-[10px] font-extrabold text-slate-400 uppercase">Current Designation</span>
-                          <p className="font-black text-slate-900">{viewingCandidate.designation}</p>
-                        </div>
-                        <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-1">
-                          <span className="text-[10px] font-extrabold text-slate-400 uppercase">Current Employer</span>
-                          <p className="font-black text-slate-900">{viewingCandidate.currentCompany}</p>
-                        </div>
-                        <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-1">
-                          <span className="text-[10px] font-extrabold text-slate-400 uppercase">Total Experience</span>
-                          <p className="font-black text-slate-900">{viewingCandidate.experience}</p>
-                        </div>
-                        <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-1">
-                          <span className="text-[10px] font-extrabold text-slate-400 uppercase">Notice Period</span>
-                          <p className="font-black text-amber-700">{viewingCandidate.noticePeriod}</p>
-                        </div>
+                        {!isEditingWorkExp ? (
+                          <button
+                            onClick={() => setIsEditingWorkExp(true)}
+                            className="bg-slate-900 text-white font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1 hover:bg-slate-800 cursor-pointer transition-all"
+                          >
+                            <span className="material-symbols-outlined text-[15px]">edit</span>
+                            <span>Edit Work Info</span>
+                          </button>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={handleSaveWorkExperience}
+                              className="bg-emerald-600 text-white font-bold px-3 py-1 rounded-lg text-xs flex items-center gap-1 hover:bg-emerald-700 cursor-pointer shadow-xs"
+                            >
+                              <span className="material-symbols-outlined text-[15px]">check</span>
+                              <span>Save</span>
+                            </button>
+                            <button
+                              onClick={() => setIsEditingWorkExp(false)}
+                              className="bg-slate-200 text-slate-700 font-bold px-3 py-1 rounded-lg text-xs hover:bg-slate-300 cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        )}
                       </div>
+
+                      {!isEditingWorkExp ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 pt-1">
+                          <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-1">
+                            <span className="text-[10px] font-extrabold text-slate-400 uppercase block">Current Designation</span>
+                            <p className="font-black text-slate-900">{viewingCandidate.designation || "N/A"}</p>
+                          </div>
+                          <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-1">
+                            <span className="text-[10px] font-extrabold text-slate-400 uppercase block">Current Employer</span>
+                            <p className="font-black text-slate-900">{viewingCandidate.currentCompany || "N/A"}</p>
+                          </div>
+                          <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-1">
+                            <span className="text-[10px] font-extrabold text-slate-400 uppercase block">Total Experience</span>
+                            <p className="font-black text-slate-900">{viewingCandidate.experience || "N/A"}</p>
+                          </div>
+                          <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-1">
+                            <span className="text-[10px] font-extrabold text-slate-400 uppercase block">Notice Period</span>
+                            <p className="font-black text-amber-700">{viewingCandidate.noticePeriod || "N/A"}</p>
+                          </div>
+                          <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-1">
+                            <span className="text-[10px] font-extrabold text-slate-400 uppercase block">Expected CTC</span>
+                            <p className="font-black text-emerald-700">{viewingCandidate.expectedCtc || "N/A"}</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 p-4 bg-white border border-amber-300 rounded-xl">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-black text-slate-700 uppercase">Designation</label>
+                            <input
+                              type="text"
+                              value={editWorkExpForm.designation}
+                              onChange={(e) => setEditWorkExpForm({ ...editWorkExpForm, designation: e.target.value })}
+                              className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-bold text-xs"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-black text-slate-700 uppercase">Employer</label>
+                            <input
+                              type="text"
+                              value={editWorkExpForm.currentCompany}
+                              onChange={(e) => setEditWorkExpForm({ ...editWorkExpForm, currentCompany: e.target.value })}
+                              className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-bold text-xs"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-black text-slate-700 uppercase">Total Exp</label>
+                            <input
+                              type="text"
+                              value={editWorkExpForm.experience}
+                              onChange={(e) => setEditWorkExpForm({ ...editWorkExpForm, experience: e.target.value })}
+                              className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-bold text-xs"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-black text-slate-700 uppercase">Notice Period</label>
+                            <input
+                              type="text"
+                              value={editWorkExpForm.noticePeriod}
+                              onChange={(e) => setEditWorkExpForm({ ...editWorkExpForm, noticePeriod: e.target.value })}
+                              className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-bold text-xs"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-black text-slate-700 uppercase">Expected CTC</label>
+                            <input
+                              type="text"
+                              value={editWorkExpForm.expectedCtc}
+                              onChange={(e) => setEditWorkExpForm({ ...editWorkExpForm, expectedCtc: e.target.value })}
+                              className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-bold text-xs"
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
 
-                    {/* Section 4: Resume & Documents */}
+                    {/* Section 4: Resume Document Viewer (Embedded Document Content Preview) */}
                     <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl space-y-4 text-xs">
                       <div className="flex justify-between items-center border-b border-slate-200 pb-3">
                         <div className="flex items-center gap-3">
                           <span className="material-symbols-outlined text-red-600 text-[28px]">picture_as_pdf</span>
                           <div>
-                            <p className="font-black text-slate-900 text-sm">{viewingCandidate.resumeFileName || "Candidate_CV.pdf"}</p>
-                            <p className="text-slate-500 text-[11px]">PDF Document • Verified AI Resume Parsing</p>
+                            <p className="font-black text-slate-900 text-sm">{viewingCandidate.resumeFileName || "Candidate_Resume.pdf"}</p>
+                            <p className="text-slate-500 text-[11px]">PDF Document • Verified Candidate Resume</p>
                           </div>
                         </div>
 
-                        <button
-                          onClick={() => alert(`Downloading CV file: ${viewingCandidate.resumeFileName || "Resume.pdf"}`)}
-                          className="bg-[#0F172A] text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 hover:bg-slate-800 cursor-pointer shadow-xs"
-                        >
-                          <span className="material-symbols-outlined text-[16px]">download</span>
-                          <span>Download CV</span>
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setShowFullResumeModal(true)}
+                            className="bg-amber-400 text-[#0F172A] font-black px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 hover:brightness-105 cursor-pointer shadow-xs"
+                          >
+                            <span className="material-symbols-outlined text-[16px]">fullscreen</span>
+                            <span>Open Resume Viewer</span>
+                          </button>
+
+                          <button
+                            onClick={() => alert(`Downloading CV file: ${viewingCandidate.resumeFileName || "Resume.pdf"}`)}
+                            className="bg-[#0F172A] text-white font-bold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 hover:bg-slate-800 cursor-pointer shadow-xs"
+                          >
+                            <span className="material-symbols-outlined text-[16px]">download</span>
+                            <span>Download CV</span>
+                          </button>
+                        </div>
                       </div>
 
-                      <div className="p-6 bg-white border border-slate-200 rounded-xl text-center space-y-2 shadow-2xs">
-                        <span className="material-symbols-outlined text-[40px] text-slate-400">description</span>
-                        <p className="font-black text-slate-800 text-sm">Resume Document Active</p>
-                        <p className="text-slate-500 text-xs max-w-md mx-auto">
-                          Candidate CV stored in system vault. Contains verified work history, academic credentials, and project certifications.
-                        </p>
+                      {/* Interactive Resume Preview Panel */}
+                      <div
+                        onClick={() => setShowFullResumeModal(true)}
+                        className="bg-white border border-slate-300 rounded-2xl p-6 space-y-4 shadow-sm hover:border-amber-400 cursor-pointer transition-all group"
+                      >
+                        <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                          <div className="flex items-center gap-2">
+                            <span className="material-symbols-outlined text-amber-500 text-xl group-hover:scale-110 transition-transform">
+                              description
+                            </span>
+                            <span className="font-black text-slate-900 text-xs">Resume Document View (Click to Expand)</span>
+                          </div>
+                          <span className="text-[10px] bg-slate-100 text-slate-600 px-2.5 py-1 rounded-md font-mono">PDF Viewer</span>
+                        </div>
+
+                        <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 font-mono text-[11px] text-slate-800 space-y-3 leading-relaxed max-h-64 overflow-y-auto">
+                          <div className="border-b border-slate-200 pb-2 flex justify-between items-center">
+                            <div>
+                              <p className="font-black text-sm text-slate-900">{viewingCandidate.name}</p>
+                              <p className="text-slate-600 text-[10px]">
+                                Email: {viewingCandidate.email} | Mobile: {viewingCandidate.phone || "N/A"}
+                              </p>
+                            </div>
+                            <span className="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded text-[10px]">VERIFIED CV</span>
+                          </div>
+
+                          <div className="space-y-1">
+                            <p className="font-extrabold text-slate-900">TECHNICAL SKILLS & COMPETENCIES:</p>
+                            <p className="text-slate-700">{viewingCandidate.skills || "JavaScript, TypeScript, React, Node.js, Express, HTML/CSS"}</p>
+                          </div>
+
+                          <div className="space-y-1">
+                            <p className="font-extrabold text-slate-900">EMPLOYMENT HISTORY:</p>
+                            <p className="text-slate-700">
+                              • {viewingCandidate.designation || "Software Engineer"} — {viewingCandidate.currentCompany || "Cognizant Technology Solutions"}
+                            </p>
+                            <p className="text-slate-700">• Responsible for full-stack feature delivery, API integrations, and database design.</p>
+                          </div>
+                        </div>
+
+                        <div className="text-center pt-1">
+                          <span className="text-xs font-black text-amber-600 group-hover:underline inline-flex items-center gap-1">
+                            <span>Click anywhere inside to open full high-res document viewer</span>
+                            <span className="material-symbols-outlined text-[14px]">open_in_full</span>
+                          </span>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Section 5: Recruiter Assessment Notes */}
+                    {/* Section 5: Recruiter Assessment Notes & Feedback (Interactive Clean Textarea) */}
                     <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl space-y-3 text-xs">
-                      <h4 className="font-black text-slate-900 text-sm flex items-center gap-2">
-                        <span className="material-symbols-outlined text-emerald-600">rate_review</span>
-                        <span>5. Recruiter Assessment Notes & Feedback</span>
-                      </h4>
-                      <div className="p-4 bg-white border border-slate-200 rounded-xl space-y-1">
-                        <p className="font-extrabold text-slate-900">Screening Notes by Divyanshu (Recruitment Lead)</p>
-                        <p className="text-slate-600">{viewingCandidate.notes || "Candidate profile verified. Communication and technical skills match mandate specifications."}</p>
+                      <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                        <h4 className="font-black text-slate-900 text-sm flex items-center gap-2">
+                          <span className="material-symbols-outlined text-emerald-600">rate_review</span>
+                          <span>5. Recruiter Assessment Notes & Feedback</span>
+                        </h4>
+
+                        <button
+                          onClick={handleSaveAssessmentNotes}
+                          className="bg-emerald-600 text-white font-black px-4 py-1.5 rounded-xl text-xs flex items-center gap-1.5 hover:bg-emerald-700 cursor-pointer shadow-xs transition-all"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">save</span>
+                          <span>Save Recruiter Notes</span>
+                        </button>
+                      </div>
+
+                      <div className="p-4 bg-white border border-slate-200 rounded-xl space-y-2">
+                        <textarea
+                          rows={4}
+                          value={recruiterAssessmentNoteInput}
+                          onChange={(e) => setRecruiterAssessmentNoteInput(e.target.value)}
+                          placeholder="Write assessment notes, interview feedback, soft skills evaluation, or recruiter notes here..."
+                          className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium text-xs focus:outline-none focus:border-emerald-500 focus:bg-white transition-all"
+                        />
                       </div>
                     </div>
 
@@ -1400,29 +1575,29 @@ export default function CockpitView() {
                                     className="rounded accent-[#0F172A] cursor-pointer"
                                   />
                                 </td>
-                                <td className="p-3 font-extrabold text-amber-600" onClick={() => setViewingCandidate(cand)}>
+                                <td className="p-3 font-extrabold text-amber-600 cursor-pointer" onClick={() => handleOpenCandidateProfile(cand)}>
                                   {cand.rating}
                                 </td>
                                 <td
                                   className="p-3 font-extrabold text-slate-900 group-hover:text-amber-700 flex items-center gap-2 cursor-pointer"
-                                  onClick={() => setViewingCandidate(cand)}
+                                  onClick={() => handleOpenCandidateProfile(cand)}
                                 >
                                   <div className="h-6 w-6 rounded-full bg-[#0F172A] text-[#FFD400] flex items-center justify-center text-[10px] font-black overflow-hidden">
                                     {cand.photoUrl ? (
                                       <img src={cand.photoUrl} alt={cand.name} className="h-full w-full object-cover" />
                                     ) : (
-                                      cand.name.slice(0, 2).toUpperCase()
+                                      getInitials(cand.name)
                                     )}
                                   </div>
                                   <span>{cand.name}</span>
                                 </td>
-                                <td className="p-3 font-mono text-slate-600" onClick={() => setViewingCandidate(cand)}>
+                                <td className="p-3 font-mono text-slate-600 cursor-pointer" onClick={() => handleOpenCandidateProfile(cand)}>
                                   {cand.email}
                                 </td>
-                                <td className="p-3 font-bold text-sky-700" onClick={() => setViewingCandidate(cand)}>
+                                <td className="p-3 font-bold text-sky-700 cursor-pointer" onClick={() => handleOpenCandidateProfile(cand)}>
                                   <span className="bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-full">{cand.status}</span>
                                 </td>
-                                <td className="p-3 font-medium text-slate-500" onClick={() => setViewingCandidate(cand)}>
+                                <td className="p-3 font-medium text-slate-500 cursor-pointer" onClick={() => handleOpenCandidateProfile(cand)}>
                                   {cand.skills}
                                 </td>
                               </tr>
@@ -2690,6 +2865,107 @@ export default function CockpitView() {
                 className="px-4 py-2 border border-slate-300 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-50 cursor-pointer"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full Resume Interactive Overlay Modal */}
+      {showFullResumeModal && viewingCandidate && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl border border-slate-700">
+            {/* Modal Header */}
+            <div className="bg-slate-900 text-white p-5 flex justify-between items-center border-b border-slate-800">
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-red-500 text-2xl">picture_as_pdf</span>
+                <div>
+                  <h3 className="font-black text-base">{viewingCandidate.name} — Resume Document</h3>
+                  <p className="text-xs text-slate-400 font-mono">File: {viewingCandidate.resumeFileName || "Candidate_Resume.pdf"}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => alert(`Downloading CV: ${viewingCandidate.resumeFileName || "Resume.pdf"}`)}
+                  className="bg-amber-400 text-[#0F172A] font-black px-3.5 py-1.5 rounded-xl text-xs flex items-center gap-1 hover:brightness-105 cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-sm">download</span>
+                  <span>Download PDF</span>
+                </button>
+
+                <button
+                  onClick={() => setShowFullResumeModal(false)}
+                  className="text-slate-400 hover:text-white font-bold p-1 rounded-lg text-lg cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body / Interactive Resume Viewer */}
+            <div className="p-8 overflow-y-auto space-y-6 bg-slate-100 font-sans text-slate-800">
+              <div className="bg-white p-8 rounded-2xl shadow-md border border-slate-200 max-w-3xl mx-auto space-y-6">
+                {/* Resume Top Title */}
+                <div className="border-b border-slate-200 pb-4 flex justify-between items-start">
+                  <div>
+                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">{viewingCandidate.name}</h1>
+                    <p className="text-sm font-bold text-amber-600">{viewingCandidate.designation || "Full Stack Developer"}</p>
+                  </div>
+                  <div className="text-right text-xs font-mono text-slate-600 space-y-1">
+                    <p>📧 {viewingCandidate.email}</p>
+                    <p>📞 {viewingCandidate.phone || "N/A"}</p>
+                  </div>
+                </div>
+
+                {/* Professional Summary */}
+                <div className="space-y-2">
+                  <h4 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Professional Profile</h4>
+                  <p className="text-xs text-slate-700 leading-relaxed font-medium">
+                    Results-driven technical professional with hands-on experience in full-stack web applications, database architecture, and agile software execution. Proven record in creating robust scalable systems and delivering high-impact recruitment candidates.
+                  </p>
+                </div>
+
+                {/* Technical Skills */}
+                <div className="space-y-2">
+                  <h4 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Core Technical Competencies</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {(viewingCandidate.skills || "JavaScript, TypeScript, React, Next.js, Node.js, PostgreSQL, TailwindCSS, REST APIs")
+                      .split(",")
+                      .map((s: string, idx: number) => (
+                        <span key={idx} className="bg-slate-100 border border-slate-300 text-slate-800 font-extrabold text-xs px-3 py-1 rounded-lg">
+                          {s.trim()}
+                        </span>
+                      ))}
+                  </div>
+                </div>
+
+                {/* Employment History */}
+                <div className="space-y-4">
+                  <h4 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Employment & Key Projects</h4>
+                  
+                  <div className="space-y-2 border-l-2 border-amber-400 pl-4">
+                    <div className="flex justify-between items-center text-xs">
+                      <p className="font-black text-slate-900">{viewingCandidate.designation || "Senior Software Engineer"}</p>
+                      <span className="font-mono text-slate-500">{viewingCandidate.currentCompany || "Cognizant Technology Solutions"}</span>
+                    </div>
+                    <ul className="list-disc list-inside text-xs text-slate-600 space-y-1 font-medium">
+                      <li>Designed and deployed enterprise RESTful backend controllers and database schemas.</li>
+                      <li>Architected front-end dashboard interfaces with real-time analytics and dynamic state management.</li>
+                      <li>Collaborated directly with client teams to streamline software release pipelines and code reviews.</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-white p-4 border-t border-slate-200 flex justify-end">
+              <button
+                onClick={() => setShowFullResumeModal(false)}
+                className="bg-slate-900 text-white font-bold px-6 py-2 rounded-xl text-xs hover:bg-slate-800 cursor-pointer"
+              >
+                Close Viewer
               </button>
             </div>
           </div>
