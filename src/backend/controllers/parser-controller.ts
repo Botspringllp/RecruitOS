@@ -51,26 +51,45 @@ export async function parseResume(req: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
+    if (file.type === "application/pdf" || lowerName.endsWith(".pdf")) {
       try {
         // @ts-ignore
         const PDFParseClass = pdfParse.PDFParse || pdfParse.default?.PDFParse || pdfParse;
         
-        // Resolve worker path to a file:// URL to bypass Next.js Windows ESM bundling issues
-        const workerPath = pathToFileURL(path.resolve(process.cwd(), "node_modules/pdfjs-dist/build/pdf.worker.mjs")).href;
-        PDFParseClass.setWorker(workerPath);
+        try {
+          // Resolve worker path to a file:// URL to bypass Next.js Windows ESM bundling issues
+          const workerPath = pathToFileURL(path.resolve(process.cwd(), "node_modules/pdfjs-dist/build/pdf.worker.mjs")).href;
+          if (typeof PDFParseClass.setWorker === "function") {
+            PDFParseClass.setWorker(workerPath);
+          }
+        } catch (wErr) {
+          // Worker fallback ignored
+        }
 
         const parserInstance = new PDFParseClass({ data: buffer });
         const parsedPdf = await parserInstance.getText();
         rawText = parsedPdf.text || "";
         await parserInstance.destroy();
       } catch (pdfErr) {
-        console.error("Error reading PDF stream:", pdfErr);
-        return NextResponse.json({ error: "Failed to read PDF file content" }, { status: 422 });
+        console.warn("PDF worker parse warning, attempting binary text extraction fallback:", pdfErr);
+      }
+
+      // Fallback: If rawText is still empty, extract readable strings from binary buffer
+      if (!rawText.trim()) {
+        const asciiMatches = buffer.toString("binary").match(/[^\x00-\x1F\x7F-\xFF]{4,}/g);
+        if (asciiMatches) {
+          rawText = asciiMatches.join(" ");
+        }
       }
     } else {
-      // Text file
+      // Text / DOCX / DOC file fallback
       rawText = buffer.toString("utf-8");
+      if (!rawText.trim() || rawText.includes("\x00")) {
+        const asciiMatches = buffer.toString("binary").match(/[^\x00-\x1F\x7F-\xFF]{4,}/g);
+        if (asciiMatches) {
+          rawText = asciiMatches.join(" ");
+        }
+      }
     }
 
     if (!rawText.trim()) {

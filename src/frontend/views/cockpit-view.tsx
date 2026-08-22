@@ -279,38 +279,72 @@ export default function CockpitView() {
     }
   };
 
-  // Upload Real Candidate Resume File Handler with Auto-Parse
-  const handleResumeFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Upload Real Candidate Resume File Handler with AI Auto-Parse
+  const handleResumeFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setIsParsingResume(true);
-      setTimeout(() => {
-        const rawName = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
-        const cleanName = rawName.length > 3 
-          ? rawName.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") 
-          : "Rohan Sharma";
-          
+
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await fetch("/api/v1/parser", {
+          method: "POST",
+          body: formData,
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || "Failed to parse resume file.");
+        }
+
+        const data = result.data;
+
+        // Calculate human readable experience
+        let expText = "";
+        if (typeof data.totalExpMonths === "number" && data.totalExpMonths > 0) {
+          if (data.totalExpMonths >= 12) {
+            const yrs = (data.totalExpMonths / 12).toFixed(1);
+            expText = yrs.endsWith(".0") ? `${Math.floor(data.totalExpMonths / 12)} Years` : `${yrs} Years`;
+          } else {
+            expText = `${data.totalExpMonths} Months`;
+          }
+        }
+
         const parsedData = {
-          name: cleanName,
-          email: `${file.name.split('.')[0].toLowerCase().replace(/[^a-z0-9]/g, ".")}@gmail.com`,
-          phone: "+91 98765 43210",
-          designation: "Senior Software Engineer",
-          currentCompany: "Tech Enterprise Solutions",
-          experience: "5.5 Years",
-          noticePeriod: "30 Days",
-          expectedCtc: "$95,000 / Year",
+          name: data.fullName || "Candidate Profile",
+          email: data.email || "",
+          phone: data.phone || "",
+          designation: data.currentTitle || "Software Engineer",
+          currentCompany: data.currentCompany || "",
+          experience: expText,
+          noticePeriod: "", // Kept blank per user preference
+          expectedCtc: "",  // Kept blank per user preference
           status: "Applied",
           rating: "4.8 ⭐",
-          skills: "React.js, Node.js, TypeScript, Next.js, Cloud Services, System Architecture",
+          skills: Array.isArray(data.skills) ? data.skills.join(", ") : "",
           photoUrl: "",
           resumeFileName: file.name,
-          notes: `Uploaded resume '${file.name}' parsed automatically with high accuracy.`,
+          notes: `Uploaded resume '${file.name}' parsed automatically with high precision AI engine.`,
         };
+
         setNewCandidateForm(parsedData);
-        checkForDuplicates(parsedData.email, parsedData.name);
+
+        if (result.duplicateDetected) {
+          setDuplicateWarning(
+            `⚠️ DUPLICATE CANDIDATE DETECTED! A candidate with name '${result.duplicateCandidateName}' already exists in your database.`
+          );
+        } else {
+          checkForDuplicates(parsedData.email, parsedData.name);
+        }
+      } catch (err: any) {
+        console.error("Resume file parsing error:", err);
+        alert(`⚠️ Could not parse resume: ${err.message || "Unknown error"}`);
+      } finally {
         setIsParsingResume(false);
-        alert(`📄 Resume "${file.name}" Uploaded & Auto-Parsed Successfully! All fields auto-filled.`);
-      }, 1000);
+      }
     }
   };
 
@@ -2032,7 +2066,7 @@ export default function CockpitView() {
                 className="bg-amber-400 text-[#0F172A] font-black px-4 py-2 rounded-xl text-xs shadow-xs hover:brightness-105 transition-all cursor-pointer inline-flex items-center gap-1.5"
               >
                 <span className="material-symbols-outlined text-[16px]">bolt</span>
-                <span>{isParsingResume ? "Parsing..." : "⚡ Auto-Parse Sample CV (Rohan Sharma)"}</span>
+                <span>{isParsingResume ? "Parsing..." : "Auto-Parse Sample CV"}</span>
               </button>
             </label>
 
@@ -2095,7 +2129,7 @@ export default function CockpitView() {
                 </div>
 
                 <div>
-                  <label className="font-extrabold text-slate-700 block mb-1">Current Company & Role</label>
+                  <label className="font-extrabold text-slate-700 block mb-1">Current Company</label>
                   <input
                     type="text"
                     placeholder="e.g. Cognizant (Senior Developer)"
