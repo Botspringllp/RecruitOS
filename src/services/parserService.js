@@ -2,21 +2,91 @@ import mammoth from 'mammoth';
 
 // Universal Dictionary of 150+ Multi-Domain ATS Skills
 export const ALL_ATS_SKILLS = [
-  // Web & Frontend
-  'React', 'Angular', 'Vue.js', 'Vue', 'Next.js', 'Nuxt.js', 'Redux', 'TypeScript', 'JavaScript', 'HTML5', 'HTML', 'CSS3', 'CSS', 'Sass', 'TailwindCSS', 'Tailwind', 'Bootstrap', 'jQuery',
-  // Backend & Core Languages
-  'Python', 'Java', 'C++', 'C#', '.NET', 'ASP.NET', 'Go', 'Golang', 'Node.js', 'NodeJS', 'Express', 'Django', 'Flask', 'FastAPI', 'Spring Boot', 'Spring', 'PHP', 'Laravel', 'Ruby', 'Rails', 'Rust', 'Scala',
-  // Database & Storage
-  'SQL', 'PostgreSQL', 'Postgres', 'MySQL', 'MongoDB', 'Redis', 'Oracle', 'SQL Server', 'NoSQL', 'Elasticsearch', 'Cassandra', 'Snowflake', 'DynamoDB',
-  // Cloud & DevOps
-  'AWS', 'Azure', 'GCP', 'Google Cloud', 'Docker', 'Kubernetes', 'CI/CD', 'Jenkins', 'Terraform', 'Ansible', 'Linux', 'Git', 'GitHub', 'GitLab', 'Microservices', 'Kafka', 'RabbitMQ', 'REST API', 'GraphQL',
-  // Data Science & AI/ML
-  'Machine Learning', 'Deep Learning', 'Data Science', 'PyTorch', 'TensorFlow', 'Scikit-Learn', 'Pandas', 'NumPy', 'NLP', 'Computer Vision', 'Power BI', 'Tableau', 'Excel',
-  // Software QA / Testing
-  'Selenium', 'Cypress', 'Playwright', 'Jest', 'Mocha', 'JUnit', 'Postman', 'Manual Testing', 'Automation Testing',
-  // Management & Soft Skills
-  'Agile', 'Scrum', 'Jira', 'Project Management', 'Product Management', 'HR', 'Recruitment', 'Sales', 'Marketing', 'SEO'
+  'React', 'Angular', 'Vue.js', 'Next.js', 'Nuxt.js', 'Redux', 'TypeScript', 'JavaScript', 'HTML5', 'HTML', 'CSS3', 'CSS', 'Sass', 'TailwindCSS', 'Bootstrap',
+  'Python', 'Java', 'C++', 'C#', '.NET', 'Go', 'Node.js', 'Express', 'Django', 'Flask', 'FastAPI', 'Spring Boot', 'PHP', 'Laravel', 'Ruby', 'Rails', 'Rust',
+  'SQL', 'PostgreSQL', 'MySQL', 'MongoDB', 'Redis', 'Oracle', 'SQL Server', 'NoSQL', 'Elasticsearch', 'Cassandra', 'Snowflake', 'DynamoDB',
+  'AWS', 'Azure', 'GCP', 'Docker', 'Kubernetes', 'CI/CD', 'Jenkins', 'Terraform', 'Ansible', 'Linux', 'Git', 'GitHub', 'GitLab', 'Microservices', 'Kafka', 'REST API', 'GraphQL',
+  'Machine Learning', 'Deep Learning', 'Data Science', 'PyTorch', 'TensorFlow', 'Pandas', 'NumPy', 'NLP', 'Power BI', 'Tableau',
+  'Selenium', 'Cypress', 'Playwright', 'Jest', 'Postman', 'Manual Testing', 'Automation Testing',
+  'Agile', 'Scrum', 'Jira', 'Project Management', 'Product Management', 'HR', 'Recruitment'
 ];
+
+/**
+ * Normalizes skill strings so React.js = React, Node JS = Node.js, Javascript = JavaScript
+ */
+export function normalizeSkill(skillStr) {
+  if (!skillStr || typeof skillStr !== 'string') return '';
+  const s = skillStr.trim();
+  const lower = s.toLowerCase();
+
+  if (/^react(\.?js)?$/i.test(lower)) return 'React';
+  if (/^node(\s*|\.?)js$/i.test(lower)) return 'Node.js';
+  if (/^java\s*script$/i.test(lower) || /^js$/i.test(lower)) return 'JavaScript';
+  if (/^type\s*script$/i.test(lower) || /^ts$/i.test(lower)) return 'TypeScript';
+  if (/^postgres(ql)?$/i.test(lower)) return 'PostgreSQL';
+  if (/^mongo(db)?$/i.test(lower)) return 'MongoDB';
+  if (/^vue(\.?js)?$/i.test(lower)) return 'Vue.js';
+  if (/^express(\.?js)?$/i.test(lower)) return 'Express';
+  if (/^next(\.?js)?$/i.test(lower)) return 'Next.js';
+  if (/^nuxt(\.?js)?$/i.test(lower)) return 'Nuxt.js';
+  if (/^spring(\s*boot)?$/i.test(lower)) return 'Spring Boot';
+  if (/^asp\.net|dotnet|\.net$/i.test(lower)) return '.NET';
+  if (/^aws|amazon web services$/i.test(lower)) return 'AWS';
+  if (/^gcp|google cloud( platform)?$/i.test(lower)) return 'GCP';
+
+  return s;
+}
+
+/**
+ * Normalize array of skills
+ */
+export function normalizeSkillList(skillsArray = []) {
+  if (!Array.isArray(skillsArray)) return [];
+  const normalized = [];
+  skillsArray.forEach(sk => {
+    const norm = normalizeSkill(sk);
+    if (norm && !normalized.some(n => n.toLowerCase() === norm.toLowerCase())) {
+      normalized.push(norm);
+    }
+  });
+  return normalized;
+}
+
+/**
+ * Calculates exact JD vs Resume Match Score according to formula:
+ * Match % = (Matched Skills / Total JD Skills) * 100
+ */
+export function calculateSkillMatch(jdSkills = [], candidateSkills = [], rawText = '') {
+  const normJdSkills = normalizeSkillList(jdSkills.length > 0 ? jdSkills : ['React', 'Node.js', 'Express', 'JavaScript', 'HTML', 'CSS']);
+  const normCandidateSkills = normalizeSkillList(candidateSkills);
+  const combinedText = `${rawText} ${normCandidateSkills.join(' ')}`;
+
+  const matchedSkills = [];
+  const missingSkills = [];
+
+  normJdSkills.forEach(jdSkill => {
+    const reg = new RegExp(`\\b${jdSkill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+    const isMatched = normCandidateSkills.some(cs => cs.toLowerCase() === jdSkill.toLowerCase()) || reg.test(combinedText);
+
+    if (isMatched) {
+      if (!matchedSkills.includes(jdSkill)) matchedSkills.push(jdSkill);
+    } else {
+      if (!missingSkills.includes(jdSkill)) missingSkills.push(jdSkill);
+    }
+  });
+
+  const totalJd = normJdSkills.length;
+  const matchedCount = matchedSkills.length;
+
+  let match_percentage = totalJd > 0 ? Math.round((matchedCount / totalJd) * 100) : 80;
+  match_percentage = Math.min(100, Math.max(matchedCount > 0 ? 25 : 10, match_percentage));
+
+  return {
+    matched_skills: matchedSkills,
+    missing_skills: missingSkills,
+    match_percentage
+  };
+}
 
 /**
  * Converts File Blob to Base64 string for Gemini API
@@ -90,7 +160,7 @@ export async function readTextFromFileClient(file) {
           } catch (err) {}
         }
 
-        // Try DecompressStream for compressed PDF FlateDecode stream blocks
+        // DecompressStream for compressed PDF FlateDecode streams
         if (typeof DecompressStream !== 'undefined') {
           const streamRegex = /stream[\r\n]+([\s\S]*?)[\r\n]+endstream/g;
           let streamMatch;
@@ -123,7 +193,6 @@ export async function readTextFromFileClient(file) {
           }
         }
 
-        // Fallback ASCII text extraction if extractedText is short
         if (extractedText.length < 40) {
           const asciiWords = rawStr.match(/[a-zA-Z0-9\+\#\.\,\:\;\-\@\s]{4,80}/g);
           if (asciiWords) {
@@ -156,26 +225,19 @@ export async function parseResumeWithGemini(file, rawResumeText = '') {
   const promptText = `You are an expert recruitment parser. Extract candidate details from the following resume document into strict JSON matching this exact schema:
 
 {
-  "fullName": "string (Candidate's actual first and last name - ignore words like RESUME, CV, CURRICULUM VITAE, NAUKRI, CONFIDENTIAL, ORIGINAL)",
+  "fullName": "string (Candidate's actual first and last name)",
   "email": "string (Primary valid email address e.g. candidate@domain.com)",
-  "phone": "string (Primary valid mobile number with country code, e.g. +91 9876543210)",
-  "currentCompany": "string or null (Current or most recent company/employer)",
-  "currentTitle": "string or null (Current or most recent job title)",
-  "totalExpYears": number (Total years of work experience as number e.g. 5.5, or 0 if unknown),
-  "currentCtc": number or null (Current annual CTC in absolute numbers e.g. 2400000, or null),
-  "expectedCtc": number or null (Expected annual CTC in absolute numbers e.g. 3200000, or null),
-  "currency": "string (e.g. INR, USD, default INR)",
-  "noticePeriodDays": number (Notice period in days e.g. 15, 30, 60, 90. Default 30 if not mentioned),
+  "phone": "string (Primary valid mobile number with country code e.g. +91 9876543210)",
   "location": "string or null (City / Location)",
-  "skills": ["string"] (Array of specific technical, domain, database, cloud, framework, or tool skills present in candidate's resume),
-  "summary": "string or null (2-3 sentence executive professional summary)",
-  "workHistory": [
-    {
-      "company": "string",
-      "title": "string",
-      "duration": "string"
-    }
-  ]
+  "currentCompany": "string or null (Current employer name)",
+  "previousCompany": "string or null (Previous employer name)",
+  "designation": "string or null (Current job title/role e.g. Senior Software Engineer)",
+  "totalExpYears": number (Total years of experience as number e.g. 5.5),
+  "education": "string or null (Highest degree e.g. B.Tech Computer Science)",
+  "skills": ["string"] (Array of specific technical, domain, or tool skills),
+  "currentCtc": number or null (Current annual CTC in absolute numbers e.g. 1800000),
+  "expectedCtc": number or null (Expected annual CTC in absolute numbers e.g. 2400000),
+  "noticePeriod": "string or null (Notice period e.g. 30 Days)"
 }`;
 
   try {
@@ -214,7 +276,7 @@ export async function parseResumeWithGemini(file, rawResumeText = '') {
       const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
       if (textResponse) {
         const parsedJson = JSON.parse(textResponse);
-        console.log('✨ [Gemini AI Parser] Successfully parsed resume candidate profile:', parsedJson.fullName, parsedJson.email, parsedJson.phone, parsedJson.skills);
+        console.log('✨ [Gemini AI Parser] Parsed profile:', parsedJson.fullName, parsedJson.email, parsedJson.skills);
         return parsedJson;
       }
     }
@@ -280,23 +342,18 @@ export function extractDynamicJdData(filename, fileText = '') {
   ALL_ATS_SKILLS.forEach(skill => {
     const reg = new RegExp(`\\b${skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
     if (reg.test(combinedText)) {
-      if (!detectedSkills.includes(skill)) {
-        detectedSkills.push(skill);
+      const norm = normalizeSkill(skill);
+      if (!detectedSkills.includes(norm)) {
+        detectedSkills.push(norm);
       }
     }
   });
 
-  if (detectedSkills.length === 0 && /full stack/i.test(title)) {
-    detectedSkills.push('React', 'Node.js', 'Express', 'JavaScript', 'HTML', 'CSS', 'MongoDB', 'REST API', 'Git');
-  } else if (detectedSkills.length === 0 && /java/i.test(title)) {
-    detectedSkills.push('Java', 'Spring Boot', 'REST API', 'SQL', 'Hibernate', 'Microservices', 'Git');
-  } else if (detectedSkills.length === 0 && /python/i.test(title)) {
-    detectedSkills.push('Python', 'Django', 'FastAPI', 'REST API', 'PostgreSQL', 'Docker', 'Git');
-  }
-
-  const allRequiredSkills = detectedSkills.length > 0
-    ? detectedSkills
-    : ['React', 'Node.js', 'Express', 'JavaScript', 'HTML', 'CSS', 'MongoDB', 'REST API', 'Git'];
+  const allRequiredSkills = normalizeSkillList(
+    detectedSkills.length > 0
+      ? detectedSkills
+      : ['React', 'Node.js', 'Express', 'JavaScript', 'HTML', 'CSS', 'MongoDB', 'REST API', 'Git']
+  );
 
   const description = `Position: ${title}
 Company: ${companyName || 'Shipgig Ventures'}

@@ -11,6 +11,7 @@ import DeletedAgenciesPage from './components/DeletedAgenciesPage';
 import AgencyWebsiteSettings from './components/AgencyWebsiteSettings';
 import LoginPage from './components/LoginPage';
 import PublicPortalContainer from './public_portal/PublicPortalContainer';
+import PublicCandidateSharePage from './public_portal/PublicCandidateSharePage';
 
 import { getAllJobs, createJob, getJobById } from './services/jobsService';
 import { getCurrentUser, logoutUser } from './services/authService';
@@ -24,6 +25,13 @@ function parsePublicRoute() {
   const path = window.location.pathname || '';
   const full = hash.replace(/^#/, '') || path;
 
+  // 1. Candidate Share Magic Link Route: /candidate-share/:token
+  const shareMatch = full.match(/^\/candidate-share\/([^\/]+)/);
+  if (shareMatch) {
+    return { isCandidateShare: true, token: shareMatch[1] };
+  }
+
+  // 2. Public Agency Career Portal Route: /agency/:slug
   const match = full.match(/^\/agency\/([^\/]+)(?:\/([^\/]+))?(?:\/([^\/]+))?/);
   if (match) {
     const slug = match[1];
@@ -92,7 +100,12 @@ export default function App() {
     }
   }, [currentUser, currentView, loadJobsFromDatabase]);
 
-  // If visiting a public agency portal route (/agency/:slug)
+  // If visiting candidate share magic link route
+  if (publicRoute.isCandidateShare) {
+    return <PublicCandidateSharePage token={publicRoute.token} />;
+  }
+
+  // If visiting public agency portal route (/agency/:slug)
   if (publicRoute.isPublic) {
     return <PublicPortalContainer slug={publicRoute.slug} initialTab={publicRoute.tab} initialJobId={publicRoute.jobId} />;
   }

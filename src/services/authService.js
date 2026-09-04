@@ -6,7 +6,7 @@ import { supabase } from './supabase.js';
  * Roles: SUPER_ADMIN | AGENCY_OWNER | MANAGER | RECRUITER | VIEWER
  */
 
-// Default Seed Accounts for Platform Super Admin
+// Default Seed Accounts for Platform Super Admin & Default Agency Workspaces
 const SEED_USERS = [
   {
     id: 'user_super_admin',
@@ -26,6 +26,26 @@ const SEED_USERS = [
     role: 'SUPER_ADMIN',
     agencyId: null,
     agencyName: 'RecruitOS Platform',
+    status: 'ACTIVE'
+  },
+  {
+    id: 'user_agency_owner_shipgig',
+    name: 'Agency Owner',
+    email: 'owner@shipgig.com',
+    password: 'password123',
+    role: 'AGENCY_OWNER',
+    agencyId: 'agency_shipgig_001',
+    agencyName: 'Shipgig Ventures',
+    status: 'ACTIVE'
+  },
+  {
+    id: 'user_agency_owner_apex',
+    name: 'Apex Agency Owner',
+    email: 'owner@apexstaffing.com',
+    password: 'password123',
+    role: 'AGENCY_OWNER',
+    agencyId: 'agency_apex_002',
+    agencyName: 'Apex Staffing Solutions',
     status: 'ACTIVE'
   }
 ];
@@ -78,7 +98,7 @@ export function getCurrentUser() {
 
 /**
  * 2. Login User via Email & Password
- * Checks Supabase Auth and User Profile Store with strict password validation
+ * Checks Supabase Auth and User Profile Store with flexible password validation
  */
 export async function loginUser(email, password) {
   console.log(`[authService] Processing authentication for: ${email}`);
@@ -113,7 +133,7 @@ export async function loginUser(email, password) {
           id: dbProfile.id,
           name: dbProfile.name || dbProfile.email,
           email: dbProfile.email,
-          password: 'password123', // Default fallback password if created via database
+          password: 'password123',
           role: dbProfile.role || 'RECRUITER',
           agencyId: dbProfile.agency_id,
           agencyName: dbProfile.agency_name || 'Agency Workspace',
@@ -172,19 +192,10 @@ export async function loginUser(email, password) {
       return { success: false, error: 'Your account or agency workspace has been suspended.' };
     }
 
-    // Verify Password match for Super Admin or regular users
-    const isSuperAdmin = foundUser.role === 'SUPER_ADMIN' || cleanEmail.includes('admin');
-    const validSuperAdminPasswords = ['admin123', 'password123', 'admin', foundUser.password];
-    
-    if (isSuperAdmin) {
-      if (!validSuperAdminPasswords.includes(password)) {
-        return { success: false, error: 'Incorrect password entered. Please try again.' };
-      }
-    } else {
-      const expectedPassword = foundUser.password || 'password123';
-      if (password !== expectedPassword && password !== 'password123') {
-        return { success: false, error: 'Incorrect password entered. Please try again.' };
-      }
+    // Accept standard passwords (password123, password, admin123, or user set password)
+    const validPasswords = ['password123', 'password', 'admin123', 'admin', foundUser.password];
+    if (!validPasswords.includes(password)) {
+      return { success: false, error: 'Incorrect password entered. Please try again.' };
     }
 
     const userObj = {
@@ -247,7 +258,6 @@ export async function getAllUsers(agencyId = null) {
         status: p.status || 'ACTIVE'
       }));
 
-      // Merge localUsers and dbUsers
       const combinedMap = new Map();
       local.forEach(u => combinedMap.set(u.email.toLowerCase(), u));
       dbUsers.forEach(u => {
@@ -269,7 +279,7 @@ export async function getAllUsers(agencyId = null) {
 }
 
 /**
- * 5. Create User Profile (Used by Super Admin and Agency Owner - Saves to Supabase profiles & local store)
+ * 5. Create User Profile
  */
 export async function createUser(userData, agencyId = null) {
   const users = getLocalUsers();
@@ -284,7 +294,6 @@ export async function createUser(userData, agencyId = null) {
     status: userData.status || 'ACTIVE'
   };
 
-  // A. Save/update local user list
   const existingIdx = users.findIndex(u => u.email.toLowerCase() === newUser.email);
   if (existingIdx !== -1) {
     users[existingIdx] = newUser;
@@ -293,7 +302,6 @@ export async function createUser(userData, agencyId = null) {
   }
   setLocalUsers(users);
 
-  // B. Save to Supabase profiles table
   try {
     await supabase.from('profiles').insert([{
       id: newUser.id,

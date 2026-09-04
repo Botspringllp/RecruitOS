@@ -1,11 +1,5 @@
 import { supabase } from './supabase.js';
-import { readTextFromFileClient, parseResumeWithGemini, ALL_ATS_SKILLS } from './parserService.js';
-
-/**
- * RecruitOS Candidate Management Service - Multi-Tenant Scoped
- * Enforces agency_id boundary across resume parsing & data access.
- * Super Admin MUST NOT have access to candidate profiles or resumes.
- */
+import { readTextFromFileClient, parseResumeWithGemini, calculateSkillMatch, ALL_ATS_SKILLS, normalizeSkillList } from './parserService.js';
 
 let RUNTIME_CANDIDATES_CACHE = [];
 
@@ -52,7 +46,7 @@ export function clearCandidateCache() {
 }
 
 /**
- * 1. Parses and Scores candidate resume PDF/DOCX against job required skills with High Precision
+ * Parses and Scores candidate resume against job required skills with High Precision
  */
 export async function parseAndScoreCandidateResume(file, jobRequiredSkills = [], jobId = null, jobTitle = '', agencyId = null) {
   const fileNameClean = file.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ');
@@ -60,11 +54,11 @@ export async function parseAndScoreCandidateResume(file, jobRequiredSkills = [],
     ? URL.createObjectURL(file)
     : null;
 
-  // A. Read clean text from PDF / DOCX file (Supporting Mammoth DOCX & DecompressStream PDF)
+  // A. Read clean text from PDF / DOCX file
   const rawText = await readTextFromFileClient(file);
   const combinedText = `${fileNameClean} ${rawText}`;
 
-  // B. Try Gemini AI parsing if direct inline Base64 file is available
+  // B. Parse with Gemini AI
   let geminiData = null;
   try {
     geminiData = await parseResumeWithGemini(file, rawText || fileNameClean);
@@ -152,97 +146,76 @@ export async function parseAndScoreCandidateResume(file, jobRequiredSkills = [],
     experience = `${expYearsNum} Years`;
   }
 
-  // G. Extract Education Degree
-  let education = 'B.Tech / B.E. Computer Science';
-  if (geminiData && geminiData.education) {
-    education = geminiData.education;
-  } else if (/m\.tech|master/i.test(combinedText)) education = 'M.Tech Computer Science';
-  else if (/mca/i.test(combinedText)) education = 'MCA';
-  else if (/bca/i.test(combinedText)) education = 'BCA';
-  else if (/b\.sc|bsc/i.test(combinedText)) education = 'B.Sc Computer Science';
-  else if (/mba/i.test(combinedText)) education = 'MBA';
+  // G. Extract Designation & Companies
+  const designation = geminiData?.designation || geminiData?.currentTitle || 'Software Engineer';
+  const currentCompany = geminiData?.currentCompany || 'Shipgig Ventures';
+  const previousCompany = geminiData?.previousCompany || null;
+  const currentCtc = geminiData?.currentCtc || 1800000;
+  const expectedCtc = geminiData?.expectedCtc || 2400000;
 
-  // H. Extract Candidate Resume Skills
-  const candidateResumeSkills = [];
+  // H. Extract Education
+  let education = geminiData?.education || 'B.Tech / B.E. Computer Science';
+  if (!geminiData?.education) {
+    if (/m\.tech|master/i.test(combinedText)) education = 'M.Tech Computer Science';
+    else if (/mca/i.test(combinedText)) education = 'MCA';
+    else if (/bca/i.test(combinedText)) education = 'BCA';
+    else if (/b\.sc|bsc/i.test(combinedText)) education = 'B.Sc Computer Science';
+    else if (/mba/i.test(combinedText)) education = 'MBA';
+  }
+
+  // I. Extract Candidate Skills
+  const candidateSkillsRaw = [];
   if (Array.isArray(geminiData?.skills) && geminiData.skills.length > 0) {
     geminiData.skills.forEach(s => {
-      if (s && !candidateResumeSkills.includes(s)) candidateResumeSkills.push(s);
+      if (s && !candidateSkillsRaw.includes(s)) candidateSkillsRaw.push(s);
     });
   }
 
   ALL_ATS_SKILLS.forEach(skill => {
     const reg = new RegExp(`\\b${skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
     if (reg.test(combinedText)) {
-      if (!candidateResumeSkills.includes(skill)) {
-        candidateResumeSkills.push(skill);
-      }
+      if (!candidateSkillsRaw.includes(skill)) candidateSkillsRaw.push(skill);
     }
   });
 
-  // I. DYNAMIC MATCH SCORE & SKILL MATCHING ALGORITHM (Zero static/hardcoded scores)
-  const jobSkillsList = (jobRequiredSkills && jobRequiredSkills.length > 0)
-    ? jobRequiredSkills
-    : ['React', 'Node.js', 'Express', 'JavaScript', 'HTML', 'CSS'];
+  const candidateSkills = normalizeSkillList(candidateSkillsRaw);
 
-  const matchedSkills = [];
-  const missingSkills = [];
+  // J. EXACT JD vs RESUME MATCH SCORE FORMULA
+  const matchResult = calculateSkillMatch(jobRequiredSkills, candidateSkills, combinedText);
 
-  jobSkillsList.forEach(skill => {
-    const reg = new RegExp(`\\b${skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
-    const isMatched = candidateResumeSkills.some(cs => cs.toLowerCase() === skill.toLowerCase()) || reg.test(combinedText);
-    
-    if (isMatched) {
-      matchedSkills.push(skill);
-    } else {
-      missingSkills.push(skill);
-    }
-  });
-
-  // Calculate dynamic match percentage for each candidate individually
-  const totalRequired = jobSkillsList.length;
-  const matchedCount = matchedSkills.length;
-  let rawScore = totalRequired > 0 ? Math.round((matchedCount / totalRequired) * 100) : 75;
-
-  const numericExp = parseFloat(experience) || 0;
-  if (numericExp >= 3 && rawScore > 0 && rawScore < 100) {
-    rawScore = Math.min(100, rawScore + 5);
-  }
-
-  // Final Match Percentage (Strictly dynamic unique score matching skills)
-  const matchPercentage = totalRequired > 0
-    ? Math.min(100, Math.max(matchedCount > 0 ? 20 : 10, rawScore))
-    : 80;
-
-  const noticePeriodDays = geminiData?.noticePeriodDays || 30;
-  const noticePeriod = `${noticePeriodDays} Days`;
+  const noticePeriodDays = geminiData?.noticePeriod || '30 Days';
   const location = geminiData?.location || 'Noida / Remote';
-  const summary = geminiData?.summary || `Parsed profile for ${name}. Match Score: ${matchPercentage}%. Matched ${matchedSkills.length} of ${jobSkillsList.length} required skills.`;
+  const summary = `Parsed profile for ${name}. Match Score: ${matchResult.match_percentage}%. Matched ${matchResult.matched_skills.length} of ${(jobRequiredSkills || []).length} required skills.`;
 
   const candRecord = {
     id: 'cand_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
     name,
     email,
     phone,
+    designation,
+    currentCompany,
+    previousCompany,
+    currentCtc,
+    expectedCtc,
     experience,
-    noticePeriod,
+    noticePeriod: noticePeriodDays,
     status: 'Applied',
+    shortlisted: false,
     education,
     location,
-    currentCompany: geminiData?.currentCompany || null,
-    currentTitle: geminiData?.currentTitle || null,
     agencyId: agencyId || null,
-    skills: candidateResumeSkills.length > 0 ? candidateResumeSkills : (matchedSkills.length > 0 ? matchedSkills : jobSkillsList),
-    matchedSkills: matchedSkills,
-    missingSkills: missingSkills,
-    matchPercentage,
+    skills: candidateSkills,
+    matchedSkills: matchResult.matched_skills,
+    missingSkills: matchResult.missing_skills,
+    matchPercentage: matchResult.match_percentage,
     resumeFile: file.name,
     fileUrl,
     resumeText: rawText.length > 50 ? rawText.substring(0, 1000) : summary,
     summary,
-    appliedJobs: jobId ? [{ jobId, jobTitle: jobTitle || 'Job Mandate', matchPercentage, status: 'Applied' }] : []
+    appliedJobs: jobId ? [{ jobId, jobTitle: jobTitle || 'Job Mandate', matchPercentage: matchResult.match_percentage, status: 'Applied' }] : []
   };
 
-  console.log('🎯 [RecruitOS Match Score Engine] Candidate:', candRecord.name, '| Match Score:', candRecord.matchPercentage + '% | Matched Skills:', candRecord.matchedSkills);
+  console.log('🎯 [RecruitOS Skill Matcher] Candidate:', candRecord.name, '| Score:', candRecord.matchPercentage + '% | Matched:', candRecord.matchedSkills, '| Missing:', candRecord.missingSkills);
 
   // Persist candidate record automatically to Supabase DB & Local Store
   await saveCandidateToSupabase(candRecord, jobId, agencyId);
@@ -251,7 +224,7 @@ export async function parseAndScoreCandidateResume(file, jobRequiredSkills = [],
 }
 
 /**
- * 2. Save candidate record to Supabase DB & Local Store
+ * Save candidate record to Supabase DB & Local Store
  */
 export async function saveCandidateToSupabase(cand, jobId = null, agencyId = null) {
   try {
@@ -261,12 +234,18 @@ export async function saveCandidateToSupabase(cand, jobId = null, agencyId = nul
         name: cand.name,
         email: cand.email,
         phone: cand.phone || '+91 98765 43210',
+        designation: cand.designation || 'Software Engineer',
+        current_company: cand.currentCompany || 'Shipgig Ventures',
+        previous_company: cand.previousCompany || null,
+        current_ctc: cand.currentCtc || 1800000,
+        expected_ctc: cand.expectedCtc || 2400000,
         experience: cand.experience || '2 Years',
-        notice_period: cand.noticePeriod || 'Immediate',
+        notice_period: cand.noticePeriod || '30 Days',
         education: cand.education || 'Graduate',
         resume_path: cand.resumeFile || 'Resume.pdf',
-        skills: cand.matchedSkills || cand.skills || [],
-        agency_id: agencyId || cand.agencyId || null
+        skills: cand.skills || [],
+        agency_id: agencyId || cand.agencyId || null,
+        status: cand.status || 'Applied'
       }])
       .select()
       .single();
@@ -280,10 +259,14 @@ export async function saveCandidateToSupabase(cand, jobId = null, agencyId = nul
   try {
     await supabase.from('applications').insert([{
       job_id: jobId,
-      match_score: cand.matchPercentage || 85,
+      candidate_id: cand.id,
+      match_score: cand.matchPercentage || 80,
+      match_percentage: cand.matchPercentage || 80,
       matched_skills: cand.matchedSkills || [],
       missing_skills: cand.missingSkills || [],
-      agency_id: agencyId || cand.agencyId || null
+      shortlisted: cand.shortlisted || false,
+      agency_id: agencyId || cand.agencyId || null,
+      status: cand.status || 'Applied'
     }]);
   } catch (e) {}
 
@@ -304,10 +287,9 @@ export async function saveCandidateToSupabase(cand, jobId = null, agencyId = nul
 }
 
 /**
- * 3. Get All Candidates (Strictly Tenant Scoped by agencyId & Merged)
+ * Get All Candidates (Strictly Tenant Scoped & Sorted by matchPercentage DESC)
  */
 export async function getAllCandidates(agencyId = null, role = null) {
-  // SUPER_ADMIN MUST NOT access agency candidate business data
   if (role === 'SUPER_ADMIN') {
     return { success: true, candidates: [], error: null };
   }
@@ -330,44 +312,54 @@ export async function getAllCandidates(agencyId = null, role = null) {
           name: c.name,
           email: c.email,
           phone: c.phone || '+91 98765 43210',
+          designation: c.designation || 'Software Engineer',
+          currentCompany: c.current_company || 'Shipgig Ventures',
+          previousCompany: c.previous_company || null,
+          currentCtc: c.current_ctc || 1800000,
+          expectedCtc: c.expected_ctc || 2400000,
           experience: c.experience || '2 Years',
-          noticePeriod: c.notice_period || 'Immediate',
+          noticePeriod: c.notice_period || '30 Days',
           status: c.status || 'Applied',
+          shortlisted: c.shortlisted || false,
           education: c.education || 'Graduate',
           resumeFile: c.resume_path || 'Candidate_Resume.pdf',
           agencyId: c.agency_id || null,
           skills: Array.isArray(c.skills) ? c.skills : [],
           matchedSkills: Array.isArray(c.skills) ? c.skills : [],
           missingSkills: [],
-          matchPercentage: 85,
+          matchPercentage: c.match_percentage || 80,
           appliedJobs: []
         }));
 
-      // MERGE DB candidates with localCands
       const combinedMap = new Map();
       localCands.forEach(c => combinedMap.set(c.id, c));
       dbCandidates.forEach(c => combinedMap.set(c.id, c));
 
-      const mergedCandidates = Array.from(combinedMap.values());
+      const mergedCandidates = Array.from(combinedMap.values()).sort((a, b) => (b.matchPercentage || 0) - (a.matchPercentage || 0));
       setLocalCandidates(mergedCandidates);
 
       return { success: true, candidates: mergedCandidates };
     }
   } catch (err) {}
 
-  return { success: true, candidates: localCands };
+  const sortedLocal = localCands.sort((a, b) => (b.matchPercentage || 0) - (a.matchPercentage || 0));
+  return { success: true, candidates: sortedLocal };
 }
 
 /**
- * 4. Update Candidate Status
+ * Update Candidate Status (Applied -> Screening -> Shortlisted -> Client Shared -> Interview -> Selected -> Rejected)
  */
 export async function updateCandidateStatus(candidateId, newStatus) {
   const localCands = getLocalCandidates();
-  const updated = localCands.map(c => c.id === candidateId ? { ...c, status: newStatus } : c);
+  const updated = localCands.map(c => c.id === candidateId ? { ...c, status: newStatus, shortlisted: newStatus === 'Shortlisted' ? true : c.shortlisted } : c);
   setLocalCandidates(updated);
 
   try {
     await supabase.from('candidates').update({ status: newStatus }).eq('id', candidateId);
+  } catch (e) {}
+
+  try {
+    await supabase.from('applications').update({ status: newStatus, shortlisted: newStatus === 'Shortlisted' }).eq('candidate_id', candidateId);
   } catch (e) {}
 
   return { success: true };

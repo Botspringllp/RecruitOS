@@ -5,14 +5,90 @@ import { supabase } from './supabase.js';
  * Guarantees zero data loss on sign out / page reload. Enforces agency_id scoping.
  */
 
+const DEFAULT_SEED_JOBS = [
+  {
+    id: 'job_python_001',
+    jobTitle: 'Senior Python Developer',
+    jobSummary: 'Seeking an experienced Senior Python Developer proficient in Django, Flask, PostgreSQL, Docker, and REST APIs.',
+    requiredSkills: ['Python', 'Django', 'Flask', 'PostgreSQL', 'Docker', 'REST API', 'Git'],
+    experienceRequired: '3 to 5 Years',
+    location: 'Noida',
+    employmentType: 'Full-Time',
+    status: 'Active',
+    agencyId: 'agency_shipgig_001',
+    createdAt: '2026-09-01',
+    totalUploadedResumes: 3,
+    totalParsedResumes: 3,
+    avgMatchScore: 78,
+    candidates: [
+      {
+        id: 'cand_alok_001',
+        fullName: 'Alok Ranjan',
+        email: 'alok.ranjan@domain.com',
+        phone: '+91 98765 43210',
+        location: 'Noida',
+        totalExperience: '3 Years',
+        education: 'MCA',
+        currentCompany: 'Shipgig Ventures',
+        designation: 'Senior Software Engineer',
+        skills: ['Python', 'Django', 'PostgreSQL', 'Docker', 'REST API', 'Git'],
+        matched_skills: ['Python', 'Django', 'PostgreSQL', 'Docker', 'REST API', 'Git'],
+        missing_skills: ['Flask'],
+        matchPercentage: 86,
+        status: 'Applied',
+        resumeFileName: 'Alok_Ranjan_Resume.pdf'
+      },
+      {
+        id: 'cand_ashok_002',
+        fullName: 'Ashok Chinthapanti',
+        email: 'ashok.c@outlook.com',
+        phone: '+91 98765 12340',
+        location: 'Hyderabad',
+        totalExperience: '8 Years',
+        education: 'B.Tech Computer Science',
+        currentCompany: 'Tech Solutions Ltd',
+        designation: 'Technical Lead',
+        skills: ['Python', 'Django', 'PostgreSQL', 'Docker'],
+        matched_skills: ['Python', 'Django', 'PostgreSQL', 'Docker'],
+        missing_skills: ['Flask', 'REST API', 'Git'],
+        matchPercentage: 57,
+        status: 'Applied',
+        resumeFileName: 'Ashok_Chinthapanti_Resume.pdf'
+      },
+      {
+        id: 'cand_jp_003',
+        fullName: 'Jayaprakash K',
+        email: 'k.j.prakash@outlook.com',
+        phone: '+91 98123 45678',
+        location: 'Chennai',
+        totalExperience: '1 Year',
+        education: 'B.Tech Computer Science',
+        currentCompany: 'Innovate Labs',
+        designation: 'Software Engineer',
+        skills: ['Python', 'Git'],
+        matched_skills: ['Python', 'Git'],
+        missing_skills: ['Django', 'Flask', 'PostgreSQL', 'Docker', 'REST API'],
+        matchPercentage: 29,
+        status: 'Applied',
+        resumeFileName: 'Jayaprakash_K_Resume.pdf'
+      }
+    ]
+  }
+];
+
 function getLocalJobs() {
   try {
     if (typeof localStorage !== 'undefined') {
       const s = localStorage.getItem('recruitos_jobs');
-      if (s) return JSON.parse(s);
+      if (s) {
+        const parsed = JSON.parse(s);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+      localStorage.setItem('recruitos_jobs', JSON.stringify(DEFAULT_SEED_JOBS));
+      return DEFAULT_SEED_JOBS;
     }
   } catch (e) {}
-  return [];
+  return DEFAULT_SEED_JOBS;
 }
 
 function setLocalJobs(jobs) {
@@ -89,7 +165,7 @@ export async function getAllJobs(agencyId = null, role = null) {
       });
     }
 
-    if (!jobsError && Array.isArray(jobsData)) {
+    if (!jobsError && Array.isArray(jobsData) && jobsData.length > 0) {
       const dbJobs = jobsData.map(row => formatSupabaseJobRow(row, appsMap));
 
       // MERGE DB jobs with localJobs so created jobs persist cleanly across sign outs
@@ -181,7 +257,7 @@ export async function createJob(jobData, agencyId = null) {
   localJobs.unshift(newJob);
   setLocalJobs(localJobs);
 
-  // B. Insert into Supabase database (omitting custom string id so PostgreSQL auto-assigns UUID/id)
+  // B. Insert into Supabase database
   try {
     const dbPayload = {
       title: jobData.jobTitle,
