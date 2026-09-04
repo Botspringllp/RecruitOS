@@ -5,6 +5,12 @@ dist/
 .env.local
 .env.production
 
+.env
+.env.example
+
+backend/.env
+backend/.env.example
+
 *.log
 
 tmp_*.mjs
