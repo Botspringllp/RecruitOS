@@ -6,10 +6,24 @@ function getLocalSubmissions() {
   try {
     if (typeof localStorage !== 'undefined') {
       const s = localStorage.getItem('recruitos_submissions');
-      if (s) return JSON.parse(s);
+      if (s) {
+        const parsed = JSON.parse(s);
+        const clean = parsed.filter(sub => 
+          sub && 
+          sub.candidate_name && 
+          sub.candidate_name.toLowerCase() !== 'candidate profile' && 
+          sub.candidate_name.toLowerCase() !== 'candidate'
+        );
+        return clean;
+      }
     }
   } catch (e) {}
-  return LOCAL_SUBMISSIONS_CACHE;
+  return LOCAL_SUBMISSIONS_CACHE.filter(sub => 
+    sub && 
+    sub.candidate_name && 
+    sub.candidate_name.toLowerCase() !== 'candidate profile' && 
+    sub.candidate_name.toLowerCase() !== 'candidate'
+  );
 }
 
 function setLocalSubmissions(subs) {
@@ -90,14 +104,27 @@ export async function getSubmissions(jobId = null, agencyId = null) {
     if (!error && Array.isArray(data)) {
       const map = new Map();
       localList.forEach(s => map.set(s.id, s));
-      data.forEach(s => map.set(s.id, s));
-      const merged = Array.from(map.values());
+      data.forEach(s => {
+        if (s && s.candidate_name && s.candidate_name.toLowerCase() !== 'candidate profile' && s.candidate_name.toLowerCase() !== 'candidate') {
+          map.set(s.id, s);
+        }
+      });
+      const merged = Array.from(map.values()).filter(s => 
+        s && s.candidate_name && s.candidate_name.toLowerCase() !== 'candidate profile' && s.candidate_name.toLowerCase() !== 'candidate'
+      );
       setLocalSubmissions(merged);
-      return merged;
+      return merged.filter(s => (!jobId || s.job_id === jobId) && (!agencyId || s.agency_id === agencyId));
     }
   } catch (err) {}
 
-  return localList.filter(s => (!jobId || s.job_id === jobId) && (!agencyId || s.agency_id === agencyId));
+  return localList.filter(s => 
+    s && 
+    s.candidate_name && 
+    s.candidate_name.toLowerCase() !== 'candidate profile' && 
+    s.candidate_name.toLowerCase() !== 'candidate' && 
+    (!jobId || s.job_id === jobId) && 
+    (!agencyId || s.agency_id === agencyId)
+  );
 }
 
 /**
@@ -119,3 +146,17 @@ export async function getSubmissionByMagicToken(token) {
   const localList = getLocalSubmissions();
   return localList.find(s => s.magic_link_token === token) || null;
 }
+
+/**
+ * Deletes candidate submission record
+ */
+export async function deleteCandidateSubmission(submissionId) {
+  if (!submissionId) return;
+  try {
+    await supabase.from('candidate_submissions').delete().eq('id', submissionId);
+  } catch (err) {}
+
+  const current = getLocalSubmissions().filter(s => s.id !== submissionId);
+  setLocalSubmissions(current);
+}
+

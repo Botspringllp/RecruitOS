@@ -13,7 +13,10 @@ function getLocalCandidates(agencyId = null) {
           cand && 
           cand.id && 
           !cand.id.toString().startsWith('cand_seed_') &&
-          !(cand.name && cand.name.toLowerCase().includes('divyanshu')) &&
+          cand.name && 
+          cand.name.toLowerCase() !== 'candidate profile' &&
+          cand.name.toLowerCase() !== 'candidate' &&
+          !cand.name.toLowerCase().includes('divyanshu') &&
           (!agencyId || !cand.agencyId || cand.agencyId === agencyId)
         );
         return clean;
@@ -21,13 +24,23 @@ function getLocalCandidates(agencyId = null) {
     }
   } catch (e) {}
   return RUNTIME_CANDIDATES_CACHE.filter(cand => 
-    !(cand.name && cand.name.toLowerCase().includes('divyanshu')) &&
+    cand && 
+    cand.name && 
+    cand.name.toLowerCase() !== 'candidate profile' &&
+    cand.name.toLowerCase() !== 'candidate' &&
+    !cand.name.toLowerCase().includes('divyanshu') &&
     (!agencyId || !cand.agencyId || cand.agencyId === agencyId)
   );
 }
 
 function setLocalCandidates(candidates) {
-  const clean = candidates.filter(cand => !(cand.name && cand.name.toLowerCase().includes('divyanshu')));
+  const clean = candidates.filter(cand => 
+    cand && 
+    cand.name && 
+    cand.name.toLowerCase() !== 'candidate profile' && 
+    cand.name.toLowerCase() !== 'candidate' &&
+    !cand.name.toLowerCase().includes('divyanshu')
+  );
   RUNTIME_CANDIDATES_CACHE = clean;
   try {
     if (typeof localStorage !== 'undefined') {
@@ -306,7 +319,7 @@ export async function getAllCandidates(agencyId = null, role = null) {
 
     if (!error && Array.isArray(data)) {
       const dbCandidates = data
-        .filter(c => c && c.name && !c.name.toLowerCase().includes('divyanshu'))
+        .filter(c => c && c.name && c.name.toLowerCase() !== 'candidate profile' && c.name.toLowerCase() !== 'candidate' && !c.name.toLowerCase().includes('divyanshu'))
         .map(c => ({
           id: c.id,
           name: c.name,

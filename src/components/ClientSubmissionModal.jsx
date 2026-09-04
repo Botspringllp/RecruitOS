@@ -1,21 +1,41 @@
 import React, { useState, useEffect } from 'react';
-import { X, Send, Copy, CheckCircle2, Globe, Calendar, Clock, DollarSign, Briefcase, Mail, Link as LinkIcon } from 'lucide-react';
+import { X, Send, Copy, CheckCircle2, Globe, Calendar, Clock, DollarSign, Briefcase, Mail, Link as LinkIcon, Users } from 'lucide-react';
 import { saveCandidateSubmission } from '../services/submissionsService';
 
-export default function ClientSubmissionModal({ candidate, job, currentUser, onClose, onSaved }) {
+export default function ClientSubmissionModal({ candidate, candidates, job, currentUser, onClose, onSaved }) {
+  // Normalize candidates list (support either single candidate or array of selected candidates)
+  const candidateList = candidates && candidates.length > 0 
+    ? candidates 
+    : candidate ? [candidate] : [];
+
+  const [activeCandIndex, setActiveCandIndex] = useState(0);
+  const currentCand = candidateList[activeCandIndex] || candidateList[0] || {};
+
   const [formData, setFormData] = useState({
     source_name: 'Naukri',
     date_of_sourcing: new Date().toISOString().split('T')[0],
     ready_to_relocate: 'Yes',
-    relevant_experience: candidate?.experience || '3 Years',
-    current_salary: candidate?.currentCtc || 1800000,
-    expected_salary: candidate?.expectedCtc || 2400000,
-    notice_period: candidate?.noticePeriod || '30 Days',
+    relevant_experience: currentCand?.experience || '3 Years',
+    current_salary: currentCand?.currentCtc || 1800000,
+    expected_salary: currentCand?.expectedCtc || 2400000,
+    notice_period: currentCand?.noticePeriod || '30 Days',
     reason_for_leaving: 'Career Growth & Skill Expansion',
     offer_in_hand: 'No',
     status: 'Approved',
     last_call_details: 'Candidate interviewed on phone. Good communication and strong technical background.'
   });
+
+  useEffect(() => {
+    if (currentCand) {
+      setFormData(prev => ({
+        ...prev,
+        relevant_experience: currentCand?.experience || prev.relevant_experience || '3 Years',
+        current_salary: currentCand?.currentCtc || prev.current_salary || 1800000,
+        expected_salary: currentCand?.expectedCtc || prev.expected_salary || 2400000,
+        notice_period: currentCand?.noticePeriod || prev.notice_period || '30 Days'
+      }));
+    }
+  }, [activeCandIndex]);
 
   const [isSaving, setIsSaving] = useState(false);
   const [magicLink, setMagicLink] = useState('');
@@ -27,46 +47,58 @@ export default function ClientSubmissionModal({ candidate, job, currentUser, onC
     e?.preventDefault();
     setIsSaving(true);
 
-    const candName = candidate?.fullName || candidate?.name || 'Candidate Profile';
-    const jobTitle = job?.jobTitle || candidate?.designation || 'Software Engineer';
-    const matchScore = candidate?.matchPercentage ?? candidate?.matchScore ?? 85;
-    const matchedList = candidate?.matched_skills || candidate?.matchedSkills || [];
+    const savedRecords = [];
+    const jobTitle = job?.jobTitle || currentCand?.designation || 'Software Engineer';
+    let emailSections = [];
+    let primaryLink = '';
 
-    const submissionRecord = await saveCandidateSubmission({
-      ...formData,
-      agency_id: currentUser?.agencyId || null,
-      job_id: job?.id || candidate?.appliedJobs?.[0]?.jobId || null,
-      candidate_id: candidate?.id,
-      candidate_name: candName,
-      candidate_email: candidate?.email,
-      candidate_phone: candidate?.phone,
-      designation: candidate?.designation || 'Software Engineer',
-      match_percentage: matchScore,
-      matched_skills: matchedList,
-      missing_skills: candidate?.missing_skills || candidate?.missingSkills || []
-    });
+    for (let i = 0; i < candidateList.length; i++) {
+      const cand = candidateList[i];
+      const candName = cand?.fullName || cand?.name || `Candidate #${i+1}`;
+      const matchScore = cand?.matchPercentage ?? cand?.matchScore ?? 85;
+      const matchedList = cand?.matched_skills || cand?.matchedSkills || [];
 
-    const generatedUrl = `${window.location.origin}/#candidate-share/${submissionRecord.magic_link_token}`;
-    setMagicLink(generatedUrl);
+      const submissionRecord = await saveCandidateSubmission({
+        ...formData,
+        agency_id: currentUser?.agencyId || null,
+        job_id: job?.id || cand?.appliedJobs?.[0]?.jobId || null,
+        candidate_id: cand?.id,
+        candidate_name: candName,
+        candidate_email: cand?.email,
+        candidate_phone: cand?.phone,
+        designation: cand?.designation || 'Software Engineer',
+        match_percentage: matchScore,
+        matched_skills: matchedList,
+        missing_skills: cand?.missing_skills || cand?.missingSkills || []
+      });
 
-    // Pre-format Client Email
-    const formattedEmail = `Subject: Candidate Submission: ${candName} - ${jobTitle} (${matchScore}% Match)
+      savedRecords.push(submissionRecord);
+      const candUrl = `${window.location.origin}/#candidate-share/${submissionRecord.magic_link_token}`;
+      if (i === 0) primaryLink = candUrl;
+
+      emailSections.push(
+`CANDIDATE ${i + 1}: ${candName} (${matchScore}% Match)
+- Designation / Role: ${cand?.designation || 'Software Engineer'}
+- Relevant Experience: ${formData.relevant_experience}
+- Current / Expected CTC: ₹${Number(formData.current_salary).toLocaleString('en-IN')} / ₹${Number(formData.expected_salary).toLocaleString('en-IN')}
+- Notice Period: ${formData.notice_period}
+- Relocation: ${formData.ready_to_relocate} | Offer in Hand: ${formData.offer_in_hand}
+- Key Matched Skills: ${matchedList.slice(0, 5).join(', ') || 'N/A'}
+- Secure Profile Link: ${candUrl}`
+      );
+    }
+
+    setMagicLink(primaryLink);
+
+    // Pre-format Unified Client Email for single or multi-candidate selection
+    const isMulti = candidateList.length > 1;
+    const formattedEmail = `Subject: ${isMulti ? `Candidate Submissions (${candidateList.length} Profiles)` : `Candidate Submission: ${candidateList[0]?.name || 'Profile'}`} - ${jobTitle}
 
 Dear Client,
 
-We are pleased to submit the candidate profile of ${candName} for the position of ${jobTitle}.
+We are pleased to submit ${isMulti ? `${candidateList.length} shortlisted candidate profiles` : `the candidate profile of ${candidateList[0]?.name}`} for the position of ${jobTitle}.
 
-CANDIDATE METRICS SUMMARY:
-- Name: ${candName}
-- Total / Relevant Experience: ${candidate?.totalExperience || candidate?.experience || '3 Years'} / ${formData.relevant_experience}
-- Current / Expected CTC: ₹${Number(formData.current_salary).toLocaleString('en-IN')} / ₹${Number(formData.expected_salary).toLocaleString('en-IN')}
-- Notice Period: ${formData.notice_period}
-- Ready to Relocate: ${formData.ready_to_relocate}
-- Offer In Hand: ${formData.offer_in_hand}
-- Match Score: ${matchScore}% (${matchedList.join(', ')})
-
-SECURE MAGIC LINK (No Login Required):
-${generatedUrl}
+${emailSections.join('\n\n--------------------------------------------------\n\n')}
 
 Best regards,
 ${currentUser?.name || 'Recruitment Team'}
@@ -74,7 +106,7 @@ RecruitOS Agency Workspace`;
 
     setEmailText(formattedEmail);
     setIsSaving(false);
-    if (onSaved) onSaved(submissionRecord);
+    if (onSaved) onSaved(savedRecords.length === 1 ? savedRecords[0] : savedRecords);
   };
 
   const copyToClipboard = (text, type) => {
@@ -90,20 +122,51 @@ RecruitOS Agency Workspace`;
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-      <div style={{ background: '#ffffff', width: '100%', maxWidth: 720, maxHeight: '90vh', borderRadius: 16, overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ background: '#ffffff', width: '100%', maxWidth: 740, maxHeight: '90vh', borderRadius: 16, overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column' }}>
         
         {/* Header */}
         <div style={{ padding: '20px 24px', background: '#0f172a', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>Client Submission & Magic Link Generator</h2>
-            <p style={{ fontSize: 12, color: '#94a3b8', margin: '2px 0 0 0' }}>
-              Candidate: <strong>{candidate?.fullName || candidate?.name || 'Candidate Profile'}</strong> • Match Score: <strong>{candidate?.matchPercentage ?? candidate?.matchScore ?? 85}%</strong>
+            <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+              {candidateList.length > 1 && <Users size={20} color="#38bdf8" />}
+              <span>Client Submission & Magic Link Generator</span>
+            </h2>
+            <p style={{ fontSize: 12, color: '#94a3b8', margin: '4px 0 0 0' }}>
+              {candidateList.length > 1 
+                ? `Selected ${candidateList.length} Candidates for Submission to Client`
+                : `Candidate: ${currentCand?.fullName || currentCand?.name || 'Candidate Profile'} • Match Score: ${currentCand?.matchPercentage ?? currentCand?.matchScore ?? 85}%`
+              }
             </p>
           </div>
           <button style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }} onClick={onClose}>
             <X size={20} />
           </button>
         </div>
+
+        {/* Multi Candidate Selection Tabs */}
+        {candidateList.length > 1 && (
+          <div style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', padding: '8px 24px', display: 'flex', gap: 8, overflowX: 'auto' }}>
+            {candidateList.map((c, idx) => (
+              <button
+                key={c.id || idx}
+                onClick={() => setActiveCandIndex(idx)}
+                style={{
+                  padding: '4px 12px',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  borderRadius: 20,
+                  border: activeCandIndex === idx ? '1px solid #2563eb' : '1px solid #cbd5e1',
+                  background: activeCandIndex === idx ? '#eff6ff' : '#ffffff',
+                  color: activeCandIndex === idx ? '#1d4ed8' : '#64748b',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                #{idx + 1} {c.fullName || c.name || `Candidate ${idx+1}`} ({c.matchPercentage || 85}%)
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Body Form */}
         <div style={{ padding: 24, overflowY: 'auto', flex: 1 }}>
@@ -259,7 +322,7 @@ RecruitOS Agency Workspace`;
                 </button>
                 <button type="submit" className="btn btn-primary" style={{ padding: '8px 20px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }} disabled={isSaving}>
                   <Send size={16} />
-                  <span>{isSaving ? 'Generating Link...' : 'Save & Generate Magic Link'}</span>
+                  <span>{isSaving ? 'Generating Links...' : `Save & Generate Magic Link (${candidateList.length})`}</span>
                 </button>
               </div>
             </form>
@@ -269,7 +332,7 @@ RecruitOS Agency Workspace`;
               <div style={{ background: '#f0fdf4', padding: 20, borderRadius: 12, border: '1px solid #bbf7d0', marginBottom: 24 }}>
                 <div style={{ fontSize: 14, fontWeight: 800, color: '#15803d', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
                   <CheckCircle2 size={18} />
-                  <span>Client Magic Link Successfully Generated!</span>
+                  <span>Client Magic Link(s) Successfully Generated!</span>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <input
@@ -284,7 +347,7 @@ RecruitOS Agency Workspace`;
                     onClick={() => copyToClipboard(magicLink, 'link')}
                   >
                     <LinkIcon size={16} />
-                    <span>{copiedLink ? 'Copied!' : 'Copy Link'}</span>
+                    <span>{copiedLink ? 'Copied!' : 'Copy Primary Link'}</span>
                   </button>
                 </div>
               </div>
@@ -307,7 +370,7 @@ RecruitOS Agency Workspace`;
                 <textarea
                   readOnly
                   value={emailText}
-                  style={{ width: '100%', height: 200, padding: 14, fontSize: 12, fontFamily: 'monospace', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, color: '#334155', lineHeight: '1.5' }}
+                  style={{ width: '100%', height: 220, padding: 14, fontSize: 12, fontFamily: 'monospace', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, color: '#334155', lineHeight: '1.5' }}
                 />
               </div>
 

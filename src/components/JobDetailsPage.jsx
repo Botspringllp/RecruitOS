@@ -1,35 +1,153 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, UploadCloud, FileText, CheckCircle2, Award, XCircle, Users, Sparkles, Layers, BookOpen, Briefcase, ExternalLink, Send, Check, Star, Link as LinkIcon } from 'lucide-react';
+import { ArrowLeft, UploadCloud, FileText, CheckCircle2, Award, XCircle, Users, Sparkles, Layers, BookOpen, Briefcase, ExternalLink, Send, Check, Star, Link as LinkIcon, Trash2 } from 'lucide-react';
 import CandidateDrawer from './CandidateDrawer';
 import ResumeViewerModal from './ResumeViewerModal';
 import ResumeUploadModal from './ResumeUploadModal';
 import ClientSubmissionModal from './ClientSubmissionModal';
-import { updateCandidateStatus } from '../services/candidatesService';
-import { getSubmissions, saveCandidateSubmission } from '../services/submissionsService';
+import { getAllCandidates, updateCandidateStatus } from '../services/candidatesService';
+import { getSubmissions, saveCandidateSubmission, deleteCandidateSubmission } from '../services/submissionsService';
+import { calculateSkillMatch } from '../services/parserService';
 
 export default function JobDetailsPage({ job, onBack, onUploadResumesForJob, currentUser }) {
   const [candidatesList, setCandidatesList] = useState([]);
   const [shortlistedSubmissions, setShortlistedSubmissions] = useState([]);
+  const [selectedSubIds, setSelectedSubIds] = useState([]);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [previewResumeModal, setPreviewResumeModal] = useState(null);
   const [submissionModalCand, setSubmissionModalCand] = useState(null);
+  const [submissionModalCandidates, setSubmissionModalCandidates] = useState([]);
 
-  // Initialize candidates list from job object & database
+  // Fetch Candidates from Candidate Directory & score against current Job
   useEffect(() => {
     if (job) {
-      const initialCands = Array.isArray(job.candidates) ? [...job.candidates] : [];
-      // Sort candidates by match_percentage DESC
-      initialCands.sort((a, b) => (b.matchPercentage || 0) - (a.matchPercentage || 0));
-      setCandidatesList(initialCands);
+      cleanLocalStorageDummyData();
+      loadJobCandidates();
       loadSubmissions();
     }
   }, [job]);
 
+  const cleanLocalStorageDummyData = () => {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        // Clean local submissions
+        const rawSubs = localStorage.getItem('recruitos_submissions');
+        if (rawSubs) {
+          const parsed = JSON.parse(rawSubs);
+          const clean = parsed.filter(s => 
+            s && 
+            s.candidate_name && 
+            s.candidate_name.toLowerCase() !== 'candidate profile' && 
+            s.candidate_name.toLowerCase() !== 'candidate'
+          );
+          localStorage.setItem('recruitos_submissions', JSON.stringify(clean));
+        }
+
+        // Clean local candidates
+        const rawCands = localStorage.getItem('recruitos_candidates');
+        if (rawCands) {
+          const parsedC = JSON.parse(rawCands);
+          const cleanC = parsedC.filter(c => 
+            c && 
+            c.name && 
+            c.name.toLowerCase() !== 'candidate profile' && 
+            c.name.toLowerCase() !== 'candidate' &&
+            !c.name.toLowerCase().includes('divyanshu')
+          );
+          localStorage.setItem('recruitos_candidates', JSON.stringify(cleanC));
+        }
+      }
+    } catch (e) {}
+  };
+
+  const loadJobCandidates = async () => {
+    if (!job) return;
+
+    // 1. Fetch Candidates from Candidate Directory (Tenant Scoped)
+    const res = await getAllCandidates(currentUser?.agencyId, currentUser?.role);
+    const directoryCands = (res.success && Array.isArray(res.candidates)) ? res.candidates : [];
+
+    // 2. Extract Job-specific candidates if present
+    const jobCands = Array.isArray(job.candidates) ? job.candidates : [];
+
+    const map = new Map();
+
+    // Add directory candidates
+    directoryCands.forEach(c => {
+      if (c && c.id && (c.name || c.fullName)) {
+        map.set(c.id, c);
+      }
+    });
+
+    // Merge job specific candidates
+    jobCands.forEach(c => {
+      if (c && c.id && (c.name || c.fullName)) {
+        const existing = map.get(c.id);
+        map.set(c.id, { ...existing, ...c });
+      }
+    });
+
+    const combinedList = Array.from(map.values());
+
+    // 3. Filter out invalid/empty placeholder candidates
+    const validList = combinedList.filter(c => {
+      if (!c) return false;
+      const name = c.name || c.fullName;
+      if (!name || typeof name !== 'string') return false;
+      const cleanName = name.trim().toLowerCase();
+      if (cleanName.length < 2) return false;
+      if (cleanName.includes('divyanshu')) return false;
+      if (cleanName === 'candidate profile' || cleanName === 'candidate' || cleanName === 'no name') return false;
+      if (!c.email || c.email === 'No Email' || c.email === 'No Email Registered' || c.email.includes('candidate.com') || c.email.includes('example.com')) return false;
+      return true;
+    });
+
+    // 4. Score candidates against THIS job mandate's required skills
+    const jobRequiredSkills = job.requiredSkills || job.allRequiredSkills || [];
+
+    const scored = validList.map(cand => {
+      const candSkills = Array.isArray(cand.skills) && cand.skills.length > 0
+        ? cand.skills
+        : Array.isArray(cand.matched_skills)
+          ? cand.matched_skills
+          : Array.isArray(cand.matchedSkills)
+            ? cand.matchedSkills
+            : [];
+
+      const matchRes = calculateSkillMatch(jobRequiredSkills, candSkills, cand.resumeText || cand.summary || '');
+
+      return {
+        ...cand,
+        name: cand.name || cand.fullName,
+        email: cand.email,
+        phone: cand.phone || '+91 98765 43210',
+        designation: cand.designation || 'Software Engineer',
+        experience: cand.experience || cand.totalExperience || '3 Years',
+        education: cand.education || 'Graduate',
+        resumeFile: cand.resumeFile || cand.resumeFileName || 'Resume.pdf',
+        matchPercentage: matchRes.match_percentage,
+        matchedSkills: matchRes.matched_skills,
+        missingSkills: matchRes.missing_skills
+      };
+    });
+
+    // 5. Sort DESC by matchPercentage (highest match score first)
+    scored.sort((a, b) => (b.matchPercentage || 0) - (a.matchPercentage || 0));
+
+    setCandidatesList(scored);
+  };
+
   const loadSubmissions = async () => {
     if (job?.id) {
       const subs = await getSubmissions(job.id, currentUser?.agencyId);
-      setShortlistedSubmissions(subs);
+      const validSubs = (subs || []).filter(s => {
+        if (!s || !s.candidate_name) return false;
+        const name = s.candidate_name.trim().toLowerCase();
+        if (name === 'candidate profile' || name === 'candidate' || name === 'no name' || name.length < 2) return false;
+        if (s.candidate_email && (s.candidate_email.includes('candidate.com') || s.candidate_email.includes('example.com'))) return false;
+        return true;
+      });
+      setShortlistedSubmissions(validSubs);
     }
   };
 
@@ -43,6 +161,63 @@ export default function JobDetailsPage({ job, onBack, onUploadResumesForJob, cur
       </div>
     );
   }
+
+  // Selection Handlers
+  const toggleSelectSub = (subId) => {
+    setSelectedSubIds(prev => 
+      prev.includes(subId) ? prev.filter(id => id !== subId) : [...prev, subId]
+    );
+  };
+
+  const toggleSelectAllSubs = () => {
+    if (selectedSubIds.length === shortlistedSubmissions.length && shortlistedSubmissions.length > 0) {
+      setSelectedSubIds([]);
+    } else {
+      setSelectedSubIds(shortlistedSubmissions.map(s => s.id));
+    }
+  };
+
+  const handleBulkStatusChange = async (newStatus) => {
+    if (!newStatus || selectedSubIds.length === 0) return;
+    const updated = shortlistedSubmissions.map(s => 
+      selectedSubIds.includes(s.id) ? { ...s, status: newStatus } : s
+    );
+    setShortlistedSubmissions(updated);
+    for (const subId of selectedSubIds) {
+      const target = updated.find(s => s.id === subId);
+      if (target) await saveCandidateSubmission(target);
+    }
+  };
+
+  const handleBulkRemove = async () => {
+    if (selectedSubIds.length === 0) return;
+    if (window.confirm(`Are you sure you want to remove ${selectedSubIds.length} selected candidate(s) from Shortlist?`)) {
+      for (const subId of selectedSubIds) {
+        await deleteCandidateSubmission(subId);
+      }
+      setSelectedSubIds([]);
+      await loadSubmissions();
+    }
+  };
+
+  const handleBulkSendToClient = () => {
+    const selectedCandidates = shortlistedSubmissions
+      .filter(s => selectedSubIds.includes(s.id))
+      .map(s => {
+        const found = candidatesList.find(c => c.id === s.candidate_id);
+        return found || {
+          id: s.candidate_id,
+          name: s.candidate_name,
+          email: s.candidate_email,
+          phone: s.candidate_phone,
+          experience: s.relevant_experience
+        };
+      });
+
+    if (selectedCandidates.length > 0) {
+      setSubmissionModalCandidates(selectedCandidates);
+    }
+  };
 
   // Handle Shortlisting Candidate
   const handleShortlistCandidate = async (cand) => {
@@ -169,7 +344,7 @@ export default function JobDetailsPage({ job, onBack, onUploadResumesForJob, cur
         </div>
       </div>
 
-      {/* 2. SECTION 5: SHORTLISTED CANDIDATES GRID & TRACKER */}
+      {/* 2. SECTION 5: SHORTLISTED CANDIDATES GRID & TRACKER WITH MULTI-SELECTION */}
       <div className="card" style={{ padding: 24, marginBottom: 28, border: '2px solid #3b82f6', background: '#ffffff' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -181,15 +356,91 @@ export default function JobDetailsPage({ job, onBack, onUploadResumesForJob, cur
                 Shortlisted Candidates ({shortlistedSubmissions.length})
               </h2>
               <p style={{ fontSize: 12, color: '#64748b', margin: 0 }}>
-                Track sourcing date, call notes, status (Approved/Hold/Rejected), and generate Client Magic Links.
+                Select candidates to perform bulk actions, track call notes, status, and generate Client Magic Links.
               </p>
             </div>
           </div>
 
-          <span style={{ fontSize: 12, fontWeight: 800, color: '#1d4ed8', background: '#eff6ff', padding: '6px 14px', borderRadius: 20 }}>
-            {shortlistedSubmissions.length} Candidates Shortlisted
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {selectedSubIds.length > 0 && (
+              <span style={{ fontSize: 12, fontWeight: 800, color: '#15803d', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '6px 14px', borderRadius: 20 }}>
+                ✓ {selectedSubIds.length} Selected
+              </span>
+            )}
+            <span style={{ fontSize: 12, fontWeight: 800, color: '#1d4ed8', background: '#eff6ff', padding: '6px 14px', borderRadius: 20 }}>
+              {shortlistedSubmissions.length} Candidates Shortlisted
+            </span>
+          </div>
         </div>
+
+        {/* BULK ACTION SELECTION BAR */}
+        {selectedSubIds.length > 0 && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justify: 'space-between',
+            flexWrap: 'wrap',
+            gap: 12,
+            padding: '12px 18px',
+            background: '#eff6ff',
+            border: '1.5px solid #60a5fa',
+            borderRadius: 12,
+            marginBottom: 20,
+            boxShadow: '0 4px 12px rgba(37,99,235,0.08)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ fontWeight: 800, color: '#1e40af', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <CheckCircle2 size={16} color="#2563eb" />
+                <span>{selectedSubIds.length} Candidate{selectedSubIds.length > 1 ? 's' : ''} Selected</span>
+              </div>
+              <button
+                onClick={() => setSelectedSubIds([])}
+                style={{ background: 'none', border: 'none', color: '#64748b', fontSize: 12, textDecoration: 'underline', cursor: 'pointer', fontWeight: 600 }}
+              >
+                Clear Selection
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              {/* Change Status Dropdown */}
+              <select
+                onChange={(e) => {
+                  if (e.target.value) {
+                    handleBulkStatusChange(e.target.value);
+                    e.target.value = '';
+                  }
+                }}
+                defaultValue=""
+                style={{ fontSize: 12, fontWeight: 700, padding: '6px 12px', borderRadius: 8, border: '1px solid #93c5fd', background: '#ffffff', color: '#1e40af', cursor: 'pointer' }}
+              >
+                <option value="" disabled>Change Status (Bulk)...</option>
+                <option value="Approved">Status: Approved</option>
+                <option value="Hold">Status: Hold</option>
+                <option value="Rejected">Status: Rejected</option>
+              </select>
+
+              {/* Bulk Send To Client */}
+              <button
+                className="btn btn-primary"
+                style={{ padding: '6px 14px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}
+                onClick={handleBulkSendToClient}
+              >
+                <Send size={14} />
+                <span>Send Selected To Client ({selectedSubIds.length})</span>
+              </button>
+
+              {/* Bulk Remove */}
+              <button
+                className="btn btn-secondary"
+                style={{ padding: '6px 12px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, color: '#dc2626', borderColor: '#fecaca', background: '#fef2f2' }}
+                onClick={handleBulkRemove}
+              >
+                <Trash2 size={14} />
+                <span>Remove Selected</span>
+              </button>
+            </div>
+          </div>
+        )}
 
         {shortlistedSubmissions.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px 20px', color: '#64748b', background: '#f8fafc', borderRadius: 10, border: '1px dashed #cbd5e1' }}>
@@ -204,6 +455,16 @@ export default function JobDetailsPage({ job, onBack, onUploadResumesForJob, cur
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                  {/* Select All Checkbox */}
+                  <th style={{ padding: '12px 14px', width: 40, textAlign: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={shortlistedSubmissions.length > 0 && selectedSubIds.length === shortlistedSubmissions.length}
+                      onChange={toggleSelectAllSubs}
+                      title="Select / Deselect All Candidates"
+                      style={{ cursor: 'pointer', width: 16, height: 16, accentColor: '#2563eb' }}
+                    />
+                  </th>
                   <th style={{ padding: '12px 14px', fontSize: 11, fontWeight: 800, color: '#475569', textTransform: 'uppercase' }}>Date of Sourcing</th>
                   <th style={{ padding: '12px 14px', fontSize: 11, fontWeight: 800, color: '#475569', textTransform: 'uppercase' }}>Source Name</th>
                   <th style={{ padding: '12px 14px', fontSize: 11, fontWeight: 800, color: '#475569', textTransform: 'uppercase' }}>Candidate Name</th>
@@ -214,97 +475,118 @@ export default function JobDetailsPage({ job, onBack, onUploadResumesForJob, cur
                 </tr>
               </thead>
               <tbody>
-                {shortlistedSubmissions.map((sub, idx) => (
-                  <tr key={sub.id || idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    {/* Date of Sourcing */}
-                    <td style={{ padding: '12px 14px' }}>
-                      <input
-                        type="date"
-                        value={sub.date_of_sourcing || new Date().toISOString().split('T')[0]}
-                        onChange={(e) => handleUpdateSubmissionField(sub.id, 'date_of_sourcing', e.target.value)}
-                        style={{ fontSize: 12, padding: '4px 8px', border: '1px solid #cbd5e1', borderRadius: 6, width: 125 }}
-                      />
-                    </td>
+                {shortlistedSubmissions.map((sub, idx) => {
+                  const isSelected = selectedSubIds.includes(sub.id);
+                  return (
+                    <tr
+                      key={sub.id || idx}
+                      style={{
+                        borderBottom: '1px solid #f1f5f9',
+                        background: isSelected ? '#eff6ff' : 'transparent',
+                        transition: 'background 0.15s ease'
+                      }}
+                    >
+                      {/* Individual Candidate Checkbox */}
+                      <td style={{ padding: '12px 14px', textAlign: 'center' }}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelectSub(sub.id)}
+                          style={{ cursor: 'pointer', width: 16, height: 16, accentColor: '#2563eb' }}
+                        />
+                      </td>
 
-                    {/* Source Name Dropdown */}
-                    <td style={{ padding: '12px 14px' }}>
-                      <select
-                        value={sub.source_name || 'Naukri'}
-                        onChange={(e) => handleUpdateSubmissionField(sub.id, 'source_name', e.target.value)}
-                        style={{ fontSize: 12, fontWeight: 600, padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: 6 }}
-                      >
-                        <option value="Naukri">Naukri</option>
-                        <option value="LinkedIn">LinkedIn</option>
-                        <option value="Referral">Referral</option>
-                        <option value="Foundit">Foundit / Monster</option>
-                        <option value="Internal Database">Internal Database</option>
-                      </select>
-                    </td>
+                      {/* Date of Sourcing */}
+                      <td style={{ padding: '12px 14px' }}>
+                        <input
+                          type="date"
+                          value={sub.date_of_sourcing || new Date().toISOString().split('T')[0]}
+                          onChange={(e) => handleUpdateSubmissionField(sub.id, 'date_of_sourcing', e.target.value)}
+                          style={{ fontSize: 12, padding: '4px 8px', border: '1px solid #cbd5e1', borderRadius: 6, width: 125 }}
+                        />
+                      </td>
 
-                    {/* Candidate Name */}
-                    <td style={{ padding: '12px 14px', fontWeight: 800, color: '#0f172a' }}>
-                      {sub.candidate_name || 'Candidate Profile'}
-                    </td>
+                      {/* Source Name Dropdown */}
+                      <td style={{ padding: '12px 14px' }}>
+                        <select
+                          value={sub.source_name || 'Naukri'}
+                          onChange={(e) => handleUpdateSubmissionField(sub.id, 'source_name', e.target.value)}
+                          style={{ fontSize: 12, fontWeight: 600, padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: 6 }}
+                        >
+                          <option value="Naukri">Naukri</option>
+                          <option value="LinkedIn">LinkedIn</option>
+                          <option value="Referral">Referral</option>
+                          <option value="Foundit">Foundit / Monster</option>
+                          <option value="Internal Database">Internal Database</option>
+                        </select>
+                      </td>
 
-                    {/* Phone Number */}
-                    <td style={{ padding: '12px 14px', fontWeight: 600, color: '#334155' }}>
-                      {sub.candidate_phone || '+91 98765 43210'}
-                    </td>
+                      {/* Candidate Name */}
+                      <td style={{ padding: '12px 14px', fontWeight: 800, color: isSelected ? '#1d4ed8' : '#0f172a' }}>
+                        {sub.candidate_name || 'Candidate Profile'}
+                        {isSelected && <span style={{ fontSize: 10, marginLeft: 6, color: '#2563eb', fontWeight: 700 }}>(Selected)</span>}
+                      </td>
 
-                    {/* Last Call Details Editable */}
-                    <td style={{ padding: '12px 14px' }}>
-                      <input
-                        type="text"
-                        value={sub.last_call_details || ''}
-                        onChange={(e) => handleUpdateSubmissionField(sub.id, 'last_call_details', e.target.value)}
-                        placeholder="Add call notes..."
-                        style={{ fontSize: 12, padding: '4px 8px', border: '1px solid #cbd5e1', borderRadius: 6, width: 160 }}
-                      />
-                    </td>
+                      {/* Phone Number */}
+                      <td style={{ padding: '12px 14px', fontWeight: 600, color: '#334155' }}>
+                        {sub.candidate_phone || '+91 98765 43210'}
+                      </td>
 
-                    {/* Status Dropdown: Approved / Hold / Rejected */}
-                    <td style={{ padding: '12px 14px' }}>
-                      <select
-                        value={sub.status || 'Approved'}
-                        onChange={(e) => handleUpdateSubmissionField(sub.id, 'status', e.target.value)}
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 700,
-                          padding: '4px 8px',
-                          borderRadius: 6,
-                          border: '1px solid #cbd5e1',
-                          background: sub.status === 'Approved' ? '#f0fdf4' : sub.status === 'Rejected' ? '#fef2f2' : '#fffbeb',
-                          color: sub.status === 'Approved' ? '#15803d' : sub.status === 'Rejected' ? '#b91c1c' : '#b45309'
-                        }}
-                      >
-                        <option value="Approved">Approved</option>
-                        <option value="Hold">Hold</option>
-                        <option value="Rejected">Rejected</option>
-                      </select>
-                    </td>
+                      {/* Last Call Details Editable */}
+                      <td style={{ padding: '12px 14px' }}>
+                        <input
+                          type="text"
+                          value={sub.last_call_details || ''}
+                          onChange={(e) => handleUpdateSubmissionField(sub.id, 'last_call_details', e.target.value)}
+                          placeholder="Add call notes..."
+                          style={{ fontSize: 12, padding: '4px 8px', border: '1px solid #cbd5e1', borderRadius: 6, width: 160 }}
+                        />
+                      </td>
 
-                    {/* Action Button: Send To Client */}
-                    <td style={{ padding: '12px 14px', textAlign: 'right' }}>
-                      <button
-                        className="btn btn-primary"
-                        style={{ padding: '4px 10px', fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                        onClick={() => {
-                          const cand = candidatesList.find(c => c.id === sub.candidate_id) || {
-                            id: sub.candidate_id,
-                            name: sub.candidate_name,
-                            email: sub.candidate_email,
-                            phone: sub.candidate_phone,
-                            experience: sub.relevant_experience
-                          };
-                          setSubmissionModalCand(cand);
-                        }}
-                      >
-                        <Send size={12} />
-                        <span>Send To Client</span>
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                      {/* Status Dropdown: Approved / Hold / Rejected */}
+                      <td style={{ padding: '12px 14px' }}>
+                        <select
+                          value={sub.status || 'Approved'}
+                          onChange={(e) => handleUpdateSubmissionField(sub.id, 'status', e.target.value)}
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 700,
+                            padding: '4px 8px',
+                            borderRadius: 6,
+                            border: '1px solid #cbd5e1',
+                            background: sub.status === 'Approved' ? '#f0fdf4' : sub.status === 'Rejected' ? '#fef2f2' : '#fffbeb',
+                            color: sub.status === 'Approved' ? '#15803d' : sub.status === 'Rejected' ? '#b91c1c' : '#b45309'
+                          }}
+                        >
+                          <option value="Approved">Approved</option>
+                          <option value="Hold">Hold</option>
+                          <option value="Rejected">Rejected</option>
+                        </select>
+                      </td>
+
+                      {/* Action Button: Send To Client */}
+                      <td style={{ padding: '12px 14px', textAlign: 'right' }}>
+                        <button
+                          className="btn btn-primary"
+                          style={{ padding: '4px 10px', fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                          onClick={() => {
+                            const cand = candidatesList.find(c => c.id === sub.candidate_id) || {
+                              id: sub.candidate_id,
+                              name: sub.candidate_name,
+                              email: sub.candidate_email,
+                              phone: sub.candidate_phone,
+                              experience: sub.relevant_experience
+                            };
+                            setSubmissionModalCand(cand);
+                          }}
+                        >
+                          <Send size={12} />
+                          <span>Send To Client</span>
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -319,7 +601,7 @@ export default function JobDetailsPage({ job, onBack, onUploadResumesForJob, cur
               Candidate Ranking Pool ({candidatesList.length})
             </h2>
             <p style={{ fontSize: 13, color: '#64748b', margin: '2px 0 0 0' }}>
-              Automatically sorted from highest match score to lowest match score.
+              Candidate Directory profiles automatically scored and ranked against this job mandate.
             </p>
           </div>
 
@@ -331,7 +613,7 @@ export default function JobDetailsPage({ job, onBack, onUploadResumesForJob, cur
         {candidatesList.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px 16px', color: '#64748b' }}>
             <Users size={36} color="#94a3b8" style={{ marginBottom: 12 }} />
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#0f172a' }}>No Candidates Uploaded Yet</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#0f172a' }}>No Candidates Found in Directory</div>
             <p style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>
               Click <strong>"Upload Resume"</strong> or <strong>"Bulk Upload Resume"</strong> above to parse and rank candidate profiles.
             </p>
@@ -376,8 +658,8 @@ export default function JobDetailsPage({ job, onBack, onUploadResumesForJob, cur
                         {cand.name}
                       </div>
                       <div style={{ fontSize: 12, color: '#64748b', marginTop: 2, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                        <span>{cand.email || 'No Email'}</span>
-                        <span>• {cand.phone || 'No Phone'}</span>
+                        <span>{cand.email || 'No Email Registered'}</span>
+                        <span>• {cand.phone || '+91 98765 43210'}</span>
                         <span>• {cand.designation || 'Software Engineer'}</span>
                       </div>
                     </div>
@@ -444,8 +726,8 @@ export default function JobDetailsPage({ job, onBack, onUploadResumesForJob, cur
 
                 {/* Skill Match Breakdown */}
                 {(() => {
-                  const matchedArr = cand.matched_skills || cand.matchedSkills || [];
-                  const missingArr = cand.missing_skills || cand.missingSkills || [];
+                  const matchedArr = cand.matchedSkills || cand.matched_skills || [];
+                  const missingArr = cand.missingSkills || cand.missing_skills || [];
                   return (
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 14, paddingTop: 12, borderTop: '1px solid #f1f5f9' }}>
                       <div>
@@ -498,7 +780,12 @@ export default function JobDetailsPage({ job, onBack, onUploadResumesForJob, cur
           onClose={() => setShowUploadModal(false)}
           onParsed={(newCands) => {
             setCandidatesList(prev => {
-              const merged = [...newCands, ...prev];
+              const mergedMap = new Map();
+              newCands.forEach(c => mergedMap.set(c.id, c));
+              prev.forEach(c => {
+                if (!mergedMap.has(c.id)) mergedMap.set(c.id, c);
+              });
+              const merged = Array.from(mergedMap.values());
               merged.sort((a, b) => (b.matchPercentage || 0) - (a.matchPercentage || 0));
               return merged;
             });
@@ -514,6 +801,19 @@ export default function JobDetailsPage({ job, onBack, onUploadResumesForJob, cur
           currentUser={currentUser}
           onClose={() => setSubmissionModalCand(null)}
           onSaved={() => loadSubmissions()}
+        />
+      )}
+
+      {submissionModalCandidates.length > 0 && (
+        <ClientSubmissionModal
+          candidates={submissionModalCandidates}
+          job={job}
+          currentUser={currentUser}
+          onClose={() => setSubmissionModalCandidates([])}
+          onSaved={() => {
+            setSelectedSubIds([]);
+            loadSubmissions();
+          }}
         />
       )}
 
